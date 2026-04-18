@@ -6,6 +6,7 @@ import Home from './pages/Home.jsx'
 import Timer from './pages/Timer.jsx'
 import Sessions from './pages/Sessions.jsx'
 import Resources from './pages/Resources.jsx'
+import Courses from './pages/Courses.jsx'
 import Login from './pages/Login.jsx'
 
 function Layout() {
@@ -22,6 +23,7 @@ function Layout() {
             <Route path="/timer" element={<ProtectedRoute><Timer /></ProtectedRoute>} />
             <Route path="/sessions" element={<ProtectedRoute><Sessions /></ProtectedRoute>} />
             <Route path="/resources" element={<ProtectedRoute><Resources /></ProtectedRoute>} />
+            <Route path="/courses" element={<ProtectedRoute><Courses /></ProtectedRoute>} />
           </Routes>
         </div>
       </main>
