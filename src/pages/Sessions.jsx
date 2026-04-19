@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { supabase } from '../lib/supabase.js'
 
@@ -80,7 +80,16 @@ export default function Sessions() {
 
   return (
     <div className="px-4 pt-8 pb-8 space-y-5">
-      <h1 className="text-2xl font-bold" style={{ color: '#e8e8ec' }}>Log Session</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold" style={{ color: '#e8e8ec' }}>Log Session</h1>
+        <Link
+          to="/quiz"
+          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl font-medium"
+          style={{ backgroundColor: '#1a1a1e', color: '#e8e8ec', border: '1px solid #2a2a30' }}
+        >
+          🧪 Quiz
+        </Link>
+      </div>
 
       {/* Course */}
       <Field label="Course *">
