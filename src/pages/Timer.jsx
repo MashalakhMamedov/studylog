@@ -1,16 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext.jsx'
-import { supabase } from '../lib/supabase.js'
-
-// Wall-clock based format — never drifts even when tab is backgrounded
-function fmtTime(s) {
-  const h = Math.floor(s / 3600)
-  const m = Math.floor((s % 3600) / 60)
-  const sec = s % 60
-  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
-  return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
-}
+import { useTimer, fmtTime } from '../context/TimerContext.jsx'
 
 function fmtMinutes(seconds) {
   const m = Math.round(seconds / 60)
@@ -19,47 +9,19 @@ function fmtMinutes(seconds) {
 }
 
 export default function Timer() {
-  const { session } = useAuth()
   const navigate = useNavigate()
-
-  const [courses, setCourses] = useState([])
-  const [allResources, setAllResources] = useState([])
-
-  const [phase, setPhase] = useState('setup') // 'setup' | 'running' | 'finish'
-  const [courseId, setCourseId] = useState('')
-  const [resourceId, setResourceId] = useState('')
-
-  const [totalSeconds, setTotalSeconds] = useState(0)
-  const [running, setRunning] = useState(false)
-  // Refs hold timing state — immune to React render scheduling and tab throttling
-  const accumulatedRef = useRef(0)
-  const startTsRef = useRef(null)
-  const intervalRef = useRef(null)
-
-  // Each segment: { course_id, resource_id|null, courseName, courseEmoji, courseColor, resourceName|null, startSeconds }
-  const [segments, setSegments] = useState([])
-
-  const [showSwap, setShowSwap] = useState(false)
-  const [swapCourseId, setSwapCourseId] = useState('')
-  const [swapResourceId, setSwapResourceId] = useState('')
-
-  const [showFinish, setShowFinish] = useState(false)
-  const [finishForm, setFinishForm] = useState({ pages_covered: '', notes: '' })
-  const [saving, setSaving] = useState(false)
-
-  const [showDiscard, setShowDiscard] = useState(false)
-  const [toast, setToast] = useState(false)
-
-  useEffect(() => {
-    Promise.all([
-      supabase.from('courses').select('id, name, emoji, color').order('name'),
-      supabase.from('resources').select('id, course_id, name').order('name'),
-    ]).then(([{ data: c }, { data: r }]) => {
-      if (c) setCourses(c)
-      if (r) setAllResources(r)
-    })
-    return () => clearInterval(intervalRef.current)
-  }, [])
+  const {
+    courses, allResources,
+    phase, courseId, setCourseId, resourceId, setResourceId,
+    totalSeconds, running,
+    segments,
+    showSwap, setShowSwap, swapCourseId, setSwapCourseId, swapResourceId, setSwapResourceId,
+    showFinish, setShowFinish, finishForm, setFinishForm, saving,
+    showDiscard, setShowDiscard,
+    toast, setToast,
+    startClock, pauseClock,
+    startSession, openSwap, confirmSwap, openFinish, submitFinish, resetAll,
+  } = useTimer()
 
   useEffect(() => {
     if (!toast) return
@@ -67,109 +29,12 @@ export default function Timer() {
     return () => clearTimeout(t)
   }, [toast])
 
-  // ── Timing primitives (imperative, no useEffect dependency) ──────────────
-
-  function startClock() {
-    startTsRef.current = Date.now()
-    intervalRef.current = setInterval(() => {
-      setTotalSeconds(accumulatedRef.current + Math.floor((Date.now() - startTsRef.current) / 1000))
-    }, 500)
-    setRunning(true)
-  }
-
-  function pauseClock() {
-    clearInterval(intervalRef.current)
-    accumulatedRef.current += Math.floor((Date.now() - startTsRef.current) / 1000)
-    setTotalSeconds(accumulatedRef.current)
-    setRunning(false)
-  }
-
-  // ── Session actions ──────────────────────────────────────────────────────
-
-  function startSession() {
-    const course = courses.find(c => c.id === courseId)
-    const resource = allResources.find(r => r.id === resourceId)
-    setSegments([{
-      course_id: course.id, resource_id: resource?.id ?? null,
-      courseName: course.name, courseEmoji: course.emoji, courseColor: course.color,
-      resourceName: resource?.name ?? null, startSeconds: 0,
-    }])
-    accumulatedRef.current = 0
-    setTotalSeconds(0)
-    setPhase('running')
-    startClock()
-  }
-
-  function openSwap() {
-    const cur = segments[segments.length - 1]
-    setSwapCourseId(cur.course_id)
-    setSwapResourceId(cur.resource_id ?? '')
-    setShowSwap(true)
-  }
-
-  function confirmSwap() {
-    const course = courses.find(c => c.id === swapCourseId)
-    const resource = allResources.find(r => r.id === swapResourceId)
-    // Snapshot totalSeconds at swap moment — computed from wall clock so it's accurate even if throttled
-    const snapSeconds = accumulatedRef.current + (running ? Math.floor((Date.now() - startTsRef.current) / 1000) : 0)
-    setSegments(prev => [...prev, {
-      course_id: course.id, resource_id: resource?.id ?? null,
-      courseName: course.name, courseEmoji: course.emoji, courseColor: course.color,
-      resourceName: resource?.name ?? null, startSeconds: snapSeconds,
-    }])
-    setShowSwap(false)
-  }
-
-  function openFinish() {
-    if (running) pauseClock()
-    setFinishForm({ pages_covered: '', notes: '' })
-    setShowFinish(true)
-  }
-
-  async function submitFinish() {
-    setSaving(true)
-    const date = new Date().toISOString().split('T')[0]
-    const rows = segments.map((seg, i) => {
-      const endSec = i < segments.length - 1 ? segments[i + 1].startSeconds : totalSeconds
-      return {
-        user_id: session.user.id,
-        course_id: seg.course_id,
-        resource_id: seg.resource_id ?? null,
-        duration_minutes: Math.max(1, Math.round((endSec - seg.startSeconds) / 60)),
-        pages_covered: finishForm.pages_covered.trim() || null,
-        notes: finishForm.notes.trim() || null,
-        date,
-      }
-    })
-    const { error } = await supabase.from('sessions').insert(rows)
-    setSaving(false)
-    if (!error) { resetAll(); setToast(true) }
-  }
-
-  function resetAll() {
-    clearInterval(intervalRef.current)
-    accumulatedRef.current = 0
-    startTsRef.current = null
-    setTotalSeconds(0)
-    setRunning(false)
-    setSegments([])
-    setPhase('setup')
-    setShowFinish(false)
-    setShowSwap(false)
-    setShowDiscard(false)
-  }
-
-  // ── Derived ──────────────────────────────────────────────────────────────
-
   const currentSeg = segments[segments.length - 1]
   const setupResources = allResources.filter(r => r.course_id === courseId)
   const swapResources = allResources.filter(r => r.course_id === swapCourseId)
 
-  // ── Render ───────────────────────────────────────────────────────────────
-
   return (
-    <div className="px-4 pt-8 pb-6">
-      <h1 className="text-2xl font-bold mb-6" style={{ color: '#e8e8ec' }}>Focus Timer</h1>
+    <div className="page-enter px-4 pt-6 pb-6">
 
       {phase === 'setup' && (
         <SetupView
@@ -244,7 +109,7 @@ function SetupView({ courses, resources, courseId, resourceId, onCourseChange, o
           value={courseId}
           onChange={e => onCourseChange(e.target.value)}
           className="h-11 px-3 rounded-xl text-sm w-full outline-none"
-          style={{ backgroundColor: '#1a1a1e', border: '1px solid #2a2a30', color: courseId ? '#e8e8ec' : '#6b6b78' }}
+          style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: courseId ? 'var(--text-1)' : 'var(--text-2)' }}
         >
           <option value="" disabled>Select a course</option>
           {courses.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
@@ -258,8 +123,8 @@ function SetupView({ courses, resources, courseId, resourceId, onCourseChange, o
           disabled={!courseId}
           className="h-11 px-3 rounded-xl text-sm w-full outline-none"
           style={{
-            backgroundColor: '#1a1a1e', border: '1px solid #2a2a30',
-            color: resourceId ? '#e8e8ec' : '#6b6b78',
+            backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)',
+            color: resourceId ? 'var(--text-1)' : 'var(--text-2)',
             opacity: courseId ? 1 : 0.45,
           }}
         >
@@ -273,9 +138,9 @@ function SetupView({ courses, resources, courseId, resourceId, onCourseChange, o
         disabled={!courseId}
         className="w-full py-4 rounded-2xl font-bold text-base mt-2"
         style={{
-          backgroundColor: courseId ? '#7c6af7' : '#1a1a1e',
-          color: courseId ? '#fff' : '#6b6b78',
-          border: courseId ? 'none' : '1px solid #2a2a30',
+          backgroundColor: courseId ? '#E63946' : 'var(--bg-surf)',
+          color: courseId ? '#fff' : 'var(--text-2)',
+          border: courseId ? 'none' : '1px solid var(--border)',
         }}
       >
         Start Session
@@ -289,7 +154,7 @@ function RunningView({ totalSeconds, running, segment, segmentCount, onPause, on
     <div className="flex flex-col items-center gap-6">
       {/* Current context chip */}
       <div className="w-full flex items-center justify-between gap-2 px-4 py-3 rounded-2xl"
-        style={{ backgroundColor: '#111113', border: '1px solid #2a2a30' }}>
+        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
         <div className="flex items-center gap-2 min-w-0">
           <span
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold flex-shrink-0"
@@ -299,14 +164,14 @@ function RunningView({ totalSeconds, running, segment, segmentCount, onPause, on
           </span>
           {segment.resourceName && (
             <>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3 flex-shrink-0" style={{ color: '#6b6b78' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3 flex-shrink-0" style={{ color: 'var(--text-2)' }}>
                 <polyline points="9 18 15 12 9 6" />
               </svg>
-              <span className="text-xs truncate" style={{ color: '#6b6b78' }}>{segment.resourceName}</span>
+              <span className="text-xs truncate" style={{ color: 'var(--text-2)' }}>{segment.resourceName}</span>
             </>
           )}
           {segmentCount > 1 && (
-            <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: '#1a1a1e', color: '#6b6b78' }}>
+            <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--bg-surf)', color: 'var(--text-2)' }}>
               ×{segmentCount}
             </span>
           )}
@@ -314,7 +179,7 @@ function RunningView({ totalSeconds, running, segment, segmentCount, onPause, on
         <button
           onClick={onSwap}
           className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold flex-shrink-0"
-          style={{ backgroundColor: '#1a1a1e', color: '#e8e8ec', border: '1px solid #2a2a30' }}
+          style={{ backgroundColor: 'var(--bg-surf)', color: 'var(--text-1)', border: '1px solid var(--border)' }}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3.5 h-3.5">
             <path d="M7 16V4m0 0L3 8m4-4l4 4" />
@@ -328,11 +193,11 @@ function RunningView({ totalSeconds, running, segment, segmentCount, onPause, on
       <div className="flex flex-col items-center gap-1 py-6">
         <span
           className="font-bold tabular-nums tracking-tight leading-none"
-          style={{ color: '#e8e8ec', fontSize: totalSeconds >= 3600 ? '4rem' : '5.5rem' }}
+          style={{ color: 'var(--text-1)', fontSize: totalSeconds >= 3600 ? '4rem' : '5.5rem' }}
         >
           {fmtTime(totalSeconds)}
         </span>
-        <span className="text-xs mt-2" style={{ color: running ? '#7c6af7' : '#6b6b78' }}>
+        <span className="text-xs mt-2" style={{ color: running ? '#E63946' : 'var(--text-2)' }}>
           {running ? 'Recording…' : 'Paused'}
         </span>
       </div>
@@ -341,7 +206,7 @@ function RunningView({ totalSeconds, running, segment, segmentCount, onPause, on
       {running && (
         <div
           className="w-2 h-2 rounded-full"
-          style={{ backgroundColor: '#7c6af7', boxShadow: '0 0 0 0 #7c6af755', animation: 'pulse 2s ease-in-out infinite' }}
+          style={{ backgroundColor: '#E63946', boxShadow: '0 0 0 0 #E6394666', animation: 'pulse 2s ease-in-out infinite' }}
         />
       )}
 
@@ -350,7 +215,7 @@ function RunningView({ totalSeconds, running, segment, segmentCount, onPause, on
         <button
           onClick={running ? onPause : onResume}
           className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-sm"
-          style={{ backgroundColor: '#1a1a1e', color: '#e8e8ec', border: '1px solid #2a2a30' }}
+          style={{ backgroundColor: 'var(--bg-surf)', color: 'var(--text-1)', border: '1px solid var(--border)' }}
         >
           {running ? (
             <>
@@ -372,7 +237,7 @@ function RunningView({ totalSeconds, running, segment, segmentCount, onPause, on
         <button
           onClick={onFinish}
           className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm"
-          style={{ backgroundColor: '#7c6af7', color: '#fff' }}
+          style={{ backgroundColor: '#E63946', color: '#fff' }}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4">
             <polyline points="20 6 9 17 4 12" />
@@ -384,7 +249,7 @@ function RunningView({ totalSeconds, running, segment, segmentCount, onPause, on
       <button
         onClick={onDiscard}
         className="text-xs py-1.5 px-4 rounded-xl"
-        style={{ color: '#6b6b78', border: '1px solid #2a2a30' }}
+        style={{ color: 'var(--text-2)', border: '1px solid var(--border)' }}
       >
         Discard session
       </button>
@@ -396,10 +261,10 @@ function SwapModal({ courses, resources, courseId, resourceId, onCourseChange, o
   return (
     <Overlay onClose={onClose}>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold" style={{ color: '#e8e8ec' }}>Swap Context</h2>
+        <h2 className="text-lg font-bold" style={{ color: 'var(--text-1)' }}>Swap Context</h2>
         <CloseBtn onClose={onClose} />
       </div>
-      <p className="text-xs mb-4" style={{ color: '#6b6b78' }}>
+      <p className="text-xs mb-4" style={{ color: 'var(--text-2)' }}>
         Switch course or resource. Time so far is saved to the current context.
       </p>
 
@@ -409,7 +274,7 @@ function SwapModal({ courses, resources, courseId, resourceId, onCourseChange, o
             value={courseId}
             onChange={e => onCourseChange(e.target.value)}
             className="h-11 px-3 rounded-xl text-sm w-full outline-none"
-            style={{ backgroundColor: '#1a1a1e', border: '1px solid #2a2a30', color: '#e8e8ec' }}
+            style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
           >
             {courses.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
           </select>
@@ -419,7 +284,7 @@ function SwapModal({ courses, resources, courseId, resourceId, onCourseChange, o
             value={resourceId}
             onChange={e => onResourceChange(e.target.value)}
             className="h-11 px-3 rounded-xl text-sm w-full outline-none"
-            style={{ backgroundColor: '#1a1a1e', border: '1px solid #2a2a30', color: resourceId ? '#e8e8ec' : '#6b6b78' }}
+            style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: resourceId ? 'var(--text-1)' : 'var(--text-2)' }}
           >
             <option value="">None</option>
             {resources.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
@@ -431,7 +296,7 @@ function SwapModal({ courses, resources, courseId, resourceId, onCourseChange, o
         onClick={onConfirm}
         disabled={!courseId}
         className="w-full py-3 rounded-xl font-semibold text-sm mt-4"
-        style={{ backgroundColor: courseId ? '#7c6af7' : '#1a1a1e', color: courseId ? '#fff' : '#6b6b78' }}
+        style={{ backgroundColor: courseId ? '#E63946' : 'var(--bg-surf)', color: courseId ? '#fff' : 'var(--text-2)' }}
       >
         Confirm Swap
       </button>
@@ -445,18 +310,18 @@ function FinishModal({ totalSeconds, segments, form, setForm, saving, onSubmit, 
   return (
     <Overlay onClose={onClose}>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold" style={{ color: '#e8e8ec' }}>Finish Session</h2>
+        <h2 className="text-lg font-bold" style={{ color: 'var(--text-1)' }}>Finish Session</h2>
         <CloseBtn onClose={onClose} />
       </div>
 
       {/* Total time */}
       <div className="flex items-center justify-center gap-2 py-3 rounded-xl mb-4"
-        style={{ backgroundColor: '#1a1a1e' }}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4" style={{ color: '#7c6af7' }}>
+        style={{ backgroundColor: 'var(--bg-surf)' }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4" style={{ color: '#E63946' }}>
           <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
         </svg>
-        <span className="text-xl font-bold tabular-nums" style={{ color: '#e8e8ec' }}>{fmtTime(totalSeconds)}</span>
-        <span className="text-xs" style={{ color: '#6b6b78' }}>total</span>
+        <span className="text-xl font-bold tabular-nums" style={{ color: 'var(--text-1)' }}>{fmtTime(totalSeconds)}</span>
+        <span className="text-xs" style={{ color: 'var(--text-2)' }}>total</span>
       </div>
 
       {/* Segments breakdown */}
@@ -467,17 +332,17 @@ function FinishModal({ totalSeconds, segments, form, setForm, saving, onSubmit, 
             const dur = Math.max(1, Math.round((endSec - seg.startSeconds) / 60))
             return (
               <div key={i} className="flex items-center justify-between px-3 py-2 rounded-xl"
-                style={{ backgroundColor: '#1a1a1e' }}>
+                style={{ backgroundColor: 'var(--bg-surf)' }}>
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-sm">{seg.courseEmoji}</span>
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold truncate" style={{ color: '#e8e8ec' }}>{seg.courseName}</p>
+                    <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-1)' }}>{seg.courseName}</p>
                     {seg.resourceName && (
-                      <p className="text-[10px] truncate" style={{ color: '#6b6b78' }}>{seg.resourceName}</p>
+                      <p className="text-[10px] truncate" style={{ color: 'var(--text-2)' }}>{seg.resourceName}</p>
                     )}
                   </div>
                 </div>
-                <span className="text-xs font-medium flex-shrink-0 ml-2" style={{ color: '#7c6af7' }}>
+                <span className="text-xs font-medium flex-shrink-0 ml-2" style={{ color: '#E63946' }}>
                   {dur}m
                 </span>
               </div>
@@ -494,7 +359,7 @@ function FinishModal({ totalSeconds, segments, form, setForm, saving, onSubmit, 
             onChange={e => setForm(f => ({ ...f, pages_covered: e.target.value }))}
             placeholder="e.g. 45–62 or Chapter 3"
             className="h-11 px-3 rounded-xl text-sm w-full outline-none"
-            style={{ backgroundColor: '#1a1a1e', border: '1px solid #2a2a30', color: '#e8e8ec' }}
+            style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
           />
         </Field>
         <Field label="Notes (optional)">
@@ -504,7 +369,7 @@ function FinishModal({ totalSeconds, segments, form, setForm, saving, onSubmit, 
             placeholder="What did you work on?"
             rows={2}
             className="px-3 py-2.5 rounded-xl text-sm w-full outline-none resize-none"
-            style={{ backgroundColor: '#1a1a1e', border: '1px solid #2a2a30', color: '#e8e8ec' }}
+            style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
           />
         </Field>
       </div>
@@ -513,7 +378,7 @@ function FinishModal({ totalSeconds, segments, form, setForm, saving, onSubmit, 
         onClick={onSubmit}
         disabled={saving}
         className="w-full py-3.5 rounded-xl font-bold text-sm mt-4"
-        style={{ backgroundColor: saving ? '#1a1a1e' : '#7c6af7', color: saving ? '#6b6b78' : '#fff' }}
+        style={{ backgroundColor: saving ? 'var(--bg-surf)' : '#E63946', color: saving ? 'var(--text-2)' : '#fff' }}
       >
         {saving ? 'Saving…' : `Log Session${multiSegment ? `s (${segments.length})` : ''}`}
       </button>
@@ -525,27 +390,27 @@ function DiscardModal({ onConfirm, onCancel }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}
+      style={{ backgroundColor: 'var(--modal-overlay)' }}
       onClick={e => e.target === e.currentTarget && onCancel()}
     >
       <div className="w-full max-w-xs rounded-2xl p-5 space-y-4"
-        style={{ backgroundColor: '#111113', border: '1px solid #2a2a30' }}>
+        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
         <div className="space-y-1">
-          <p className="font-bold" style={{ color: '#e8e8ec' }}>Discard this session?</p>
-          <p className="text-sm" style={{ color: '#6b6b78' }}>All elapsed time will be lost.</p>
+          <p className="font-bold" style={{ color: 'var(--text-1)' }}>Discard this session?</p>
+          <p className="text-sm" style={{ color: 'var(--text-2)' }}>All elapsed time will be lost.</p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={onCancel}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-            style={{ backgroundColor: '#7c6af7', color: '#fff' }}
+            style={{ backgroundColor: '#E63946', color: '#fff' }}
           >
             Keep Going
           </button>
           <button
             onClick={onConfirm}
             className="flex-1 py-2.5 rounded-xl text-sm font-medium"
-            style={{ backgroundColor: '#1a1a1e', color: '#6b6b78', border: '1px solid #2a2a30' }}
+            style={{ backgroundColor: 'var(--bg-surf)', color: 'var(--text-2)', border: '1px solid var(--border)' }}
           >
             Discard
           </button>
@@ -561,11 +426,11 @@ function Overlay({ children, onClose }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-      style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}
+      style={{ backgroundColor: 'var(--modal-overlay)' }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
       <div className="w-full max-w-sm rounded-2xl p-5 max-h-[90vh] overflow-y-auto"
-        style={{ backgroundColor: '#111113', border: '1px solid #2a2a30' }}>
+        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
         {children}
       </div>
     </div>
@@ -574,7 +439,7 @@ function Overlay({ children, onClose }) {
 
 function CloseBtn({ onClose }) {
   return (
-    <button onClick={onClose} style={{ color: '#6b6b78' }}>
+    <button onClick={onClose} style={{ color: 'var(--text-2)' }}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
         <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
       </svg>
@@ -585,7 +450,7 @@ function CloseBtn({ onClose }) {
 function Field({ label, children }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-medium" style={{ color: '#6b6b78' }}>{label}</label>
+      <label className="text-xs font-medium" style={{ color: 'var(--text-2)' }}>{label}</label>
       {children}
     </div>
   )
@@ -593,16 +458,23 @@ function Field({ label, children }) {
 
 function Toast() {
   return (
-    <div
-      className="fixed bottom-20 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-3 rounded-2xl z-50"
-      style={{ backgroundColor: '#111113', border: '1px solid #2a2a30', boxShadow: '0 4px 24px rgba(0,0,0,0.5)' }}
-    >
-      <span className="flex items-center justify-center w-5 h-5 rounded-full flex-shrink-0" style={{ backgroundColor: '#10b981' }}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" className="w-3 h-3">
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
-      </span>
-      <span className="text-sm font-medium whitespace-nowrap" style={{ color: '#e8e8ec' }}>Session logged</span>
+    <div className="fixed top-16 left-0 right-0 flex justify-center z-[70] pointer-events-none px-4">
+      <div
+        className="flex items-center gap-2 px-4 py-3 rounded-2xl pointer-events-auto"
+        style={{
+          backgroundColor: 'var(--bg-card)',
+          border: '1px solid var(--border)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
+          animation: 'toastSlideDown 250ms ease both',
+        }}
+      >
+        <span className="flex items-center justify-center w-5 h-5 rounded-full flex-shrink-0" style={{ backgroundColor: '#2A9D8F' }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" className="w-3 h-3">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </span>
+        <span className="text-sm font-medium whitespace-nowrap" style={{ color: 'var(--text-1)' }}>Session logged</span>
+      </div>
     </div>
   )
 }

@@ -1,15 +1,99 @@
 @import "tailwindcss";
 
-@theme {
-  --color-bg: #0a0a0b;
-  --color-card: #111113;
-  --color-surface: #1a1a1e;
-  --color-border: #2a2a30;
-  --color-accent: #7c6af7;
-  --color-accent-dim: #5b4fd4;
-  --color-text: #e8e8ec;
-  --color-muted: #6b6b78;
+/* ── Theme variables ─────────────────────────────────────────────────────── */
+
+:root {
+  /* Dark (default) */
+  --bg:              #0a0a0b;
+  --bg-card:         #111113;
+  --bg-card-hover:   #1c1c20;
+  --bg-surf:         #1a1a1e;
+  --border:          #1e1e21;
+  --text-1:          #e0e0e0;
+  --text-2:          #888888;
+  --text-3:          #555555;
+  --modal-overlay:   rgba(0, 0, 0, 0.75);
+  --streak-hot-bg:   #1e1111;
+  --tinted-red:      #3a1515;
+  --bar-today-label: #f07078;
+  --accent:          #E63946;
+  color-scheme: dark;
 }
+
+[data-theme="light"] {
+  --bg:              #F5F5F5;
+  --bg-card:         #FFFFFF;
+  --bg-card-hover:   #F0F0F0;
+  --bg-surf:         #F0F0F0;
+  --border:          #E0E0E0;
+  --text-1:          #1a1a1d;
+  --text-2:          #555555;
+  --text-3:          #999999;
+  --modal-overlay:   rgba(0, 0, 0, 0.45);
+  --streak-hot-bg:   #fff0f0;
+  --tinted-red:      #ffc9cc;
+  --bar-today-label: #c42b37;
+  color-scheme: light;
+}
+
+/* ── Tailwind theme tokens (for utility classes) ─────────────────────────── */
+
+@theme {
+  --color-bg:         var(--bg);
+  --color-card:       var(--bg-card);
+  --color-surface:    var(--bg-surf);
+  --color-border:     var(--border);
+  --color-accent:     #E63946;
+  --color-accent-dim: #c42b37;
+  --color-text:       var(--text-1);
+  --color-muted:      var(--text-2);
+}
+
+/* ── Animations ──────────────────────────────────────────────────────────── */
+
+@keyframes timerPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.35; transform: scale(1.4); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes toastSlideDown {
+  from { opacity: 0; transform: translateY(-14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.page-enter {
+  animation: fadeIn 200ms ease both;
+}
+
+/* ── Interactions ────────────────────────────────────────────────────────── */
+
+button {
+  transition: transform 200ms ease;
+}
+button:not(:disabled):active {
+  transform: scale(0.96);
+}
+
+.hoverable-card {
+  transition: background-color 150ms ease;
+}
+.hoverable-card:hover {
+  background-color: var(--bg-card-hover);
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+/* ── Base ────────────────────────────────────────────────────────────────── */
 
 * {
   box-sizing: border-box;
@@ -22,8 +106,8 @@ html, body, #root {
 }
 
 body {
-  background-color: #0a0a0b;
-  color: #e8e8ec;
+  background-color: var(--bg);
+  color: var(--text-1);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
 }

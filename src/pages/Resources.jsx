@@ -15,7 +15,7 @@ const TYPE_ICON = {
 
 const STATUS_OPTIONS = ['not_started', 'in_progress', 'completed']
 const STATUS_LABEL = { not_started: 'Not Started', in_progress: 'In Progress', completed: 'Completed' }
-const STATUS_COLOR = { not_started: '#ef4444', in_progress: '#f59e0b', completed: '#10b981' }
+const STATUS_COLOR = { not_started: '#E63946', in_progress: '#E9C46A', completed: '#2A9D8F' }
 
 const EMPTY_FORM = { name: '', course_id: '', type: 'pdf', total_pages: '', link: '', status: 'not_started' }
 
@@ -108,14 +108,13 @@ export default function Resources() {
     ), [resources, courseFilter, statusFilter])
 
   return (
-    <div className="px-4 pt-8 pb-6 space-y-5">
+    <div className="page-enter px-4 pt-4 pb-6 space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold" style={{ color: '#e8e8ec' }}>Materials</h1>
+      <div className="flex items-center justify-end">
         <button
           onClick={openAdd}
           className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold"
-          style={{ backgroundColor: '#7c6af7', color: '#fff' }}
+          style={{ backgroundColor: '#E63946', color: '#fff' }}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4">
             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -130,7 +129,7 @@ export default function Resources() {
           value={courseFilter}
           onChange={e => setCourseFilter(e.target.value)}
           className="w-full h-10 px-3 rounded-xl text-sm outline-none"
-          style={{ backgroundColor: '#1a1a1e', border: '1px solid #2a2a30', color: courseFilter === 'all' ? '#6b6b78' : '#e8e8ec' }}
+          style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: courseFilter === 'all' ? 'var(--text-2)' : 'var(--text-1)' }}
         >
           <option value="all">All Courses</option>
           {courses.map(c => (
@@ -145,8 +144,8 @@ export default function Resources() {
               onClick={() => setStatusFilter(s)}
               className="px-3 py-1.5 rounded-lg text-xs font-medium"
               style={statusFilter === s
-                ? { backgroundColor: '#7c6af7', color: '#fff' }
-                : { backgroundColor: '#1a1a1e', color: '#6b6b78', border: '1px solid #2a2a30' }
+                ? { backgroundColor: '#E63946', color: '#fff' }
+                : { backgroundColor: 'var(--bg-surf)', color: 'var(--text-2)', border: '1px solid var(--border)' }
               }
             >
               {s === 'all' ? 'All' : STATUS_LABEL[s]}
@@ -159,12 +158,31 @@ export default function Resources() {
       {loading ? (
         <div className="flex justify-center py-16">
           <div className="w-8 h-8 rounded-full border-2 animate-spin"
-            style={{ borderColor: '#2a2a30', borderTopColor: '#7c6af7' }} />
+            style={{ borderColor: 'var(--border)', borderTopColor: '#E63946' }} />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 space-y-1">
-          <p className="text-sm" style={{ color: '#6b6b78' }}>No materials here</p>
-          <p className="text-xs" style={{ color: '#6b6b78' }}>Add a resource to get started</p>
+        <div className="flex flex-col items-center gap-4 py-16 text-center">
+          <span className="text-5xl">{resources.length === 0 ? '📚' : '🔍'}</span>
+          <div className="space-y-1">
+            <p className="font-semibold text-sm" style={{ color: 'var(--text-1)' }}>
+              {resources.length === 0 ? 'No materials yet' : 'No materials match this filter'}
+            </p>
+            <p className="text-xs" style={{ color: 'var(--text-2)' }}>
+              {resources.length === 0 ? 'Add your first resource to start tracking progress' : 'Try a different course or status filter'}
+            </p>
+          </div>
+          {resources.length === 0 && (
+            <button
+              onClick={openAdd}
+              className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold"
+              style={{ backgroundColor: '#E63946', color: '#fff' }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Add First Material
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-3">
@@ -204,18 +222,18 @@ export default function Resources() {
 }
 
 function ResourceCard({ resource: r, minutesStudied, onEdit, onDelete }) {
-  const courseColor = r.courses?.color || '#6b6b78'
+  const courseColor = r.courses?.color || 'var(--text-2)'
   const timeStudied = minutesStudied > 0 ? formatDuration(minutesStudied * 60) : null
 
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #2a2a30', backgroundColor: '#111113' }}>
+    <div className="hoverable-card rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
       {/* Course color bar */}
       <div className="h-1" style={{ backgroundColor: courseColor }} />
 
       <div className="p-4 space-y-3">
         {/* Course label + link icon */}
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium" style={{ color: '#6b6b78' }}>
+          <span className="text-xs font-medium" style={{ color: 'var(--text-2)' }}>
             {r.courses?.emoji} {r.courses?.name}
           </span>
           {r.link && (
@@ -224,7 +242,7 @@ function ResourceCard({ resource: r, minutesStudied, onEdit, onDelete }) {
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium"
-              style={{ backgroundColor: '#1a1a1e', color: '#7c6af7', border: '1px solid #2a2a30' }}
+              style={{ backgroundColor: 'var(--bg-surf)', color: '#E63946', border: '1px solid var(--border)' }}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
@@ -237,7 +255,7 @@ function ResourceCard({ resource: r, minutesStudied, onEdit, onDelete }) {
         </div>
 
         {/* Name */}
-        <p className="font-bold text-base leading-snug" style={{ color: '#e8e8ec' }}>{r.name}</p>
+        <p className="font-bold text-base leading-snug" style={{ color: 'var(--text-1)' }}>{r.name}</p>
 
         {/* Meta row */}
         <div className="flex flex-wrap items-center gap-2">
@@ -251,20 +269,20 @@ function ResourceCard({ resource: r, minutesStudied, onEdit, onDelete }) {
 
           {/* Type badge */}
           <span className="px-2 py-0.5 rounded-full text-xs font-medium"
-            style={{ backgroundColor: '#1a1a1e', color: '#6b6b78', border: '1px solid #2a2a30' }}>
+            style={{ backgroundColor: 'var(--bg-surf)', color: 'var(--text-2)', border: '1px solid var(--border)' }}>
             {TYPE_ICON[r.type]} {TYPE_LABEL[r.type] || r.type}
           </span>
 
           {/* Pages */}
           {r.total_pages && (
-            <span className="text-xs" style={{ color: '#6b6b78' }}>
+            <span className="text-xs" style={{ color: 'var(--text-2)' }}>
               {r.total_pages} pages
             </span>
           )}
 
           {/* Time studied */}
           {timeStudied && (
-            <span className="flex items-center gap-1 text-xs" style={{ color: '#7c6af7' }}>
+            <span className="flex items-center gap-1 text-xs" style={{ color: '#E63946' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3">
                 <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
               </svg>
@@ -278,14 +296,14 @@ function ResourceCard({ resource: r, minutesStudied, onEdit, onDelete }) {
           <button
             onClick={onEdit}
             className="flex-1 py-1.5 rounded-lg text-xs font-medium"
-            style={{ backgroundColor: '#1a1a1e', color: '#e8e8ec', border: '1px solid #2a2a30' }}
+            style={{ backgroundColor: 'var(--bg-surf)', color: 'var(--text-1)', border: '1px solid var(--border)' }}
           >
             Edit
           </button>
           <button
             onClick={onDelete}
             className="px-3 py-1.5 rounded-lg text-xs"
-            style={{ backgroundColor: '#1a1a1e', color: '#6b6b78', border: '1px solid #2a2a30' }}
+            style={{ backgroundColor: 'var(--bg-surf)', color: 'var(--text-2)', border: '1px solid var(--border)' }}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
               <polyline points="3 6 5 6 21 6" />
@@ -306,19 +324,19 @@ function ResourceModal({ form, setForm, courses, editing, saving, onSave, onClos
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-      style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}
+      style={{ backgroundColor: 'var(--modal-overlay)' }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
       <div
         className="w-full max-w-sm rounded-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto"
-        style={{ backgroundColor: '#111113', border: '1px solid #2a2a30' }}
+        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
       >
         {/* Title */}
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold" style={{ color: '#e8e8ec' }}>
+          <h2 className="text-lg font-bold" style={{ color: 'var(--text-1)' }}>
             {editing ? 'Edit Material' : 'New Material'}
           </h2>
-          <button onClick={onClose} style={{ color: '#6b6b78' }}>
+          <button onClick={onClose} style={{ color: 'var(--text-2)' }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -333,7 +351,7 @@ function ResourceModal({ form, setForm, courses, editing, saving, onSave, onClos
             onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
             placeholder="e.g. Lecture slides week 3"
             className="h-10 px-3 rounded-xl text-sm w-full outline-none"
-            style={{ backgroundColor: '#1a1a1e', border: '1px solid #2a2a30', color: '#e8e8ec' }}
+            style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
           />
         </Field>
 
@@ -343,7 +361,7 @@ function ResourceModal({ form, setForm, courses, editing, saving, onSave, onClos
             value={form.course_id}
             onChange={e => setForm(f => ({ ...f, course_id: e.target.value }))}
             className="h-10 px-3 rounded-xl text-sm w-full outline-none"
-            style={{ backgroundColor: '#1a1a1e', border: '1px solid #2a2a30', color: form.course_id ? '#e8e8ec' : '#6b6b78' }}
+            style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: form.course_id ? 'var(--text-1)' : 'var(--text-2)' }}
           >
             <option value="" disabled>Select a course</option>
             {courses.map(c => (
@@ -359,7 +377,7 @@ function ResourceModal({ form, setForm, courses, editing, saving, onSave, onClos
               value={form.type}
               onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
               className="h-10 px-3 rounded-xl text-sm w-full outline-none"
-              style={{ backgroundColor: '#1a1a1e', border: '1px solid #2a2a30', color: '#e8e8ec' }}
+              style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
             >
               {TYPE_OPTIONS.map(t => (
                 <option key={t} value={t}>{TYPE_LABEL[t]}</option>
@@ -372,7 +390,7 @@ function ResourceModal({ form, setForm, courses, editing, saving, onSave, onClos
               value={form.status}
               onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
               className="h-10 px-3 rounded-xl text-sm w-full outline-none"
-              style={{ backgroundColor: '#1a1a1e', border: '1px solid #2a2a30', color: '#e8e8ec' }}
+              style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
             >
               {STATUS_OPTIONS.map(s => (
                 <option key={s} value={s}>{STATUS_LABEL[s]}</option>
@@ -390,7 +408,7 @@ function ResourceModal({ form, setForm, courses, editing, saving, onSave, onClos
             placeholder="e.g. 120"
             min="1"
             className="h-10 px-3 rounded-xl text-sm w-full outline-none"
-            style={{ backgroundColor: '#1a1a1e', border: '1px solid #2a2a30', color: '#e8e8ec' }}
+            style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
           />
         </Field>
 
@@ -402,7 +420,7 @@ function ResourceModal({ form, setForm, courses, editing, saving, onSave, onClos
             onChange={e => setForm(f => ({ ...f, link: e.target.value }))}
             placeholder="https://…"
             className="h-10 px-3 rounded-xl text-sm w-full outline-none"
-            style={{ backgroundColor: '#1a1a1e', border: '1px solid #2a2a30', color: '#e8e8ec' }}
+            style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
           />
         </Field>
 
@@ -411,9 +429,9 @@ function ResourceModal({ form, setForm, courses, editing, saving, onSave, onClos
           disabled={!canSave}
           className="w-full py-3 rounded-xl font-semibold text-sm"
           style={{
-            backgroundColor: canSave ? '#7c6af7' : '#1a1a1e',
-            color: canSave ? '#fff' : '#6b6b78',
-            border: canSave ? 'none' : '1px solid #2a2a30',
+            backgroundColor: canSave ? '#E63946' : 'var(--bg-surf)',
+            color: canSave ? '#fff' : 'var(--text-2)',
+            border: canSave ? 'none' : '1px solid var(--border)',
           }}
         >
           {saving ? 'Saving…' : editing ? 'Save Changes' : 'Add Material'}
@@ -426,7 +444,7 @@ function ResourceModal({ form, setForm, courses, editing, saving, onSave, onClos
 function Field({ label, children }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs font-medium" style={{ color: '#6b6b78' }}>{label}</label>
+      <label className="text-xs font-medium" style={{ color: 'var(--text-2)' }}>{label}</label>
       {children}
     </div>
   )
@@ -436,17 +454,17 @@ function DeleteConfirm({ resource, onConfirm, onCancel }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}
+      style={{ backgroundColor: 'var(--modal-overlay)' }}
       onClick={e => e.target === e.currentTarget && onCancel()}
     >
       <div
         className="w-full max-w-xs rounded-2xl p-5 space-y-4"
-        style={{ backgroundColor: '#111113', border: '1px solid #2a2a30' }}
+        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
       >
         <div className="space-y-1.5">
-          <p className="font-bold" style={{ color: '#e8e8ec' }}>Delete material?</p>
-          <p className="text-sm font-medium" style={{ color: '#7c6af7' }}>{resource.name}</p>
-          <p className="text-xs" style={{ color: '#6b6b78' }}>
+          <p className="font-bold" style={{ color: 'var(--text-1)' }}>Delete material?</p>
+          <p className="text-sm font-medium" style={{ color: '#E63946' }}>{resource.name}</p>
+          <p className="text-xs" style={{ color: 'var(--text-2)' }}>
             Sessions linked to this material will remain but lose the reference.
           </p>
         </div>
@@ -454,14 +472,14 @@ function DeleteConfirm({ resource, onConfirm, onCancel }) {
           <button
             onClick={onCancel}
             className="flex-1 py-2.5 rounded-xl text-sm font-medium"
-            style={{ backgroundColor: '#1a1a1e', color: '#e8e8ec', border: '1px solid #2a2a30' }}
+            style={{ backgroundColor: 'var(--bg-surf)', color: 'var(--text-1)', border: '1px solid var(--border)' }}
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-            style={{ backgroundColor: '#f43f5e', color: '#fff' }}
+            style={{ backgroundColor: '#E63946', color: '#fff' }}
           >
             Delete
           </button>

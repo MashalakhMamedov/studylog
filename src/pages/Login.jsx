@@ -35,15 +35,15 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ backgroundColor: '#0a0a0b' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ backgroundColor: 'var(--bg)' }}>
       <div className="w-full max-w-sm space-y-8">
 
         <div className="text-center">
-          <h1 className="text-3xl font-bold" style={{ color: '#e8e8ec' }}>StudyLog</h1>
-          <p className="mt-2 text-sm" style={{ color: '#6b6b78' }}>Track your focus sessions</p>
+          <h1 className="text-3xl font-bold" style={{ color: 'var(--text-1)' }}>StudyLog</h1>
+          <p className="mt-2 text-sm" style={{ color: 'var(--text-2)' }}>Track your focus sessions</p>
         </div>
 
-        <div className="flex rounded-xl overflow-hidden" style={{ border: '1px solid #2a2a30' }}>
+        <div className="flex rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
           {['login', 'signup'].map(m => (
             <button
               key={m}
@@ -51,8 +51,8 @@ export default function Login() {
               onClick={() => { setMode(m); setError('') }}
               className="flex-1 py-2.5 text-sm font-medium transition-colors"
               style={{
-                backgroundColor: mode === m ? '#7c6af7' : '#111113',
-                color: mode === m ? '#fff' : '#6b6b78',
+                backgroundColor: mode === m ? '#E63946' : 'var(--bg-card)',
+                color: mode === m ? '#fff' : 'var(--text-2)',
               }}
             >
               {m === 'login' ? 'Log In' : 'Sign Up'}
@@ -69,7 +69,7 @@ export default function Login() {
               onChange={e => setEmail(e.target.value)}
               placeholder="Email address"
               className="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style={{ backgroundColor: '#111113', border: '1px solid #2a2a30', color: '#e8e8ec' }}
+              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
             />
             <input
               type="password"
@@ -79,14 +79,14 @@ export default function Login() {
               onChange={e => setPassword(e.target.value)}
               placeholder="Password"
               className="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style={{ backgroundColor: '#111113', border: '1px solid #2a2a30', color: '#e8e8ec' }}
+              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
             />
           </div>
 
           {error && (
             <p
               className="text-sm text-center"
-              style={{ color: error.startsWith('Account created') ? '#7c6af7' : '#f87171' }}
+              style={{ color: error.startsWith('Account created') ? '#E63946' : '#f87171' }}
             >
               {error}
             </p>
@@ -96,7 +96,7 @@ export default function Login() {
             type="submit"
             disabled={loading}
             className="w-full py-3 rounded-xl font-semibold text-sm disabled:opacity-60"
-            style={{ backgroundColor: '#7c6af7', color: '#fff' }}
+            style={{ backgroundColor: '#E63946', color: '#fff' }}
           >
             {loading ? '...' : mode === 'login' ? 'Log In' : 'Create Account'}
           </button>
