@@ -10,6 +10,7 @@ import Resources from './pages/Resources.jsx'
 import Courses from './pages/Courses.jsx'
 import CourseDetail from './pages/CourseDetail.jsx'
 import Quiz from './pages/Quiz.jsx'
+import Settings from './pages/Settings.jsx'
 import Login from './pages/Login.jsx'
 
 function FloatingTimerBar() {
@@ -55,11 +56,12 @@ function FloatingTimerBar() {
 }
 
 const PAGE_TITLES = {
-  '/timer':    'Focus Timer',
-  '/sessions': 'Log Session',
+  '/timer':     'Focus Timer',
+  '/sessions':  'Log Session',
   '/resources': 'Materials',
   '/courses':   'Courses',
   '/quiz':      'Quiz',
+  '/settings':  'Settings',
 }
 
 function PageTitleBar() {
@@ -77,7 +79,7 @@ function PageTitleBar() {
         backgroundColor: 'var(--bg)',
       }}
     >
-      {pathname === '/quiz' && (
+      {(pathname === '/quiz' || pathname === '/settings') && (
         <button
           onClick={() => navigate(-1)}
           className="flex items-center justify-center w-7 h-7 -ml-1 rounded-lg"
@@ -121,6 +123,7 @@ function Layout() {
             <Route path="/courses" element={<ProtectedRoute><Courses /></ProtectedRoute>} />
             <Route path="/course/:id" element={<ProtectedRoute><CourseDetail /></ProtectedRoute>} />
             <Route path="/quiz" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           </Routes>
         </div>
       </main>
