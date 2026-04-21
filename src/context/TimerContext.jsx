@@ -31,6 +31,8 @@ export function TimerProvider({ children }) {
   const accumulatedRef = useRef(0)
   const startTsRef = useRef(null)
   const intervalRef = useRef(null)
+  const runningRef = useRef(false)
+  const segmentsRef = useRef([])
 
   const [segments, setSegments] = useState([])
 
@@ -56,6 +58,57 @@ export function TimerProvider({ children }) {
     return () => clearInterval(intervalRef.current)
   }, [])
 
+  useEffect(() => { runningRef.current = running }, [running])
+  useEffect(() => { segmentsRef.current = segments }, [segments])
+
+  useEffect(() => {
+    document.title = phase === 'running'
+      ? `⏱ ${fmtTime(totalSeconds)} - StudyLog`
+      : 'StudyLog'
+  }, [totalSeconds, phase])
+
+  useEffect(() => {
+    if (phase !== 'running') return
+    let notif = null
+    let tickId = null
+
+    function getLabel() {
+      const seg = segmentsRef.current[segmentsRef.current.length - 1]
+      const elapsed = runningRef.current && startTsRef.current
+        ? accumulatedRef.current + Math.floor((Date.now() - startTsRef.current) / 1000)
+        : accumulatedRef.current
+      const ctx = seg
+        ? `${seg.courseName}${seg.resourceName ? ` › ${seg.resourceName}` : ''}`
+        : 'Session'
+      return `${ctx} — ${fmtTime(elapsed)} elapsed`
+    }
+
+    function notify() {
+      if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return
+      notif = new Notification('StudyLog Timer Running', {
+        body: getLabel(), silent: true, tag: 'studylog-timer',
+      })
+    }
+
+    function onVisibility() {
+      if (document.hidden) {
+        notify()
+        tickId = setInterval(notify, 60000)
+      } else {
+        clearInterval(tickId)
+        tickId = null
+        if (notif) { notif.close(); notif = null }
+      }
+    }
+
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility)
+      clearInterval(tickId)
+      if (notif) notif.close()
+    }
+  }, [phase])
+
   function startClock() {
     startTsRef.current = Date.now()
     intervalRef.current = setInterval(() => {
@@ -72,6 +125,9 @@ export function TimerProvider({ children }) {
   }
 
   function startSession() {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
     const course = courses.find(c => c.id === courseId)
     const resource = allResources.find(r => r.id === resourceId)
     setSegments([{

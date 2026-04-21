@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTimer, fmtTime } from '../context/TimerContext.jsx'
 
@@ -30,6 +30,24 @@ export default function Timer() {
   }, [toast])
 
   const currentSeg = segments[segments.length - 1]
+  const [fullscreen, setFullscreen] = useState(false)
+
+  useEffect(() => {
+    if (fullscreen) {
+      document.documentElement.requestFullscreen?.().catch(() => {})
+    } else if (document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {})
+    }
+  }, [fullscreen])
+
+  useEffect(() => {
+    function onFsChange() { if (!document.fullscreenElement) setFullscreen(false) }
+    document.addEventListener('fullscreenchange', onFsChange)
+    return () => document.removeEventListener('fullscreenchange', onFsChange)
+  }, [])
+
+  useEffect(() => { if (phase !== 'running') setFullscreen(false) }, [phase])
+
   const setupResources = allResources.filter(r => r.course_id === courseId)
   const swapResources = allResources.filter(r => r.course_id === swapCourseId)
 
@@ -59,6 +77,7 @@ export default function Timer() {
           onSwap={openSwap}
           onFinish={openFinish}
           onDiscard={() => setShowDiscard(true)}
+          onFullscreen={() => setFullscreen(true)}
         />
       )}
 
@@ -95,6 +114,17 @@ export default function Timer() {
       )}
 
       {toast && <Toast />}
+
+      {fullscreen && phase === 'running' && currentSeg && (
+        <FullscreenOverlay
+          totalSeconds={totalSeconds}
+          running={running}
+          segment={currentSeg}
+          onPause={pauseClock}
+          onResume={startClock}
+          onExit={() => setFullscreen(false)}
+        />
+      )}
     </div>
   )
 }
@@ -149,9 +179,21 @@ function SetupView({ courses, resources, courseId, resourceId, onCourseChange, o
   )
 }
 
-function RunningView({ totalSeconds, running, segment, segmentCount, onPause, onResume, onSwap, onFinish, onDiscard }) {
+function RunningView({ totalSeconds, running, segment, segmentCount, onPause, onResume, onSwap, onFinish, onDiscard, onFullscreen }) {
   return (
     <div className="flex flex-col items-center gap-6">
+      {/* Fullscreen button */}
+      <button
+        onClick={onFullscreen}
+        title="Enter fullscreen"
+        className="self-end flex items-center justify-center w-8 h-8 rounded-xl"
+        style={{ color: 'var(--text-2)', border: '1px solid var(--border)' }}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+        </svg>
+      </button>
+
       {/* Current context chip */}
       <div className="w-full flex items-center justify-between gap-2 px-4 py-3 rounded-2xl"
         style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
@@ -475,6 +517,76 @@ function Toast() {
         </span>
         <span className="text-sm font-medium whitespace-nowrap" style={{ color: 'var(--text-1)' }}>Session logged</span>
       </div>
+    </div>
+  )
+}
+
+function FullscreenOverlay({ totalSeconds, running, segment, onPause, onResume, onExit }) {
+  return (
+    <div
+      className="fixed inset-0 z-[200] flex flex-col items-center justify-center select-none"
+      style={{ backgroundColor: '#0a0a0b' }}
+      onClick={() => running ? onPause() : onResume()}
+    >
+      {/* Exit button */}
+      <button
+        onClick={e => { e.stopPropagation(); onExit() }}
+        className="absolute top-4 right-4 flex items-center justify-center w-10 h-10 rounded-full"
+        style={{ color: '#ffffff55', border: '1px solid #ffffff18' }}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+
+      {/* Timer + context */}
+      <div className="flex flex-col items-center gap-5">
+        <span
+          className="font-mono font-bold tabular-nums tracking-tight leading-none"
+          style={{ color: '#ffffff', fontSize: 'clamp(5rem, 22vw, 12.5rem)' }}
+        >
+          {fmtTime(totalSeconds)}
+        </span>
+
+        <div className="flex flex-col items-center gap-1.5 text-center px-6">
+          <span className="text-lg font-medium" style={{ color: '#ffffff99' }}>
+            {segment.courseEmoji} {segment.courseName}
+          </span>
+          {segment.resourceName && (
+            <span className="text-sm" style={{ color: '#ffffff55' }}>
+              {segment.resourceName}
+            </span>
+          )}
+        </div>
+
+        <span className="text-xs mt-1" style={{ color: running ? '#E63946' : '#ffffff44' }}>
+          {running ? 'Tap to pause' : 'Paused — tap to resume'}
+        </span>
+      </div>
+
+      {/* Bottom pause/resume button */}
+      <button
+        onClick={e => { e.stopPropagation(); running ? onPause() : onResume() }}
+        className="absolute bottom-10 flex items-center gap-2 px-8 py-3 rounded-2xl font-semibold text-sm"
+        style={{ backgroundColor: '#ffffff10', color: '#ffffffcc', border: '1px solid #ffffff1a' }}
+      >
+        {running ? (
+          <>
+            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+              <rect x="6" y="4" width="4" height="16" rx="1" />
+              <rect x="14" y="4" width="4" height="16" rx="1" />
+            </svg>
+            Pause
+          </>
+        ) : (
+          <>
+            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+            Resume
+          </>
+        )}
+      </button>
     </div>
   )
 }
