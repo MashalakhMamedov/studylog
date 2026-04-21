@@ -8,6 +8,7 @@ import Timer from './pages/Timer.jsx'
 import Sessions from './pages/Sessions.jsx'
 import Resources from './pages/Resources.jsx'
 import Courses from './pages/Courses.jsx'
+import CourseDetail from './pages/CourseDetail.jsx'
 import Quiz from './pages/Quiz.jsx'
 import Login from './pages/Login.jsx'
 
@@ -118,6 +119,7 @@ function Layout() {
             <Route path="/sessions" element={<ProtectedRoute><Sessions /></ProtectedRoute>} />
             <Route path="/resources" element={<ProtectedRoute><Resources /></ProtectedRoute>} />
             <Route path="/courses" element={<ProtectedRoute><Courses /></ProtectedRoute>} />
+            <Route path="/course/:id" element={<ProtectedRoute><CourseDetail /></ProtectedRoute>} />
             <Route path="/quiz" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
           </Routes>
         </div>
