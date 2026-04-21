@@ -249,6 +249,17 @@ export default function Home() {
         </Card>
       )}
 
+      {/* Empty state for new users */}
+      {!loading && sessions?.length === 0 && (
+        <div className="flex flex-col items-center gap-4 py-10 text-center">
+          <span className="text-5xl">📖</span>
+          <div className="space-y-1">
+            <p className="font-semibold text-sm" style={{ color: 'var(--text-1)' }}>No sessions yet</p>
+            <p className="text-xs" style={{ color: 'var(--text-2)' }}>Start your first focus session to begin tracking your progress</p>
+          </div>
+        </div>
+      )}
+
       {/* Quick start */}
       <Link
         to="/timer"

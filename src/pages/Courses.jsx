@@ -8,18 +8,6 @@ import {
   STATUS_OPTIONS,
 } from '../components/CourseModal.jsx'
 
-const DEFAULT_COURSES = [
-  { name: 'PEED',   emoji: '⚡', color: '#E63946', status: 'active', priority: 'high' },
-  { name: 'PTFM',   emoji: '🔧', color: '#f59e0b', status: 'active', priority: 'high' },
-  { name: 'CV',     emoji: '👁',  color: '#10b981', status: 'active', priority: 'medium' },
-  { name: 'MMS',    emoji: '⚙️', color: '#6366f1', status: 'active', priority: 'medium' },
-  { name: 'MD',     emoji: '📐', color: '#E63946', status: 'active', priority: 'medium' },
-  { name: 'CMS',    emoji: '🖥',  color: '#0ea5e9', status: 'active', priority: 'low' },
-  { name: 'IoT',    emoji: '📡', color: '#84cc16', status: 'active', priority: 'low' },
-  { name: 'Nano',   emoji: '🔬', color: '#a855f7', status: 'active', priority: 'low' },
-  { name: 'MATLAB', emoji: '📊', color: '#fb923c', status: 'active', priority: 'low' },
-]
-
 export default function Courses() {
   const { session } = useAuth()
   const [courses, setCourses] = useState([])
@@ -39,17 +27,8 @@ export default function Courses() {
       .from('courses')
       .select('*')
       .order('created_at')
-    if (!error) {
-      if (data.length === 0) await seedCourses()
-      else setCourses(data)
-    }
-    setLoading(false)
-  }
-
-  async function seedCourses() {
-    const rows = DEFAULT_COURSES.map(c => ({ ...c, user_id: session.user.id }))
-    const { data, error } = await supabase.from('courses').insert(rows).select()
     if (!error) setCourses(data)
+    setLoading(false)
   }
 
   async function saveCourse() {
