@@ -10,6 +10,11 @@ export function fmtTime(s) {
   return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
 }
 
+function localDateStr() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 const TimerContext = createContext(null)
 
 export function useTimer() {
@@ -41,7 +46,11 @@ export function TimerProvider({ children }) {
   const [swapResourceId, setSwapResourceId] = useState('')
 
   const [showFinish, setShowFinish] = useState(false)
-  const [finishForm, setFinishForm] = useState({ pages_covered: '', notes: '' })
+  const [finishForm, setFinishForm] = useState({
+    pages_covered: '', notes: '',
+    focus_type: 'deep_focus', energy_level: 'high',
+    date: localDateStr(), course_id: '', resource_id: '', duration_minutes: '',
+  })
   const [saving, setSaving] = useState(false)
 
   const [showDiscard, setShowDiscard] = useState(false)
@@ -162,23 +171,36 @@ export function TimerProvider({ children }) {
 
   function openFinish() {
     if (running) pauseClock()
-    setFinishForm({ pages_covered: '', notes: '' })
+    const lastSeg = segments[segments.length - 1]
+    setFinishForm({
+      pages_covered: '', notes: '',
+      focus_type: 'deep_focus', energy_level: 'high',
+      date: localDateStr(),
+      course_id: lastSeg?.course_id ?? '',
+      resource_id: lastSeg?.resource_id ?? '',
+      duration_minutes: String(Math.max(1, Math.round(accumulatedRef.current / 60))),
+    })
     setShowFinish(true)
   }
 
   async function submitFinish() {
     setSaving(true)
-    const date = new Date().toISOString().split('T')[0]
+    const isSingle = segments.length === 1
     const rows = segments.map((seg, i) => {
       const endSec = i < segments.length - 1 ? segments[i + 1].startSeconds : totalSeconds
+      const timerDuration = Math.max(1, Math.round((endSec - seg.startSeconds) / 60))
       return {
         user_id: session.user.id,
-        course_id: seg.course_id,
-        resource_id: seg.resource_id ?? null,
-        duration_minutes: Math.max(1, Math.round((endSec - seg.startSeconds) / 60)),
+        course_id: isSingle ? finishForm.course_id : seg.course_id,
+        resource_id: isSingle ? (finishForm.resource_id || null) : (seg.resource_id ?? null),
+        duration_minutes: isSingle && finishForm.duration_minutes
+          ? Math.max(1, parseInt(finishForm.duration_minutes, 10))
+          : timerDuration,
         pages_covered: finishForm.pages_covered.trim() || null,
+        focus_type: finishForm.focus_type || null,
+        energy_level: finishForm.energy_level || null,
+        date: finishForm.date,
         notes: finishForm.notes.trim() || null,
-        date,
       }
     })
     const { error } = await supabase.from('sessions').insert(rows)

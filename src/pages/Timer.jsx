@@ -8,6 +8,23 @@ function fmtMinutes(seconds) {
   return `${Math.floor(m / 60)}h ${m % 60}m`
 }
 
+const FOCUS_TYPES = [
+  { value: 'deep_focus',   label: 'Deep Focus' },
+  { value: 'light_review', label: 'Light Review' },
+  { value: 'practice',     label: 'Practice' },
+  { value: 'video',        label: 'Video Lecture' },
+  { value: 'project',      label: 'Project Work' },
+]
+
+const ENERGY_LEVELS = [
+  { value: 'high',             label: 'High' },
+  { value: 'medium',           label: 'Medium' },
+  { value: 'low',              label: 'Low' },
+  { value: 'post_night_shift', label: 'Post-Night-Shift' },
+]
+
+const ENERGY_COLOR = { high: '#2A9D8F', medium: '#E9C46A', low: '#E76F51', post_night_shift: '#E63946' }
+
 export default function Timer() {
   const navigate = useNavigate()
   const {
@@ -100,6 +117,8 @@ export default function Timer() {
           segments={segments}
           form={finishForm}
           setForm={setFinishForm}
+          courses={courses}
+          allResources={allResources}
           saving={saving}
           onSubmit={submitFinish}
           onClose={() => { setShowFinish(false); if (!running) startClock() }}
@@ -346,8 +365,12 @@ function SwapModal({ courses, resources, courseId, resourceId, onCourseChange, o
   )
 }
 
-function FinishModal({ totalSeconds, segments, form, setForm, saving, onSubmit, onClose }) {
+function FinishModal({ totalSeconds, segments, form, setForm, courses, allResources, saving, onSubmit, onClose }) {
   const multiSegment = segments.length > 1
+  const resources = allResources.filter(r => r.course_id === form.course_id)
+  const totalMins = Math.max(1, Math.round(totalSeconds / 60))
+
+  function set(key, val) { setForm(f => ({ ...f, [key]: val })) }
 
   return (
     <Overlay onClose={onClose}>
@@ -356,17 +379,18 @@ function FinishModal({ totalSeconds, segments, form, setForm, saving, onSubmit, 
         <CloseBtn onClose={onClose} />
       </div>
 
-      {/* Total time */}
-      <div className="flex items-center justify-center gap-2 py-3 rounded-xl mb-4"
+      {/* Summary banner */}
+      <div className="flex flex-col items-center gap-1 py-4 rounded-2xl mb-4"
         style={{ backgroundColor: 'var(--bg-surf)' }}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4" style={{ color: '#E63946' }}>
-          <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-        </svg>
-        <span className="text-xl font-bold tabular-nums" style={{ color: 'var(--text-1)' }}>{fmtTime(totalSeconds)}</span>
-        <span className="text-xs" style={{ color: 'var(--text-2)' }}>total</span>
+        <span className="text-3xl font-bold tabular-nums" style={{ color: 'var(--text-1)' }}>
+          {fmtTime(totalSeconds)}
+        </span>
+        <span className="text-xs mt-0.5" style={{ color: 'var(--text-2)' }}>
+          You studied for {totalMins} minute{totalMins !== 1 ? 's' : ''}
+        </span>
       </div>
 
-      {/* Segments breakdown */}
+      {/* Segment breakdown (multi-segment only) */}
       {multiSegment && (
         <div className="space-y-1.5 mb-4">
           {segments.map((seg, i) => {
@@ -384,31 +408,141 @@ function FinishModal({ totalSeconds, segments, form, setForm, saving, onSubmit, 
                     )}
                   </div>
                 </div>
-                <span className="text-xs font-medium flex-shrink-0 ml-2" style={{ color: '#E63946' }}>
-                  {dur}m
-                </span>
+                <span className="text-xs font-medium flex-shrink-0 ml-2" style={{ color: '#E63946' }}>{dur}m</span>
               </div>
             )
           })}
         </div>
       )}
 
-      <div className="space-y-3">
+      <div className="space-y-4">
+        {/* Course + Resource (single-segment only — editable) */}
+        {!multiSegment && (
+          <>
+            <Field label="Course *">
+              <select
+                value={form.course_id}
+                onChange={e => setForm(f => ({ ...f, course_id: e.target.value, resource_id: '' }))}
+                className="h-11 px-3 rounded-xl text-sm w-full outline-none"
+                style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: form.course_id ? 'var(--text-1)' : 'var(--text-2)' }}
+              >
+                <option value="" disabled>Select a course</option>
+                {courses.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
+              </select>
+            </Field>
+            <Field label="Resource (optional)">
+              <select
+                value={form.resource_id}
+                onChange={e => set('resource_id', e.target.value)}
+                disabled={!form.course_id}
+                className="h-11 px-3 rounded-xl text-sm w-full outline-none"
+                style={{
+                  backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)',
+                  color: form.resource_id ? 'var(--text-1)' : 'var(--text-2)',
+                  opacity: form.course_id ? 1 : 0.5,
+                }}
+              >
+                <option value="">None</option>
+                {resources.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+              </select>
+            </Field>
+          </>
+        )}
+
+        {/* Duration + Date */}
+        {!multiSegment ? (
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Duration (min)">
+              <input
+                type="number"
+                value={form.duration_minutes}
+                onChange={e => set('duration_minutes', e.target.value)}
+                min="1"
+                className="h-11 px-3 rounded-xl text-sm w-full outline-none"
+                style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
+              />
+            </Field>
+            <Field label="Date">
+              <input
+                type="date"
+                value={form.date}
+                onChange={e => set('date', e.target.value)}
+                className="h-11 px-3 rounded-xl text-sm w-full outline-none"
+                style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
+              />
+            </Field>
+          </div>
+        ) : (
+          <Field label="Date">
+            <input
+              type="date"
+              value={form.date}
+              onChange={e => set('date', e.target.value)}
+              className="h-11 px-3 rounded-xl text-sm w-full outline-none"
+              style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
+            />
+          </Field>
+        )}
+
+        {/* Pages covered */}
         <Field label="Pages / Section Covered (optional)">
           <input
             type="text"
             value={form.pages_covered}
-            onChange={e => setForm(f => ({ ...f, pages_covered: e.target.value }))}
+            onChange={e => set('pages_covered', e.target.value)}
             placeholder="e.g. 45–62 or Chapter 3"
             className="h-11 px-3 rounded-xl text-sm w-full outline-none"
             style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
           />
         </Field>
+
+        {/* Focus type */}
+        <Field label="Focus Type">
+          <div className="grid grid-cols-2 gap-2">
+            {FOCUS_TYPES.map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => set('focus_type', value)}
+                className="py-2 rounded-xl text-xs font-medium text-left px-3"
+                style={form.focus_type === value
+                  ? { backgroundColor: '#E63946', color: '#fff' }
+                  : { backgroundColor: 'var(--bg-surf)', color: 'var(--text-2)', border: '1px solid var(--border)' }
+                }
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </Field>
+
+        {/* Energy level */}
+        <Field label="Energy Level">
+          <div className="flex gap-2 flex-wrap">
+            {ENERGY_LEVELS.map(({ value, label }) => {
+              const active = form.energy_level === value
+              return (
+                <button
+                  key={value}
+                  onClick={() => set('energy_level', value)}
+                  className="flex-1 py-2 rounded-xl text-xs font-medium"
+                  style={active
+                    ? { backgroundColor: ENERGY_COLOR[value] + '33', color: ENERGY_COLOR[value], border: `1px solid ${ENERGY_COLOR[value]}55` }
+                    : { backgroundColor: 'var(--bg-surf)', color: 'var(--text-2)', border: '1px solid var(--border)' }
+                  }
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+        </Field>
+
+        {/* Notes */}
         <Field label="Notes (optional)">
           <textarea
             value={form.notes}
-            onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-            placeholder="What did you work on?"
+            onChange={e => set('notes', e.target.value)}
+            placeholder="What did you work on? Any blockers?"
             rows={2}
             className="px-3 py-2.5 rounded-xl text-sm w-full outline-none resize-none"
             style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
