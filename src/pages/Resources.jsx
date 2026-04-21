@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import { formatDuration } from '../lib/utils.js'
@@ -193,6 +193,7 @@ export default function Resources() {
               minutesStudied={minutesByResource[r.id] || 0}
               onEdit={() => openEdit(r)}
               onDelete={() => setDeleteTarget(r)}
+              onUpdate={updated => setResources(prev => prev.map(x => x.id === updated.id ? updated : x))}
             />
           ))}
         </div>
@@ -221,21 +222,71 @@ export default function Resources() {
   )
 }
 
-function ResourceCard({ resource: r, minutesStudied, onEdit, onDelete }) {
+function ResourceCard({ resource: r, minutesStudied, onEdit, onDelete, onUpdate }) {
   const courseColor = r.courses?.color || 'var(--text-2)'
   const timeStudied = minutesStudied > 0 ? formatDuration(minutesStudied * 60) : null
+  const isCompleted = r.status === 'completed'
+
+  const [editingPos, setEditingPos] = useState(false)
+  const [posValue, setPosValue] = useState(r.current_position || '')
+  const [togglingComplete, setTogglingComplete] = useState(false)
+  const posInputRef = useRef(null)
+
+  useEffect(() => { setPosValue(r.current_position || '') }, [r.current_position])
+  useEffect(() => { if (editingPos) posInputRef.current?.focus() }, [editingPos])
+
+  const posNum = parseInt(posValue.trim(), 10)
+  const showBar = r.total_pages && posValue.trim() !== '' && !isNaN(posNum) && String(posNum) === posValue.trim()
+  const barPct = showBar ? Math.min(100, Math.round((posNum / r.total_pages) * 100)) : 0
+
+  async function savePosition() {
+    const val = posValue.trim()
+    setEditingPos(false)
+    if (val === (r.current_position || '')) return
+    const { data, error } = await supabase
+      .from('resources').update({ current_position: val })
+      .eq('id', r.id).select('*, courses(name, emoji, color)').single()
+    if (!error && data) onUpdate(data)
+  }
+
+  async function toggleComplete() {
+    if (togglingComplete) return
+    setTogglingComplete(true)
+    const newStatus = isCompleted ? 'in_progress' : 'completed'
+    const { data, error } = await supabase
+      .from('resources').update({ status: newStatus })
+      .eq('id', r.id).select('*, courses(name, emoji, color)').single()
+    if (!error && data) onUpdate(data)
+    setTogglingComplete(false)
+  }
 
   return (
-    <div className="hoverable-card rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
+    <div
+      className="hoverable-card rounded-2xl overflow-hidden"
+      style={{
+        border: `1px solid ${isCompleted ? '#2A9D8F44' : 'var(--border)'}`,
+        backgroundColor: isCompleted ? 'rgba(42,157,143,0.04)' : 'var(--bg-card)',
+      }}
+    >
       {/* Course color bar */}
-      <div className="h-1" style={{ backgroundColor: courseColor }} />
+      <div className="h-1" style={{ backgroundColor: courseColor, opacity: isCompleted ? 0.4 : 1 }} />
 
       <div className="p-4 space-y-3">
-        {/* Course label + link icon */}
+        {/* Course label + completed badge + link */}
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium" style={{ color: 'var(--text-2)' }}>
-            {r.courses?.emoji} {r.courses?.name}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium" style={{ color: 'var(--text-2)' }}>
+              {r.courses?.emoji} {r.courses?.name}
+            </span>
+            {isCompleted && (
+              <span className="flex items-center gap-0.5 text-xs font-medium" style={{ color: '#2A9D8F' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3 h-3">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Done
+              </span>
+            )}
+          </div>
           {r.link && (
             <a
               href={r.link}
@@ -255,32 +306,25 @@ function ResourceCard({ resource: r, minutesStudied, onEdit, onDelete }) {
         </div>
 
         {/* Name */}
-        <p className="font-bold text-base leading-snug" style={{ color: 'var(--text-1)' }}>{r.name}</p>
+        <p className="font-bold text-base leading-snug" style={{ color: isCompleted ? 'var(--text-2)' : 'var(--text-1)' }}>{r.name}</p>
 
         {/* Meta row */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Status badge */}
           <span
             className="px-2 py-0.5 rounded-full text-xs font-medium"
             style={{ backgroundColor: STATUS_COLOR[r.status] + '22', color: STATUS_COLOR[r.status] }}
           >
             {STATUS_LABEL[r.status]}
           </span>
-
-          {/* Type badge */}
           <span className="px-2 py-0.5 rounded-full text-xs font-medium"
             style={{ backgroundColor: 'var(--bg-surf)', color: 'var(--text-2)', border: '1px solid var(--border)' }}>
             {TYPE_ICON[r.type]} {TYPE_LABEL[r.type] || r.type}
           </span>
-
-          {/* Pages */}
           {r.total_pages && (
             <span className="text-xs" style={{ color: 'var(--text-2)' }}>
               {r.total_pages} pages
             </span>
           )}
-
-          {/* Time studied */}
           {timeStudied && (
             <span className="flex items-center gap-1 text-xs" style={{ color: '#E63946' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3">
@@ -291,8 +335,82 @@ function ResourceCard({ resource: r, minutesStudied, onEdit, onDelete }) {
           )}
         </div>
 
+        {/* Bookmark / left-off-at */}
+        <div className="space-y-1.5">
+          {editingPos ? (
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs" style={{ color: 'var(--text-2)', whiteSpace: 'nowrap' }}>Left off at:</span>
+              <input
+                ref={posInputRef}
+                type="text"
+                value={posValue}
+                onChange={e => setPosValue(e.target.value)}
+                onBlur={savePosition}
+                onKeyDown={e => { if (e.key === 'Enter') savePosition(); if (e.key === 'Escape') { setPosValue(r.current_position || ''); setEditingPos(false) } }}
+                placeholder="page 45, ch. 3, 15:00…"
+                className="flex-1 px-2 py-0.5 rounded-lg text-xs outline-none min-w-0"
+                style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
+              />
+            </div>
+          ) : (
+            <button
+              onClick={() => setEditingPos(true)}
+              className="flex items-center gap-1 text-xs text-left w-full group"
+              style={{ color: 'var(--text-2)' }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3 shrink-0" style={{ color: 'var(--text-2)' }}>
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+              </svg>
+              <span>
+                Left off at:{' '}
+                <span style={{ color: posValue ? 'var(--text-1)' : 'var(--text-2)', fontStyle: posValue ? 'normal' : 'italic' }}>
+                  {posValue || 'tap to set'}
+                </span>
+              </span>
+            </button>
+          )}
+
+          {/* Progress bar */}
+          {showBar && (
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--bg-surf)' }}>
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${barPct}%`, backgroundColor: isCompleted ? '#2A9D8F' : courseColor }}
+                />
+              </div>
+              <span className="text-xs shrink-0" style={{ color: 'var(--text-2)' }}>{barPct}%</span>
+            </div>
+          )}
+        </div>
+
         {/* Actions */}
         <div className="flex gap-2 pt-1">
+          <button
+            onClick={toggleComplete}
+            disabled={togglingComplete}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1"
+            style={isCompleted
+              ? { backgroundColor: 'rgba(42,157,143,0.15)', color: '#2A9D8F', border: '1px solid #2A9D8F44' }
+              : { backgroundColor: 'var(--bg-surf)', color: 'var(--text-2)', border: '1px solid var(--border)' }
+            }
+          >
+            {isCompleted ? (
+              <>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3.5 h-3.5">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Done
+              </>
+            ) : (
+              <>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
+                  <circle cx="12" cy="12" r="10" />
+                </svg>
+                Mark Done
+              </>
+            )}
+          </button>
           <button
             onClick={onEdit}
             className="flex-1 py-1.5 rounded-lg text-xs font-medium"
