@@ -72,8 +72,8 @@ export function TimerProvider({ children }) {
 
   useEffect(() => {
     document.title = phase === 'running'
-      ? `⏱ ${fmtTime(totalSeconds)} - StudyLog`
-      : 'StudyLog'
+      ? `⏱ ${fmtTime(totalSeconds)} - StudyDeck`
+      : 'StudyDeck'
   }, [totalSeconds, phase])
 
   useEffect(() => {
@@ -94,8 +94,8 @@ export function TimerProvider({ children }) {
 
     function notify() {
       if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return
-      notif = new Notification('StudyLog Timer Running', {
-        body: getLabel(), silent: true, tag: 'studylog-timer',
+      notif = new Notification('StudyDeck Timer Running', {
+        body: getLabel(), silent: true, tag: 'studydeck-timer',
       })
     }
 

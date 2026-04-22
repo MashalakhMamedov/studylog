@@ -175,7 +175,7 @@ export default function Settings() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `studylog-export-${new Date().toISOString().slice(0, 10)}.csv`
+      a.download = `studydeck-export-${new Date().toISOString().slice(0, 10)}.csv`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -257,7 +257,7 @@ export default function Settings() {
       <Section title="About">
         <Row>
           <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold" style={{ color: 'var(--text-1)' }}>StudyLog</p>
+            <p className="text-sm font-semibold" style={{ color: 'var(--text-1)' }}>StudyDeck</p>
             <span
               className="text-xs px-2 py-0.5 rounded-full"
               style={{ backgroundColor: 'var(--bg-surf)', color: 'var(--text-2)', border: '1px solid var(--border)' }}
