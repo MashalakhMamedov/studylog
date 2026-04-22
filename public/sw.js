@@ -1,6 +1,6 @@
-// StudyDeck Service Worker — offline shell caching
+// StudyLog Service Worker — offline shell caching
 // Bump CACHE_NAME when deploying breaking changes to force a cache refresh
-const CACHE_NAME = 'studydeck-shell-v1'
+const CACHE_NAME = 'studylog-shell-v1'
 
 // Seed the cache with the app shell on first install
 self.addEventListener('install', event => {

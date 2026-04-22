@@ -39,7 +39,7 @@ export default function Login() {
       <div className="w-full max-w-sm space-y-8">
 
         <div className="text-center">
-          <h1 className="text-3xl font-bold" style={{ color: 'var(--text-1)' }}>StudyDeck</h1>
+          <h1 className="text-3xl font-bold" style={{ color: 'var(--text-1)' }}>StudyLog</h1>
           <p className="mt-2 text-sm" style={{ color: 'var(--text-2)' }}>Track your focus sessions</p>
         </div>
 

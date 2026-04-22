@@ -1,6 +1,6 @@
 {
-  "name": "StudyDeck",
-  "short_name": "StudyDeck",
+  "name": "StudyLog",
+  "short_name": "StudyLog",
   "description": "Track your study sessions, courses, and quiz results",
   "start_url": "/",
   "display": "standalone",
