@@ -1,50 +1,62 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useTheme, COLORS } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
 
-const VERSION = '1.0.0'
+const FOCUS_DURATIONS = [25, 45, 60]
 
 const CHANGELOG = [
   {
-    version: 'v1.0.0',
-    label: 'Initial Release',
-    notes: 'Course & resource management, session logging, focus timer, dashboard stats',
+    version: 'v1.1',
+    notes: 'New navigation, course detail pages, session tracking, customizable themes',
+  },
+  {
+    version: 'v1.0',
+    notes: 'Initial release',
   },
 ]
 
-// ── Section wrapper ───────────────────────────────────────────────────────────
+// ── Primitives ────────────────────────────────────────────────────────────────
 
-function Section({ title, children }) {
+function SectionLabel({ children }) {
   return (
-    <div>
-      <p
-        className="text-[11px] font-semibold uppercase tracking-wider mb-2 px-1"
-        style={{ color: 'var(--text-2)' }}
-      >
-        {title}
-      </p>
-      <div
-        className="rounded-2xl overflow-hidden"
-        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
-      >
-        {children}
-      </div>
+    <p style={{
+      color: '#6b7280',
+      fontSize: '12px',
+      textTransform: 'uppercase',
+      letterSpacing: '0.05em',
+      fontWeight: 600,
+      marginBottom: '8px',
+      paddingLeft: '4px',
+    }}>
+      {children}
+    </p>
+  )
+}
+
+function Card({ children }) {
+  return (
+    <div style={{ backgroundColor: '#111113', borderRadius: '12px', overflow: 'hidden' }}>
+      {children}
     </div>
   )
 }
 
-function Row({ children, noBorder }) {
+function Row({ children, noBorder, style }) {
   return (
     <div
-      className="px-4 py-3.5"
-      style={noBorder ? {} : { borderBottom: '1px solid var(--border)' }}
+      style={{
+        padding: '14px 16px',
+        ...(noBorder ? {} : { borderBottom: '1px solid var(--border)' }),
+        ...style,
+      }}
     >
       {children}
     </div>
   )
 }
 
-// ── Delete account modal ──────────────────────────────────────────────────────
+// ── Delete modal ──────────────────────────────────────────────────────────────
 
 function DeleteModal({ onClose, userId }) {
   const [input, setInput] = useState('')
@@ -56,12 +68,10 @@ function DeleteModal({ onClose, userId }) {
     setBusy(true)
     setErr('')
     try {
-      // Delete data in FK-safe order
       await supabase.from('quiz_results').delete().eq('user_id', userId)
       await supabase.from('sessions').delete().eq('user_id', userId)
       await supabase.from('resources').delete().eq('user_id', userId)
       await supabase.from('courses').delete().eq('user_id', userId)
-      // Optional RPC to remove auth record (requires a server-side Supabase function)
       await supabase.rpc('delete_user').catch(() => {})
       await supabase.auth.signOut()
     } catch {
@@ -73,23 +83,23 @@ function DeleteModal({ onClose, userId }) {
   return (
     <div
       className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4"
-      style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
+      style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
       <div
         className="w-full max-w-sm rounded-2xl p-5 space-y-4"
-        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+        style={{ backgroundColor: '#111113', border: '1px solid var(--border)' }}
       >
         <div className="space-y-1.5">
           <p className="font-bold text-base" style={{ color: 'var(--text-1)' }}>Delete account?</p>
           <p className="text-sm leading-relaxed" style={{ color: 'var(--text-2)' }}>
-            This will permanently delete all your data — courses, sessions, quiz results, and resources.
+            This will permanently delete your account and all data — courses, sessions, quiz results, and resources.
             This action cannot be undone.
           </p>
         </div>
 
         <div className="space-y-1.5">
-          <p className="text-xs font-medium" style={{ color: 'var(--text-2)' }}>
+          <p className="text-xs" style={{ color: 'var(--text-2)' }}>
             Type <span className="font-bold" style={{ color: 'var(--text-1)' }}>DELETE</span> to confirm
           </p>
           <input
@@ -97,16 +107,12 @@ function DeleteModal({ onClose, userId }) {
             onChange={e => setInput(e.target.value)}
             placeholder="DELETE"
             className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-            style={{
-              backgroundColor: 'var(--bg-surf)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-1)',
-            }}
+            style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
             autoFocus
           />
         </div>
 
-        {err && <p className="text-xs" style={{ color: '#E63946' }}>{err}</p>}
+        {err && <p className="text-xs" style={{ color: '#EF4444' }}>{err}</p>}
 
         <div className="flex gap-2">
           <button
@@ -120,14 +126,14 @@ function DeleteModal({ onClose, userId }) {
           <button
             onClick={confirm}
             disabled={busy || input !== 'DELETE'}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-opacity"
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
             style={{
-              backgroundColor: '#E63946',
+              backgroundColor: '#EF4444',
               color: '#fff',
               opacity: input !== 'DELETE' || busy ? 0.4 : 1,
             }}
           >
-            {busy ? 'Deleting…' : 'Delete'}
+            {busy ? 'Deleting…' : 'Delete Account'}
           </button>
         </div>
       </div>
@@ -135,182 +141,210 @@ function DeleteModal({ onClose, userId }) {
   )
 }
 
-// ── Page ─────────────────────────────────────────────────────────────────────
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function Settings() {
   const { session } = useAuth()
+  const { accentColor, setAccentColor } = useTheme()
+
+  const displayName = session?.user?.user_metadata?.full_name?.split(' ')[0] || 'Student'
   const email = session?.user?.email ?? ''
   const userId = session?.user?.id
 
-  const [showDelete, setShowDelete] = useState(false)
-  const [exporting, setExporting] = useState(false)
-  const [exportDone, setExportDone] = useState(false)
+  const [focusDuration, setFocusDurationState] = useState(
+    () => parseInt(localStorage.getItem('studylog-focus-duration') || '25', 10)
+  )
+  const [dangerExpanded, setDangerExpanded] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
 
-  async function handleExport() {
-    setExporting(true)
-    setExportDone(false)
-    try {
-      const { data: rows } = await supabase
-        .from('sessions')
-        .select('date, duration_minutes, pages_covered, focus_type, energy_level, notes, courses(name), resources(name)')
-        .order('date', { ascending: false })
+  const selectedColor = COLORS.find(c => c.value === accentColor) ?? COLORS[0]
 
-      const sessions = rows ?? []
-      const headers = ['date', 'course', 'resource', 'duration_minutes', 'pages_covered', 'focus_type', 'energy_level', 'notes']
-      const csvRows = sessions.map(s =>
-        [
-          s.date ?? '',
-          s.courses?.name ?? '',
-          s.resources?.name ?? '',
-          s.duration_minutes ?? '',
-          s.pages_covered ?? '',
-          s.focus_type ?? '',
-          s.energy_level ?? '',
-          (s.notes ?? '').replace(/"/g, '""'),
-        ].map(v => `"${v}"`).join(',')
-      )
-
-      const csv = [headers.join(','), ...csvRows].join('\n')
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `studylog-export-${new Date().toISOString().slice(0, 10)}.csv`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-      setExportDone(true)
-      setTimeout(() => setExportDone(false), 3000)
-    } finally {
-      setExporting(false)
-    }
+  function setFocusDuration(mins) {
+    setFocusDurationState(mins)
+    localStorage.setItem('studylog-focus-duration', String(mins))
   }
 
   return (
-    <div className="page-enter px-4 pt-6 pb-10 space-y-6">
+    <div className="page-enter px-4 pt-5 pb-12 space-y-7">
 
-      {/* Account */}
-      <Section title="Account">
-        <Row>
-          <p className="text-[11px] font-medium mb-0.5" style={{ color: 'var(--text-2)' }}>Signed in as</p>
-          <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-1)' }}>{email}</p>
-        </Row>
-        <Row>
-          <button
-            onClick={() => supabase.auth.signOut()}
-            className="w-full text-left text-sm font-semibold py-0.5"
-            style={{ color: 'var(--text-1)' }}
-          >
-            Sign Out
-          </button>
-        </Row>
-        <Row noBorder>
-          <button
-            onClick={() => setShowDelete(true)}
-            className="w-full text-left text-sm font-semibold py-0.5"
-            style={{ color: '#E63946' }}
-          >
-            Delete Account…
-          </button>
-        </Row>
-      </Section>
-
-      {/* Data */}
-      <Section title="Data">
-        <Row noBorder>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold" style={{ color: 'var(--text-1)' }}>Export All Data</p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--text-2)' }}>
-                Sessions as CSV — date, course, resource, duration, pages, focus type, energy, notes
-              </p>
-            </div>
+      {/* ── PROFILE ───────────────────────────────────────────────────────── */}
+      <div>
+        <SectionLabel>Profile</SectionLabel>
+        <Card>
+          <Row>
+            <p className="text-base font-bold" style={{ color: 'var(--text-1)' }}>{displayName}</p>
+            <p className="text-sm mt-0.5" style={{ color: '#6b7280' }}>{email}</p>
+          </Row>
+          <Row noBorder>
             <button
-              onClick={handleExport}
-              disabled={exporting}
-              className="flex-shrink-0 ml-3 px-3 py-1.5 rounded-xl text-xs font-semibold transition-opacity"
-              style={{
-                backgroundColor: exportDone ? '#2A9D8F22' : 'var(--bg-surf)',
-                color: exportDone ? '#2A9D8F' : 'var(--text-1)',
-                border: '1px solid var(--border)',
-                opacity: exporting ? 0.5 : 1,
-              }}
+              onClick={() => supabase.auth.signOut()}
+              className="text-sm font-semibold"
+              style={{ color: '#EF4444', background: 'none', padding: 0 }}
             >
-              {exporting ? 'Exporting…' : exportDone ? 'Downloaded!' : 'Export CSV'}
+              Sign Out
             </button>
-          </div>
-        </Row>
-      </Section>
+          </Row>
+        </Card>
+      </div>
 
-      {/* Preferences */}
-      <Section title="Preferences">
-        <Row noBorder>
-          <p className="text-sm font-semibold mb-0.5" style={{ color: 'var(--text-2)' }}>Coming soon</p>
-          <p className="text-xs leading-relaxed" style={{ color: 'var(--text-2)' }}>
-            Theme toggle, notification preferences, data export settings
-          </p>
-        </Row>
-      </Section>
+      {/* ── APPEARANCE ────────────────────────────────────────────────────── */}
+      <div>
+        <SectionLabel>Appearance</SectionLabel>
+        <Card>
+          <Row noBorder>
+            <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text-1)' }}>Accent Color</p>
 
-      {/* About */}
-      <Section title="About">
-        <Row>
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold" style={{ color: 'var(--text-1)' }}>StudyLog</p>
-            <span
-              className="text-xs px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: 'var(--bg-surf)', color: 'var(--text-2)', border: '1px solid var(--border)' }}
+            {/* 4×2 swatch grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+              {COLORS.map(c => {
+                const active = c.value === accentColor
+                return (
+                  <button
+                    key={c.value}
+                    onClick={() => setAccentColor(c.value)}
+                    aria-label={c.name}
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '50%',
+                      backgroundColor: c.value,
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      outline: active ? `2px solid ${c.value}` : 'none',
+                      outlineOffset: '3px',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {active && (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" style={{ width: '14px', height: '14px' }}>
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+
+            <p className="text-xs mt-3" style={{ color: '#6b7280' }}>{selectedColor.name}</p>
+          </Row>
+        </Card>
+      </div>
+
+      {/* ── PREFERENCES ───────────────────────────────────────────────────── */}
+      <div>
+        <SectionLabel>Preferences</SectionLabel>
+        <Card>
+          <Row noBorder>
+            <p className="text-sm font-semibold mb-2.5" style={{ color: 'var(--text-1)' }}>Default Focus Duration</p>
+            <div
+              className="flex p-1 rounded-xl"
+              style={{ backgroundColor: 'var(--bg-surf)' }}
             >
-              v{VERSION}
-            </span>
-          </div>
-          <p className="text-xs mt-1" style={{ color: 'var(--text-2)' }}>
-            Track your study sessions at the resource level
-          </p>
-        </Row>
-        <Row noBorder>
-          <p className="text-sm" style={{ color: 'var(--text-2)' }}>
-            Built by{' '}
-            <a
-              href="https://github.com/Mashalakh"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold underline"
-              style={{ color: 'var(--text-1)' }}
-            >
-              Mash
-            </a>
-          </p>
-        </Row>
-      </Section>
+              {FOCUS_DURATIONS.map(mins => (
+                <button
+                  key={mins}
+                  onClick={() => setFocusDuration(mins)}
+                  className="flex-1 py-2 rounded-lg text-sm font-semibold"
+                  style={focusDuration === mins
+                    ? { backgroundColor: accentColor, color: '#fff' }
+                    : { backgroundColor: 'transparent', color: '#6b7280' }
+                  }
+                >
+                  {mins} min
+                </button>
+              ))}
+            </div>
+          </Row>
+        </Card>
+      </div>
 
-      {/* Changelog */}
-      <Section title="Changelog">
-        {CHANGELOG.map((entry, i) => (
-          <Row key={entry.version} noBorder={i === CHANGELOG.length - 1}>
-            <div className="flex items-start gap-3">
+      {/* ── ABOUT ─────────────────────────────────────────────────────────── */}
+      <div>
+        <SectionLabel>About</SectionLabel>
+        <Card>
+          <Row>
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-bold" style={{ color: 'var(--text-1)' }}>StudyLog</p>
               <span
-                className="flex-shrink-0 text-xs font-bold px-2 py-0.5 rounded-full mt-0.5"
-                style={{ backgroundColor: '#E6394622', color: '#E63946' }}
+                className="text-xs px-2 py-0.5 rounded-full"
+                style={{ backgroundColor: `${accentColor}22`, color: accentColor, fontWeight: 600 }}
               >
-                {entry.version}
+                v1.1
               </span>
-              <div>
-                <p className="text-sm font-semibold leading-tight" style={{ color: 'var(--text-1)' }}>
-                  {entry.label}
-                </p>
-                <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--text-2)' }}>
+            </div>
+          </Row>
+
+          {CHANGELOG.map((entry, i) => (
+            <Row key={entry.version} noBorder={i === CHANGELOG.length - 1}>
+              <div className="flex items-start gap-2.5">
+                <span
+                  className="flex-shrink-0 text-xs font-bold px-2 py-0.5 rounded-full mt-0.5"
+                  style={{ backgroundColor: 'var(--bg-surf)', color: 'var(--text-2)' }}
+                >
+                  {entry.version}
+                </span>
+                <p className="text-xs leading-relaxed" style={{ color: '#6b7280' }}>
                   {entry.notes}
                 </p>
               </div>
-            </div>
-          </Row>
-        ))}
-      </Section>
+            </Row>
+          ))}
 
-      {showDelete && (
-        <DeleteModal userId={userId} onClose={() => setShowDelete(false)} />
+          <Row noBorder style={{ borderTop: '1px solid var(--border)' }}>
+            <p className="text-xs" style={{ color: '#6b7280' }}>Made by Mash</p>
+          </Row>
+        </Card>
+      </div>
+
+      {/* ── DANGER ZONE ───────────────────────────────────────────────────── */}
+      <div>
+        <SectionLabel>Danger Zone</SectionLabel>
+        <Card>
+          <button
+            onClick={() => setDangerExpanded(v => !v)}
+            className="w-full flex items-center justify-between px-4 py-3.5 text-left"
+            style={{ color: 'var(--text-1)' }}
+          >
+            <span className="text-sm font-semibold">Account Actions</span>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              style={{
+                width: '16px',
+                height: '16px',
+                color: '#6b7280',
+                transform: dangerExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.2s ease',
+              }}
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+
+          {dangerExpanded && (
+            <div style={{ borderTop: '1px solid var(--border)', padding: '16px' }}>
+              <p className="text-xs mb-3" style={{ color: '#6b7280' }}>
+                Permanently delete your account and all associated data. This cannot be undone.
+              </p>
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className="w-full py-3 rounded-xl text-sm font-semibold"
+                style={{ backgroundColor: '#EF4444', color: '#fff' }}
+              >
+                Delete My Account
+              </button>
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {showDeleteModal && (
+        <DeleteModal userId={userId} onClose={() => setShowDeleteModal(false)} />
       )}
     </div>
   )

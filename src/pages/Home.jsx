@@ -131,7 +131,7 @@ function computeStats(allSessions) {
 export default function Home() {
   const navigate = useNavigate()
   const { session: authSession } = useAuth()
-  const { theme, toggleTheme } = useTheme()
+  const { theme, toggleTheme, accentColor } = useTheme()
 
   const [allSessions, setAllSessions] = useState(null)
   const [activeCourses, setActiveCourses] = useState(null)
@@ -175,7 +175,7 @@ export default function Home() {
               {greetingText}
             </h1>
             <p className="text-sm" style={{ color: 'var(--text-2)' }}>{formatHeaderDate()}</p>
-            <p className="text-sm font-medium" style={{ color: '#10B981' }}>
+            <p className="text-sm font-medium" style={{ color: accentColor }}>
               {loading
                 ? <span style={{ color: 'var(--text-3)' }}>·  ·  ·</span>
                 : stats.streak > 0
@@ -259,13 +259,14 @@ export default function Home() {
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function TodayStatsCard({ stats, loading }) {
+  const { accentColor } = useTheme()
   return (
     <div className="rounded-xl px-5 py-4" style={{ backgroundColor: '#111113' }}>
       <div className="flex items-center">
         <div className="flex-1 text-center">
           {loading
             ? <Skel h={26} />
-            : <p className="text-xl font-bold leading-none" style={{ color: '#10B981' }}>
+            : <p className="text-xl font-bold leading-none" style={{ color: accentColor }}>
                 {fmtMins(stats?.todayMins ?? 0)}
               </p>
           }
@@ -301,6 +302,7 @@ function TodayStatsCard({ stats, loading }) {
 }
 
 function WeeklyBarChart({ chartData, loading }) {
+  const { accentColor } = useTheme()
   if (loading) {
     return (
       <div className="rounded-xl p-4" style={{ backgroundColor: '#111113' }}>
@@ -342,7 +344,7 @@ function WeeklyBarChart({ chartData, loading }) {
                 style={{
                   width: '100%',
                   height: barH,
-                  backgroundColor: '#10B981',
+                  backgroundColor: accentColor,
                   opacity,
                   borderRadius: minutes === 0 ? 1 : '3px 3px 0 0',
                 }}
@@ -359,7 +361,7 @@ function WeeklyBarChart({ chartData, loading }) {
             <span
               style={{
                 fontSize: 11,
-                color: isToday ? '#10B981' : '#6b7280',
+                color: isToday ? accentColor : '#6b7280',
                 fontWeight: isToday ? 600 : 400,
               }}
             >
@@ -374,15 +376,16 @@ function WeeklyBarChart({ chartData, loading }) {
 
 function QuickActions() {
   const navigate = useNavigate()
+  const { accentColor } = useTheme()
 
   return (
     <div className="flex gap-3">
       <button
         onClick={() => navigate('/session?mode=focus')}
         className="flex-1 flex items-center gap-3 px-4 py-4 rounded-xl text-left"
-        style={{ backgroundColor: '#111113', border: '1px solid #10B981' }}
+        style={{ backgroundColor: '#111113', border: `1px solid ${accentColor}` }}
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" className="w-5 h-5 flex-shrink-0">
+        <svg viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2" className="w-5 h-5 flex-shrink-0">
           <circle cx="12" cy="12" r="10" />
           <circle cx="12" cy="12" r="4" />
           <line x1="12" y1="2" x2="12" y2="6" />
@@ -399,9 +402,9 @@ function QuickActions() {
       <button
         onClick={() => navigate('/session?mode=log')}
         className="flex-1 flex items-center gap-3 px-4 py-4 rounded-xl text-left"
-        style={{ backgroundColor: '#111113', border: '1px solid #10B981' }}
+        style={{ backgroundColor: '#111113', border: `1px solid ${accentColor}` }}
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" className="w-5 h-5 flex-shrink-0">
+        <svg viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2" className="w-5 h-5 flex-shrink-0">
           <path d="M12 20h9" />
           <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
         </svg>
@@ -415,11 +418,12 @@ function QuickActions() {
 }
 
 function CoursesRow({ courses, weekSessionsMap }) {
+  const { accentColor } = useTheme()
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
         <p className="text-sm font-semibold" style={{ color: 'var(--text-1)' }}>Your Courses</p>
-        <Link to="/courses" className="text-xs font-medium" style={{ color: '#10B981' }}>See all</Link>
+        <Link to="/courses" className="text-xs font-medium" style={{ color: accentColor }}>See all</Link>
       </div>
       <div
         className="flex gap-3 overflow-x-auto pb-1 hide-scrollbar"
@@ -469,6 +473,7 @@ function RecentSessionsList({ sessions, loading, onDelete }) {
 }
 
 function SessionCard({ s, onDelete }) {
+  const { accentColor } = useTheme()
   const [confirming, setConfirming] = useState(false)
   const course = s.courses
   if (!course) return null
@@ -499,7 +504,7 @@ function SessionCard({ s, onDelete }) {
             <p className="text-sm font-semibold truncate flex-1" style={{ color: 'var(--text-1)' }}>
               {course.name}
             </p>
-            <span className="text-sm font-bold flex-shrink-0" style={{ color: '#10B981' }}>
+            <span className="text-sm font-bold flex-shrink-0" style={{ color: accentColor }}>
               {fmtMins(s.duration_minutes)}
             </span>
           </div>
@@ -536,6 +541,7 @@ function SessionCard({ s, onDelete }) {
 }
 
 function DeleteConfirmModal({ onConfirm, onCancel }) {
+  const { accentColor } = useTheme()
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center p-4"
@@ -561,7 +567,7 @@ function DeleteConfirmModal({ onConfirm, onCancel }) {
           <button
             onClick={onConfirm}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-            style={{ backgroundColor: '#E63946', color: '#fff' }}
+            style={{ backgroundColor: accentColor, color: '#fff' }}
           >
             Delete
           </button>

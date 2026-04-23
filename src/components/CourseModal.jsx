@@ -1,3 +1,5 @@
+import { useTheme } from '../context/ThemeContext.jsx'
+
 export const COLOR_SWATCHES = [
   '#E63946', '#6366f1', '#a855f7', '#ec4899',
   '#ef4444', '#fb923c', '#f59e0b', '#84cc16',
@@ -15,6 +17,7 @@ export const EMPTY_COURSE_FORM = {
 }
 
 export function CourseModal({ form, setForm, editing, saving, onSave, onClose }) {
+  const { accentColor } = useTheme()
   const canSave = form.name.trim().length > 0 && !saving
 
   return (
@@ -144,7 +147,7 @@ export function CourseModal({ form, setForm, editing, saving, onSave, onClose })
           disabled={!canSave}
           className="w-full py-3 rounded-xl font-semibold text-sm"
           style={{
-            backgroundColor: canSave ? '#E63946' : 'var(--bg-surf)',
+            backgroundColor: canSave ? accentColor : 'var(--bg-surf)',
             color: canSave ? '#fff' : 'var(--text-2)',
             border: canSave ? 'none' : '1px solid var(--border)',
           }}

@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTheme } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
 
 export default function Login() {
   const navigate = useNavigate()
+  const { accentColor } = useTheme()
   const [mode, setMode] = useState('login') // 'login' | 'signup'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -51,7 +53,7 @@ export default function Login() {
               onClick={() => { setMode(m); setError('') }}
               className="flex-1 py-2.5 text-sm font-medium transition-colors"
               style={{
-                backgroundColor: mode === m ? '#E63946' : 'var(--bg-card)',
+                backgroundColor: mode === m ? accentColor : 'var(--bg-card)',
                 color: mode === m ? '#fff' : 'var(--text-2)',
               }}
             >
@@ -86,7 +88,7 @@ export default function Login() {
           {error && (
             <p
               className="text-sm text-center"
-              style={{ color: error.startsWith('Account created') ? '#E63946' : '#f87171' }}
+              style={{ color: error.startsWith('Account created') ? accentColor : '#f87171' }}
             >
               {error}
             </p>
@@ -96,7 +98,7 @@ export default function Login() {
             type="submit"
             disabled={loading}
             className="w-full py-3 rounded-xl font-semibold text-sm disabled:opacity-60"
-            style={{ backgroundColor: '#E63946', color: '#fff' }}
+            style={{ backgroundColor: accentColor, color: '#fff' }}
           >
             {loading ? '...' : mode === 'login' ? 'Log In' : 'Create Account'}
           </button>

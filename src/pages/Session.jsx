@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTimer, fmtTime } from '../context/TimerContext.jsx'
+import { useTheme } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import SwipeableRow from '../components/SwipeableRow.jsx'
 
@@ -67,6 +68,7 @@ export default function Session() {
   const [mode, setMode] = useState(initialMode)
   const [switchWarning, setSwitchWarning] = useState(false)
   const { phase } = useTimer()
+  const { accentColor } = useTheme()
 
   useEffect(() => {
     if (phase !== 'running') setSwitchWarning(false)
@@ -91,7 +93,7 @@ export default function Session() {
             onClick={() => handleModeSwitch('focus')}
             className="flex-1 py-2 rounded-full text-sm font-semibold transition-colors"
             style={mode === 'focus'
-              ? { backgroundColor: '#10B981', color: '#fff' }
+              ? { backgroundColor: accentColor, color: '#fff' }
               : { backgroundColor: 'transparent', color: '#6b7280' }
             }
           >
@@ -101,7 +103,7 @@ export default function Session() {
             onClick={() => handleModeSwitch('log')}
             className="flex-1 py-2 rounded-full text-sm font-semibold transition-colors"
             style={mode === 'log'
-              ? { backgroundColor: '#10B981', color: '#fff' }
+              ? { backgroundColor: accentColor, color: '#fff' }
               : { backgroundColor: 'transparent', color: '#6b7280' }
             }
           >
@@ -250,6 +252,7 @@ function FocusTab() {
 
 function LogTab() {
   const { session } = useAuth()
+  const { accentColor } = useTheme()
   const navigate = useNavigate()
   const [courses, setCourses] = useState([])
   const [resources, setResources] = useState([])
@@ -397,7 +400,7 @@ function LogTab() {
               onClick={() => set('focus_type', value)}
               className="py-2 rounded-xl text-xs font-medium text-left px-3"
               style={form.focus_type === value
-                ? { backgroundColor: '#E63946', color: '#fff' }
+                ? { backgroundColor: accentColor, color: '#fff' }
                 : { backgroundColor: 'var(--bg-surf)', color: 'var(--text-2)', border: '1px solid var(--border)' }
               }
             >
@@ -444,7 +447,7 @@ function LogTab() {
         disabled={!canSubmit}
         className="w-full py-3.5 rounded-xl font-semibold text-sm"
         style={{
-          backgroundColor: canSubmit ? '#E63946' : 'var(--bg-surf)',
+          backgroundColor: canSubmit ? accentColor : 'var(--bg-surf)',
           color: canSubmit ? '#fff' : 'var(--text-2)',
           border: canSubmit ? 'none' : '1px solid var(--border)',
         }}
@@ -486,6 +489,7 @@ function LogTab() {
 // ── Timer sub-components ─────────────────────────────────────────────────────
 
 function SetupView({ courses, resources, courseId, resourceId, onCourseChange, onResourceChange, onStart }) {
+  const { accentColor } = useTheme()
   return (
     <div className="space-y-4">
       <Field label="Course *">
@@ -522,7 +526,7 @@ function SetupView({ courses, resources, courseId, resourceId, onCourseChange, o
         disabled={!courseId}
         className="w-full py-4 rounded-2xl font-bold text-base mt-2"
         style={{
-          backgroundColor: courseId ? '#E63946' : 'var(--bg-surf)',
+          backgroundColor: courseId ? accentColor : 'var(--bg-surf)',
           color: courseId ? '#fff' : 'var(--text-2)',
           border: courseId ? 'none' : '1px solid var(--border)',
         }}
@@ -534,6 +538,7 @@ function SetupView({ courses, resources, courseId, resourceId, onCourseChange, o
 }
 
 function RunningView({ totalSeconds, running, segment, segmentCount, onPause, onResume, onSwap, onFinish, onDiscard, onFullscreen }) {
+  const { accentColor } = useTheme()
   return (
     <div className="flex flex-col items-center gap-6">
       <button
@@ -590,7 +595,7 @@ function RunningView({ totalSeconds, running, segment, segmentCount, onPause, on
         >
           {fmtTime(totalSeconds)}
         </span>
-        <span className="text-xs mt-2" style={{ color: running ? '#E63946' : 'var(--text-2)' }}>
+        <span className="text-xs mt-2" style={{ color: running ? accentColor : 'var(--text-2)' }}>
           {running ? 'Recording…' : 'Paused'}
         </span>
       </div>
@@ -598,7 +603,7 @@ function RunningView({ totalSeconds, running, segment, segmentCount, onPause, on
       {running && (
         <div
           className="w-2 h-2 rounded-full"
-          style={{ backgroundColor: '#E63946', boxShadow: '0 0 0 0 #E6394666', animation: 'pulse 2s ease-in-out infinite' }}
+          style={{ backgroundColor: accentColor, boxShadow: `0 0 0 0 ${accentColor}66`, animation: 'pulse 2s ease-in-out infinite' }}
         />
       )}
 
@@ -628,7 +633,7 @@ function RunningView({ totalSeconds, running, segment, segmentCount, onPause, on
         <button
           onClick={onFinish}
           className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm"
-          style={{ backgroundColor: '#E63946', color: '#fff' }}
+          style={{ backgroundColor: accentColor, color: '#fff' }}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4">
             <polyline points="20 6 9 17 4 12" />
@@ -649,6 +654,7 @@ function RunningView({ totalSeconds, running, segment, segmentCount, onPause, on
 }
 
 function SwapModal({ courses, resources, courseId, resourceId, onCourseChange, onResourceChange, onConfirm, onClose }) {
+  const { accentColor } = useTheme()
   return (
     <Overlay onClose={onClose}>
       <div className="flex items-center justify-between mb-4">
@@ -685,7 +691,7 @@ function SwapModal({ courses, resources, courseId, resourceId, onCourseChange, o
         onClick={onConfirm}
         disabled={!courseId}
         className="w-full py-3 rounded-xl font-semibold text-sm mt-4"
-        style={{ backgroundColor: courseId ? '#E63946' : 'var(--bg-surf)', color: courseId ? '#fff' : 'var(--text-2)' }}
+        style={{ backgroundColor: courseId ? accentColor : 'var(--bg-surf)', color: courseId ? '#fff' : 'var(--text-2)' }}
       >
         Confirm Swap
       </button>
@@ -694,6 +700,7 @@ function SwapModal({ courses, resources, courseId, resourceId, onCourseChange, o
 }
 
 function FinishModal({ totalSeconds, segments, form, setForm, courses, allResources, saving, onSubmit, onClose }) {
+  const { accentColor } = useTheme()
   const multiSegment = segments.length > 1
   const resources = allResources.filter(r => r.course_id === form.course_id)
   const totalMins = Math.max(1, Math.round(totalSeconds / 60))
@@ -734,7 +741,7 @@ function FinishModal({ totalSeconds, segments, form, setForm, courses, allResour
                     )}
                   </div>
                 </div>
-                <span className="text-xs font-medium flex-shrink-0 ml-2" style={{ color: '#E63946' }}>{dur}m</span>
+                <span className="text-xs font-medium flex-shrink-0 ml-2" style={{ color: accentColor }}>{dur}m</span>
               </div>
             )
           })}
@@ -827,7 +834,7 @@ function FinishModal({ totalSeconds, segments, form, setForm, courses, allResour
                 onClick={() => set('focus_type', value)}
                 className="py-2 rounded-xl text-xs font-medium text-left px-3"
                 style={form.focus_type === value
-                  ? { backgroundColor: '#E63946', color: '#fff' }
+                  ? { backgroundColor: accentColor, color: '#fff' }
                   : { backgroundColor: 'var(--bg-surf)', color: 'var(--text-2)', border: '1px solid var(--border)' }
                 }
               >
@@ -874,7 +881,7 @@ function FinishModal({ totalSeconds, segments, form, setForm, courses, allResour
         onClick={onSubmit}
         disabled={saving}
         className="w-full py-3.5 rounded-xl font-bold text-sm mt-4"
-        style={{ backgroundColor: saving ? 'var(--bg-surf)' : '#E63946', color: saving ? 'var(--text-2)' : '#fff' }}
+        style={{ backgroundColor: saving ? 'var(--bg-surf)' : accentColor, color: saving ? 'var(--text-2)' : '#fff' }}
       >
         {saving ? 'Saving…' : `Log Session${multiSegment ? `s (${segments.length})` : ''}`}
       </button>
@@ -883,6 +890,7 @@ function FinishModal({ totalSeconds, segments, form, setForm, courses, allResour
 }
 
 function DiscardModal({ onConfirm, onCancel }) {
+  const { accentColor } = useTheme()
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -899,7 +907,7 @@ function DiscardModal({ onConfirm, onCancel }) {
           <button
             onClick={onCancel}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-            style={{ backgroundColor: '#E63946', color: '#fff' }}
+            style={{ backgroundColor: accentColor, color: '#fff' }}
           >
             Keep Going
           </button>
@@ -917,6 +925,7 @@ function DiscardModal({ onConfirm, onCancel }) {
 }
 
 function FullscreenOverlay({ totalSeconds, running, segment, onPause, onResume, onExit }) {
+  const { accentColor } = useTheme()
   return (
     <div
       className="fixed inset-0 z-[200] flex flex-col items-center justify-center select-none"
@@ -950,7 +959,7 @@ function FullscreenOverlay({ totalSeconds, running, segment, onPause, onResume, 
             </span>
           )}
         </div>
-        <span className="text-xs mt-1" style={{ color: running ? '#E63946' : '#ffffff44' }}>
+        <span className="text-xs mt-1" style={{ color: running ? accentColor : '#ffffff44' }}>
           {running ? 'Tap to pause' : 'Paused — tap to resume'}
         </span>
       </div>
@@ -984,6 +993,7 @@ function FullscreenOverlay({ totalSeconds, running, segment, onPause, onResume, 
 // ── Log sub-components ───────────────────────────────────────────────────────
 
 function HistoryCard({ s, onDelete }) {
+  const { accentColor } = useTheme()
   const [confirming, setConfirming] = useState(false)
   const course = s.courses
   if (!course) return null
@@ -1028,7 +1038,7 @@ function HistoryCard({ s, onDelete }) {
             {s.focus_type && (
               <span
                 className="px-1.5 py-0.5 rounded text-[10px] font-medium"
-                style={{ backgroundColor: '#E6394622', color: '#E63946' }}
+                style={{ backgroundColor: `${accentColor}22`, color: accentColor }}
               >
                 {FOCUS_LABEL[s.focus_type] ?? s.focus_type}
               </span>
@@ -1060,6 +1070,7 @@ function HistoryCard({ s, onDelete }) {
 }
 
 function DeleteConfirmModal({ onConfirm, onCancel }) {
+  const { accentColor } = useTheme()
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center p-4"
@@ -1085,7 +1096,7 @@ function DeleteConfirmModal({ onConfirm, onCancel }) {
           <button
             onClick={onConfirm}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-            style={{ backgroundColor: '#E63946', color: '#fff' }}
+            style={{ backgroundColor: accentColor, color: '#fff' }}
           >
             Delete
           </button>

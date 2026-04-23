@@ -1,6 +1,8 @@
 import React from 'react';
+import { useTheme } from '../context/ThemeContext.jsx';
 
 export default function Logo({ variant = 'full', size = 32 }) {
+  const { accentColor } = useTheme()
   if (variant === 'icon') {
     return (
       <img
@@ -18,7 +20,7 @@ export default function Logo({ variant = 'full', size = 32 }) {
         <div className="relative">
           <div
             className="absolute inset-0 rounded-full blur-2xl opacity-15"
-            style={{ backgroundColor: '#10B981' }}
+            style={{ backgroundColor: accentColor }}
           />
           <img
             src="/logo.png"

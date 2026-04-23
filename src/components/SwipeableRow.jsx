@@ -1,8 +1,10 @@
 import { useState, useRef } from 'react'
+import { useTheme } from '../context/ThemeContext.jsx'
 
 const REVEAL_W = 68
 
 export default function SwipeableRow({ onDelete, children, bg = 'var(--bg-card)' }) {
+  const { accentColor } = useTheme()
   const [dx, setDx] = useState(0)
   const [swiping, setSwiping] = useState(false)
   const startX = useRef(null)
@@ -29,7 +31,7 @@ export default function SwipeableRow({ onDelete, children, bg = 'var(--bg-card)'
       {/* Delete zone revealed on swipe */}
       <div
         className="absolute inset-y-0 right-0 flex items-center justify-center"
-        style={{ width: `${REVEAL_W}px`, backgroundColor: '#E63946' }}
+        style={{ width: `${REVEAL_W}px`, backgroundColor: accentColor }}
       >
         <button
           onClick={onDelete}

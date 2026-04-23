@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext.jsx'
+import { useTheme } from './context/ThemeContext.jsx'
 import { TimerProvider, useTimer, fmtTime } from './context/TimerContext.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import BottomNav from './components/BottomNav.jsx'
@@ -13,6 +14,7 @@ import Login from './pages/Login.jsx'
 
 function FloatingTimerBar() {
   const { phase, totalSeconds, segments, running } = useTimer()
+  const { accentColor } = useTheme()
   const { pathname } = useLocation()
   const navigate = useNavigate()
 
@@ -31,7 +33,7 @@ function FloatingTimerBar() {
       }}
     >
       <div className="flex items-center gap-2 min-w-0">
-        <span style={{ color: running ? '#E63946' : 'var(--text-2)', fontSize: '14px' }}>⏱</span>
+        <span style={{ color: running ? accentColor : 'var(--text-2)', fontSize: '14px' }}>⏱</span>
         <span className="font-bold tabular-nums text-sm" style={{ color: 'var(--text-1)' }}>
           {fmtTime(totalSeconds)}
         </span>

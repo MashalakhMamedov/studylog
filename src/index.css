@@ -16,7 +16,7 @@
   --streak-hot-bg:   #1e1111;
   --tinted-red:      #3a1515;
   --bar-today-label: #f07078;
-  --accent:          #E63946;
+  --accent:          #10B981;
   color-scheme: dark;
 }
 
@@ -43,8 +43,8 @@
   --color-card:       var(--bg-card);
   --color-surface:    var(--bg-surf);
   --color-border:     var(--border);
-  --color-accent:     #E63946;
-  --color-accent-dim: #c42b37;
+  --color-accent:     #10B981;
+  --color-accent-dim: #0ea371;
   --color-text:       var(--text-1);
   --color-muted:      var(--text-2);
 }
@@ -81,8 +81,12 @@
 
 /* ── Interactions ────────────────────────────────────────────────────────── */
 
+button, a, span, div {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
 button {
-  transition: transform 200ms ease;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 200ms ease;
 }
 button:not(:disabled):active {
   transform: scale(0.96);

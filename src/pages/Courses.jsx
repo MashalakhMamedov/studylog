@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useTheme } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import {
   CourseModal, EMPTY_COURSE_FORM,
@@ -10,6 +11,7 @@ import {
 
 export default function Courses() {
   const { session } = useAuth()
+  const { accentColor } = useTheme()
   const [courses, setCourses] = useState([])
   const [materialCounts, setMaterialCounts] = useState({})
   const [loading, setLoading] = useState(true)
@@ -91,7 +93,7 @@ export default function Courses() {
         <button
           onClick={openAdd}
           className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold"
-          style={{ backgroundColor: '#E63946', color: '#fff' }}
+          style={{ backgroundColor: accentColor, color: '#fff' }}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4">
             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -107,7 +109,7 @@ export default function Courses() {
             onClick={() => setFilter(s)}
             className="px-3 py-1.5 rounded-lg text-xs font-medium capitalize"
             style={filter === s
-              ? { backgroundColor: '#E63946', color: '#fff' }
+              ? { backgroundColor: accentColor, color: '#fff' }
               : { backgroundColor: 'var(--bg-surf)', color: 'var(--text-2)', border: '1px solid var(--border)' }
             }
           >
@@ -120,7 +122,7 @@ export default function Courses() {
         <div className="flex justify-center py-16">
           <div
             className="w-8 h-8 rounded-full border-2 animate-spin"
-            style={{ borderColor: 'var(--border)', borderTopColor: '#E63946' }}
+            style={{ borderColor: 'var(--border)', borderTopColor: accentColor }}
           />
         </div>
       ) : filtered.length === 0 ? (
@@ -138,7 +140,7 @@ export default function Courses() {
             <button
               onClick={openAdd}
               className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold"
-              style={{ backgroundColor: '#E63946', color: '#fff' }}
+              style={{ backgroundColor: accentColor, color: '#fff' }}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4">
                 <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -246,6 +248,7 @@ function CourseCard({ course, materialCount, onEdit, onDelete }) {
 }
 
 function DeleteConfirm({ course, onConfirm, onCancel }) {
+  const { accentColor } = useTheme()
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -274,7 +277,7 @@ function DeleteConfirm({ course, onConfirm, onCancel }) {
           <button
             onClick={onConfirm}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-            style={{ backgroundColor: '#E63946', color: '#fff' }}
+            style={{ backgroundColor: accentColor, color: '#fff' }}
           >
             Delete
           </button>

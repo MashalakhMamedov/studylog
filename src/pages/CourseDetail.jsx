@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useTheme } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import {
   CourseModal, EMPTY_COURSE_FORM,
@@ -77,6 +78,7 @@ export default function CourseDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { session } = useAuth()
+  const { accentColor } = useTheme()
 
   const [course, setCourse] = useState(null)
   const [sessions, setSessions] = useState([])
@@ -264,7 +266,7 @@ export default function CourseDetail() {
     return (
       <div className="flex justify-center py-24">
         <div className="w-8 h-8 rounded-full border-2 animate-spin"
-          style={{ borderColor: 'var(--border)', borderTopColor: '#10B981' }} />
+          style={{ borderColor: 'var(--border)', borderTopColor: accentColor }} />
       </div>
     )
   }
@@ -437,7 +439,7 @@ export default function CourseDetail() {
               disabled={!newPrereq.trim()}
               className="px-4 h-9 rounded-xl text-sm font-semibold flex-shrink-0"
               style={{
-                backgroundColor: newPrereq.trim() ? '#E63946' : 'var(--bg-surf)',
+                backgroundColor: newPrereq.trim() ? accentColor : 'var(--bg-surf)',
                 color: newPrereq.trim() ? '#fff' : 'var(--text-2)',
                 border: newPrereq.trim() ? 'none' : '1px solid var(--border)',
               }}
@@ -459,7 +461,7 @@ export default function CourseDetail() {
             <button
               onClick={openAddMaterial}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
-              style={{ backgroundColor: '#10B981', color: '#fff' }}
+              style={{ backgroundColor: accentColor, color: '#fff' }}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3.5 h-3.5">
                 <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -478,7 +480,7 @@ export default function CourseDetail() {
               <button
                 onClick={openAddMaterial}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold"
-                style={{ backgroundColor: '#10B981', color: '#fff' }}
+                style={{ backgroundColor: accentColor, color: '#fff' }}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4">
                   <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -563,6 +565,7 @@ export default function CourseDetail() {
 
 // ── ResourceCard ──────────────────────────────────────────────────────────────
 function ResourceCard({ resource: r, minutesStudied, courseColor, onEdit, onDelete, onUpdate }) {
+  const { accentColor } = useTheme()
   const isCompleted = r.status === 'completed'
   const [editingPos, setEditingPos] = useState(false)
   const [posValue, setPosValue] = useState(r.current_position || '')
@@ -622,7 +625,7 @@ function ResourceCard({ resource: r, minutesStudied, courseColor, onEdit, onDele
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium"
-              style={{ backgroundColor: 'var(--bg-surf)', color: '#10B981', border: '1px solid var(--border)' }}
+              style={{ backgroundColor: 'var(--bg-surf)', color: accentColor, border: '1px solid var(--border)' }}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
@@ -651,7 +654,7 @@ function ResourceCard({ resource: r, minutesStudied, courseColor, onEdit, onDele
             <span className="text-xs" style={{ color: 'var(--text-2)' }}>{r.total_pages} pages</span>
           )}
           {minutesStudied > 0 && (
-            <span className="flex items-center gap-1 text-xs" style={{ color: '#10B981' }}>
+            <span className="flex items-center gap-1 text-xs" style={{ color: accentColor }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3">
                 <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
               </svg>
@@ -749,6 +752,7 @@ function ResourceCard({ resource: r, minutesStudied, courseColor, onEdit, onDele
 
 // ── MaterialModal ─────────────────────────────────────────────────────────────
 function MaterialModal({ form, setForm, editing, saving, onSave, onClose }) {
+  const { accentColor } = useTheme()
   const canSave = form.name.trim().length > 0 && !saving
 
   return (
@@ -834,7 +838,7 @@ function MaterialModal({ form, setForm, editing, saving, onSave, onClose }) {
           disabled={!canSave}
           className="w-full py-3 rounded-xl font-semibold text-sm"
           style={{
-            backgroundColor: canSave ? '#10B981' : 'var(--bg-surf)',
+            backgroundColor: canSave ? accentColor : 'var(--bg-surf)',
             color: canSave ? '#fff' : 'var(--text-2)',
             border: canSave ? 'none' : '1px solid var(--border)',
           }}
@@ -857,6 +861,7 @@ function Field({ label, children }) {
 
 // ── DeleteMaterialConfirm ─────────────────────────────────────────────────────
 function DeleteMaterialConfirm({ resource, onConfirm, onCancel }) {
+  const { accentColor } = useTheme()
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -869,7 +874,7 @@ function DeleteMaterialConfirm({ resource, onConfirm, onCancel }) {
       >
         <div className="space-y-1.5">
           <p className="font-bold" style={{ color: 'var(--text-1)' }}>Delete material?</p>
-          <p className="text-sm font-medium" style={{ color: '#10B981' }}>{resource.name}</p>
+          <p className="text-sm font-medium" style={{ color: accentColor }}>{resource.name}</p>
           <p className="text-xs" style={{ color: 'var(--text-2)' }}>
             Sessions linked to this material will remain but lose the reference.
           </p>
@@ -885,7 +890,7 @@ function DeleteMaterialConfirm({ resource, onConfirm, onCancel }) {
           <button
             onClick={onConfirm}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-            style={{ backgroundColor: '#E63946', color: '#fff' }}
+            style={{ backgroundColor: accentColor, color: '#fff' }}
           >
             Delete
           </button>
@@ -897,6 +902,7 @@ function DeleteMaterialConfirm({ resource, onConfirm, onCancel }) {
 
 // ── SessionRow ────────────────────────────────────────────────────────────────
 function SessionRow({ session: s }) {
+  const { accentColor } = useTheme()
   return (
     <div className="px-4 py-3">
       <div className="flex items-center justify-between gap-2">
@@ -904,7 +910,7 @@ function SessionRow({ session: s }) {
           {s.focus_type && (
             <span
               className="px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0"
-              style={{ backgroundColor: '#E6394622', color: '#E63946' }}
+              style={{ backgroundColor: `${accentColor}22`, color: accentColor }}
             >
               {FOCUS_LABEL[s.focus_type] ?? s.focus_type}
             </span>

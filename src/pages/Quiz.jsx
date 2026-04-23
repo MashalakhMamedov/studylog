@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useTheme } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
 
 const todayStr = () => new Date().toISOString().split('T')[0]
@@ -26,6 +27,7 @@ const EMPTY_FORM = {
 
 export default function Quiz() {
   const { session } = useAuth()
+  const { accentColor } = useTheme()
   const [tab, setTab] = useState('log')
   const [courses, setCourses] = useState([])
   const [allResources, setAllResources] = useState([])
@@ -123,7 +125,7 @@ export default function Quiz() {
             onClick={() => setTab(t)}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
             style={tab === t
-              ? { backgroundColor: '#7c6af7', color: '#fff' }
+              ? { backgroundColor: accentColor, color: '#fff' }
               : { backgroundColor: '#1a1a1e', color: '#6b6b78', border: '1px solid #2a2a30' }
             }
           >
@@ -173,6 +175,7 @@ export default function Quiz() {
 // ── Log tab ──────────────────────────────────────────────────────────────────
 
 function LogTab({ courses, resources, form, set, liveScore, canSubmit, saving, onSubmit }) {
+  const { accentColor } = useTheme()
   return (
     <div className="space-y-4">
 
@@ -276,7 +279,7 @@ function LogTab({ courses, resources, form, set, liveScore, canSubmit, saving, o
         disabled={!canSubmit}
         className="w-full py-3.5 rounded-xl font-bold text-sm"
         style={{
-          backgroundColor: canSubmit ? '#7c6af7' : '#1a1a1e',
+          backgroundColor: canSubmit ? accentColor : '#1a1a1e',
           color: canSubmit ? '#fff' : '#6b6b78',
           border: canSubmit ? 'none' : '1px solid #2a2a30',
         }}
@@ -290,11 +293,12 @@ function LogTab({ courses, resources, form, set, liveScore, canSubmit, saving, o
 // ── History tab ──────────────────────────────────────────────────────────────
 
 function HistoryTab({ history, courses, courseFilter, setCourseFilter, filteredHistory }) {
+  const { accentColor } = useTheme()
   if (history === null) {
     return (
       <div className="flex justify-center py-16">
         <div className="w-8 h-8 rounded-full border-2 animate-spin"
-          style={{ borderColor: '#2a2a30', borderTopColor: '#7c6af7' }} />
+          style={{ borderColor: '#2a2a30', borderTopColor: accentColor }} />
       </div>
     )
   }
@@ -381,12 +385,13 @@ function QuizHistoryCard({ quiz: q }) {
 // ── Shared ───────────────────────────────────────────────────────────────────
 
 function Pill({ active, onClick, children }) {
+  const { accentColor } = useTheme()
   return (
     <button
       onClick={onClick}
       className="px-3 py-1.5 rounded-lg text-xs font-medium"
       style={active
-        ? { backgroundColor: '#7c6af7', color: '#fff' }
+        ? { backgroundColor: accentColor, color: '#fff' }
         : { backgroundColor: '#1a1a1e', color: '#6b6b78', border: '1px solid #2a2a30' }
       }
     >
