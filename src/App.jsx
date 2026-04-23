@@ -6,7 +6,6 @@ import BottomNav from './components/BottomNav.jsx'
 import Home from './pages/Home.jsx'
 import Timer from './pages/Timer.jsx'
 import Sessions from './pages/Sessions.jsx'
-import Resources from './pages/Resources.jsx'
 import Courses from './pages/Courses.jsx'
 import CourseDetail from './pages/CourseDetail.jsx'
 import Quiz from './pages/Quiz.jsx'
@@ -58,7 +57,6 @@ function FloatingTimerBar() {
 const PAGE_TITLES = {
   '/timer':     'Focus Timer',
   '/sessions':  'Log Session',
-  '/resources': 'Materials',
   '/courses':   'Courses',
   '/quiz':      'Quiz',
   '/settings':  'Settings',
@@ -119,7 +117,6 @@ function Layout() {
             <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
             <Route path="/timer" element={<ProtectedRoute><Timer /></ProtectedRoute>} />
             <Route path="/sessions" element={<ProtectedRoute><Sessions /></ProtectedRoute>} />
-            <Route path="/resources" element={<ProtectedRoute><Resources /></ProtectedRoute>} />
             <Route path="/courses" element={<ProtectedRoute><Courses /></ProtectedRoute>} />
             <Route path="/course/:id" element={<ProtectedRoute><CourseDetail /></ProtectedRoute>} />
             <Route path="/quiz" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />

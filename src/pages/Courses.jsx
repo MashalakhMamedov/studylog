@@ -11,6 +11,7 @@ import {
 export default function Courses() {
   const { session } = useAuth()
   const [courses, setCourses] = useState([])
+  const [materialCounts, setMaterialCounts] = useState({})
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [showModal, setShowModal] = useState(false)
@@ -23,11 +24,16 @@ export default function Courses() {
 
   async function fetchCourses() {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('courses')
-      .select('*')
-      .order('created_at')
+    const [{ data, error }, { data: resData }] = await Promise.all([
+      supabase.from('courses').select('*').order('created_at'),
+      supabase.from('resources').select('course_id'),
+    ])
     if (!error) setCourses(data)
+    if (resData) {
+      const counts = {}
+      resData.forEach(r => { counts[r.course_id] = (counts[r.course_id] || 0) + 1 })
+      setMaterialCounts(counts)
+    }
     setLoading(false)
   }
 
@@ -147,6 +153,7 @@ export default function Courses() {
             <CourseCard
               key={course.id}
               course={course}
+              materialCount={materialCounts[course.id] || 0}
               onEdit={() => openEdit(course)}
               onDelete={() => setDeleteTarget(course)}
             />
@@ -176,7 +183,7 @@ export default function Courses() {
   )
 }
 
-function CourseCard({ course, onEdit, onDelete }) {
+function CourseCard({ course, materialCount, onEdit, onDelete }) {
   const navigate = useNavigate()
 
   return (
@@ -205,6 +212,12 @@ function CourseCard({ course, onEdit, onDelete }) {
             {course.priority}
           </span>
         </div>
+
+        {materialCount > 0 && (
+          <p className="text-[10px]" style={{ color: 'var(--text-2)' }}>
+            📚 {materialCount} material{materialCount !== 1 ? 's' : ''}
+          </p>
+        )}
 
         <div className="flex gap-1.5 pt-0.5" onClick={e => e.stopPropagation()}>
           <button
