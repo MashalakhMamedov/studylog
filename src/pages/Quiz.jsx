@@ -107,7 +107,7 @@ export default function Quiz() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold" style={{ color: '#e8e8ec' }}>Quizzes</h1>
         <Link
-          to="/sessions"
+          to="/session?mode=log"
           className="text-xs px-3 py-1.5 rounded-lg"
           style={{ color: '#6b6b78', border: '1px solid #2a2a30' }}
         >

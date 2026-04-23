@@ -265,7 +265,7 @@ export default function Home() {
 
       {/* Quick start */}
       <Link
-        to="/timer"
+        to="/session"
         className="flex items-center justify-center w-full py-3.5 rounded-2xl font-semibold text-sm"
         style={{ backgroundColor: '#E63946', color: '#fff' }}
       >

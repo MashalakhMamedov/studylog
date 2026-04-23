@@ -1,11 +1,10 @@
-import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext.jsx'
 import { TimerProvider, useTimer, fmtTime } from './context/TimerContext.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import BottomNav from './components/BottomNav.jsx'
 import Home from './pages/Home.jsx'
-import Timer from './pages/Timer.jsx'
-import Sessions from './pages/Sessions.jsx'
+import Session from './pages/Session.jsx'
 import Courses from './pages/Courses.jsx'
 import CourseDetail from './pages/CourseDetail.jsx'
 import Quiz from './pages/Quiz.jsx'
@@ -17,13 +16,13 @@ function FloatingTimerBar() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
 
-  if (phase !== 'running' || pathname === '/timer') return null
+  if (phase !== 'running' || pathname === '/session') return null
   const seg = segments[segments.length - 1]
   if (!seg) return null
 
   return (
     <div
-      onClick={() => navigate('/timer')}
+      onClick={() => navigate('/session')}
       className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 cursor-pointer select-none"
       style={{
         backgroundColor: 'var(--bg-card)',
@@ -55,11 +54,10 @@ function FloatingTimerBar() {
 }
 
 const PAGE_TITLES = {
-  '/timer':     'Focus Timer',
-  '/sessions':  'Log Session',
-  '/courses':   'Courses',
-  '/quiz':      'Quiz',
-  '/settings':  'Settings',
+  '/session':  'Session',
+  '/courses':  'Courses',
+  '/quiz':     'Quiz',
+  '/settings': 'Settings',
 }
 
 function PageTitleBar() {
@@ -98,7 +96,7 @@ function Layout() {
   const { pathname } = useLocation()
   const { phase } = useTimer()
   const isAuth = pathname === '/login'
-  const showTimerBar = phase === 'running' && pathname !== '/timer' && !isAuth
+  const showTimerBar = phase === 'running' && pathname !== '/session' && !isAuth
 
   return (
     <div className="flex flex-col min-h-screen" style={{ backgroundColor: 'var(--bg)' }}>
@@ -115,8 +113,11 @@ function Layout() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-            <Route path="/timer" element={<ProtectedRoute><Timer /></ProtectedRoute>} />
-            <Route path="/sessions" element={<ProtectedRoute><Sessions /></ProtectedRoute>} />
+            <Route path="/session" element={<ProtectedRoute><Session /></ProtectedRoute>} />
+            <Route path="/timer" element={<Navigate to="/session" replace />} />
+            <Route path="/sessions" element={<Navigate to="/session" replace />} />
+            <Route path="/focus" element={<Navigate to="/session" replace />} />
+            <Route path="/log" element={<Navigate to="/session?mode=log" replace />} />
             <Route path="/courses" element={<ProtectedRoute><Courses /></ProtectedRoute>} />
             <Route path="/course/:id" element={<ProtectedRoute><CourseDetail /></ProtectedRoute>} />
             <Route path="/quiz" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
