@@ -5,6 +5,7 @@ import { useTheme } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import Card from '../components/Card.jsx'
 import SwipeableRow from '../components/SwipeableRow.jsx'
+import Logo from '../components/Logo'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -168,11 +169,8 @@ export default function Home() {
     <div className="page-enter px-4 pt-8 pb-6 space-y-5">
 
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm" style={{ color: 'var(--text-2)' }}>{greeting()}</p>
-          <h1 className="text-2xl font-bold mt-0.5" style={{ color: 'var(--text-1)' }}>Ready to focus?</h1>
-        </div>
+      <div className="flex items-center justify-between">
+        <Logo variant="full" size={28} />
         <div className="flex items-center gap-2">
           <button
             onClick={toggleTheme}

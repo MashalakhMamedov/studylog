@@ -1,36 +1,57 @@
-export default function Logo({ variant = 'icon' }) {
-  const img = (
-    <img
-      src="/logo.png"
-      alt="StudyLog"
-      className="h-8 w-8 rounded-md object-contain"
-    />
-  );
+import React from 'react';
 
-  const text = (
-    <span className="text-white font-semibold text-lg leading-none tracking-tight select-none">
-      StudyLog
-    </span>
-  );
-
-  if (variant === 'icon') return img;
+export default function Logo({ variant = 'full', size = 32 }) {
+  if (variant === 'icon') {
+    return (
+      <img
+        src="/logo.png"
+        alt="StudyLog"
+        style={{ height: size, width: size }}
+        className="rounded-md object-contain"
+      />
+    );
+  }
 
   if (variant === 'splash') {
     return (
       <div className="flex flex-col items-center gap-4">
-        {img}
-        <span className="text-white font-semibold tracking-[0.12em] leading-none select-none">
+        <div className="relative">
+          <div
+            className="absolute inset-0 rounded-full blur-2xl opacity-15"
+            style={{ backgroundColor: '#10B981' }}
+          />
+          <img
+            src="/logo.png"
+            alt="StudyLog"
+            style={{ height: size, width: size }}
+            className="relative rounded-md object-contain"
+          />
+        </div>
+        <span
+          className="text-white font-semibold tracking-[0.12em]"
+          style={{ fontSize: size * 0.28 }}
+        >
           StudyLog
         </span>
       </div>
     );
   }
 
-  // full (default)
+  // variant === "full" (default): icon + text side by side
   return (
-    <div className="flex items-center gap-2.5">
-      {img}
-      {text}
+    <div className="flex items-center gap-2">
+      <img
+        src="/logo.png"
+        alt="StudyLog"
+        style={{ height: size, width: size }}
+        className="rounded-md object-contain"
+      />
+      <span
+        className="text-white font-semibold"
+        style={{ fontSize: size * 0.6 }}
+      >
+        StudyLog
+      </span>
     </div>
   );
 }
