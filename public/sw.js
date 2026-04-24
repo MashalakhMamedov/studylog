@@ -1,4 +1,4 @@
-const CACHE_NAME = 'studylog-v2';
+const CACHE_NAME = 'studylog-v3';
 
 const PRECACHE_ASSETS = [
   '/',
@@ -8,7 +8,6 @@ const PRECACHE_ASSETS = [
   '/favicon-16x16.png',
   '/icon-192x192.png',
   '/icon-512x512.png',
-  '/icon-maskable-512.png',
   '/splash/splash-640x1136.png',
   '/splash/splash-750x1334.png',
   '/splash/splash-1242x2208.png',

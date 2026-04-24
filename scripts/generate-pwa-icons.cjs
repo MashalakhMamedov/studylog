@@ -9,10 +9,13 @@ const fs = require('fs');
 const OUT = path.join(__dirname, '..', 'public');
 
 // --- SVG design: minimal open-book on dark background using pure paths ---
-function iconSVG({ size = 512, rounded = true, safeZone = false } = {}) {
-  const r = rounded ? Math.round(size * 0.21) : 0;
-  // If safeZone (maskable), content fits in 80% of canvas
-  const scale = safeZone ? 0.64 : 0.72;
+// All app icons are full-bleed (no pre-baked rounded corners — OS applies its
+// own mask shape). Content is scaled to 60% of canvas so the book logo sits
+// entirely within the maskable safe zone (inner 80% circle) with ~20% padding
+// on every side. Favicons use a tighter scale since they are never masked.
+function iconSVG({ size = 512, favicon = false } = {}) {
+  const r = 0;
+  const scale = favicon ? 0.78 : 0.60;
   const cs = size * scale;        // content size
   const cx = (size - cs) / 2;    // content x offset
   const cy = (size - cs) / 2;    // content y offset
@@ -68,7 +71,7 @@ function iconSVG({ size = 512, rounded = true, safeZone = false } = {}) {
   const arcCY = by + bh + bh * 0.14;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-  <rect width="${size}" height="${size}" rx="${r}" fill="#0a0a0b"/>
+  <rect width="${size}" height="${size}" rx="${r}" fill="#111113"/>
   <!-- left page -->
   <path d="M ${lx1 + pr},${ly1} Q ${lx1},${ly1} ${lx1},${ly1 + pr}
             L ${lx4},${ly4 - pr} Q ${lx4},${ly4} ${lx4 + pr},${ly4}
@@ -125,7 +128,7 @@ async function savePNG(svgString, outFile, size) {
   const buf = Buffer.from(svgString);
   await sharp(buf)
     .resize(size, size, { fit: 'fill' })
-    .flatten({ background: '#0a0a0b' })  // strip alpha, solid bg for iOS
+    .flatten({ background: '#111113' })
     .png({ compressionLevel: 9 })
     .toFile(outFile);
   console.log(`  ✓  ${path.basename(outFile)}`);
@@ -135,7 +138,7 @@ async function saveSplash(svgString, outFile, w, h) {
   const buf = Buffer.from(svgString);
   await sharp(buf)
     .resize(w, h, { fit: 'fill' })
-    .flatten({ background: '#0a0a0b' })
+    .flatten({ background: '#0a0a0b' })   // splashes stay pure black
     .png({ compressionLevel: 9 })
     .toFile(outFile);
   console.log(`  ✓  ${path.basename(outFile)}`);
@@ -144,15 +147,14 @@ async function saveSplash(svgString, outFile, w, h) {
 async function main() {
   console.log('\n── Generating PWA icons ──');
 
-  // App icons (rounded corners for icon.svg style)
-  await savePNG(iconSVG({ size: 512, rounded: true }),  path.join(OUT, 'apple-touch-icon.png'), 180);
-  await savePNG(iconSVG({ size: 512, rounded: true }),  path.join(OUT, 'favicon-32x32.png'), 32);
-  await savePNG(iconSVG({ size: 512, rounded: true }),  path.join(OUT, 'favicon-16x16.png'), 16);
-  await savePNG(iconSVG({ size: 512, rounded: true }),  path.join(OUT, 'icon-192x192.png'), 192);
-  await savePNG(iconSVG({ size: 512, rounded: true }),  path.join(OUT, 'icon-512x512.png'), 512);
+  // App icons — full-bleed, 60% safe-zone scale, suitable for "any maskable"
+  await savePNG(iconSVG({ size: 512 }),                path.join(OUT, 'apple-touch-icon.png'), 180);
+  await savePNG(iconSVG({ size: 512 }),                path.join(OUT, 'icon-192x192.png'), 192);
+  await savePNG(iconSVG({ size: 512 }),                path.join(OUT, 'icon-512x512.png'), 512);
 
-  // Maskable variant (no rounded corners, full-bleed, safe zone)
-  await savePNG(iconSVG({ size: 512, rounded: false, safeZone: true }), path.join(OUT, 'icon-maskable-512.png'), 512);
+  // Favicons — tighter scale (never masked, tiny sizes need more of the canvas)
+  await savePNG(iconSVG({ size: 512, favicon: true }), path.join(OUT, 'favicon-32x32.png'), 32);
+  await savePNG(iconSVG({ size: 512, favicon: true }), path.join(OUT, 'favicon-16x16.png'), 16);
 
   console.log('\n── Generating iOS splash screens ──');
 
