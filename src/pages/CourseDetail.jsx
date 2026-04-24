@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
@@ -7,6 +7,13 @@ import {
   CourseModal, EMPTY_COURSE_FORM,
   STATUS_COLOR, PRIORITY_COLOR,
 } from '../components/CourseModal.jsx'
+import {
+  DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay,
+} from '@dnd-kit/core'
+import {
+  SortableContext, useSortable, verticalListSortingStrategy, arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 // ── Material constants ────────────────────────────────────────────────────────
 const TYPE_OPTIONS = ['pdf', 'textbook', 'notes', 'slides', 'video', 'lecture_recording', 'podcast', 'article', 'problem_set']
@@ -119,6 +126,12 @@ export default function CourseDetail() {
   const [savingMaterial, setSavingMaterial] = useState(false)
   const [deleteMaterialTarget, setDeleteMaterialTarget] = useState(null)
 
+  // Materials list controls
+  const [materialFilter, setMaterialFilter] = useState('all')
+  const [materialSort, setMaterialSort] = useState('custom')
+  const [showSortMenu, setShowSortMenu] = useState(false)
+  const [activeDragId, setActiveDragId] = useState(null)
+
   useEffect(() => { fetchAll() }, [id])
 
   async function fetchAll() {
@@ -134,7 +147,9 @@ export default function CourseDetail() {
         .select('*, resources(name)')
         .eq('course_id', id)
         .order('date', { ascending: false }),
-      supabase.from('resources').select('*').eq('course_id', id).order('created_at'),
+      supabase.from('resources').select('*').eq('course_id', id)
+        .order('sort_order', { ascending: true, nullsFirst: false })
+        .order('created_at', { ascending: true }),
       supabase.from('sessions')
         .select('resource_id, duration_minutes')
         .eq('course_id', id)
@@ -271,6 +286,48 @@ export default function CourseDetail() {
     setResources(prev => prev.filter(r => r.id !== matId))
     setDeleteMaterialTarget(null)
   }
+
+  // ── Drag handlers ────────────────────────────────────────────────────────
+  const dndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { delay: 300, tolerance: 8 } }),
+  )
+
+  function handleDragStart({ active }) { setActiveDragId(active.id) }
+
+  async function handleDragEnd({ active, over }) {
+    setActiveDragId(null)
+    if (!over || active.id === over.id) return
+    const oldIdx = resources.findIndex(r => r.id === active.id)
+    const newIdx = resources.findIndex(r => r.id === over.id)
+    const reordered = arrayMove(resources, oldIdx, newIdx)
+    setResources(reordered)
+    await Promise.all(reordered.map((r, i) =>
+      supabase.from('resources').update({ sort_order: i }).eq('id', r.id)
+    ))
+  }
+
+  // ── Derived display list ─────────────────────────────────────────────────
+  const filterCounts = useMemo(() => ({
+    all: resources.length,
+    in_progress: resources.filter(r => r.status === 'in_progress').length,
+    not_started: resources.filter(r => r.status === 'not_started').length,
+    completed: resources.filter(r => r.status === 'completed').length,
+  }), [resources])
+
+  function getResourcePct(r) {
+    const pos = parseInt((r.current_position || '').trim(), 10)
+    if (!r.total_pages || isNaN(pos) || String(pos) !== (r.current_position || '').trim()) return 0
+    return Math.min(100, Math.round((pos / r.total_pages) * 100))
+  }
+
+  const displayResources = useMemo(() => {
+    let list = materialFilter === 'all' ? resources : resources.filter(r => r.status === materialFilter)
+    if (materialSort === 'name') return [...list].sort((a, b) => a.name.localeCompare(b.name))
+    if (materialSort === 'progress') return [...list].sort((a, b) => getResourcePct(b) - getResourcePct(a))
+    return list
+  }, [resources, materialFilter, materialSort])
+
+  const dragEnabled = materialSort === 'custom' && materialFilter === 'all'
 
   // ── Render ───────────────────────────────────────────────────────────────
   if (loading) {
@@ -462,6 +519,7 @@ export default function CourseDetail() {
 
         {/* Materials */}
         <section className="space-y-3">
+          {/* Header row */}
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold" style={{ color: 'var(--text-1)' }}>
               Materials
@@ -481,6 +539,90 @@ export default function CourseDetail() {
             </button>
           </div>
 
+          {resources.length > 0 && (
+            <>
+              {/* Filter pills + sort */}
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1.5 flex-1 flex-wrap">
+                  {[
+                    { key: 'all', label: 'All' },
+                    { key: 'in_progress', label: 'In Progress' },
+                    { key: 'not_started', label: 'Not Started' },
+                    { key: 'completed', label: 'Completed' },
+                  ].map(({ key, label }) => {
+                    const count = filterCounts[key]
+                    const active = materialFilter === key
+                    if (count === 0 && key !== 'all') return null
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => setMaterialFilter(key)}
+                        className="px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0"
+                        style={active
+                          ? { backgroundColor: accentColor, color: '#fff' }
+                          : { backgroundColor: 'var(--bg-surf)', color: 'var(--text-2)', border: '1px solid var(--border)' }
+                        }
+                      >
+                        {label}{key !== 'all' && count > 0 ? ` (${count})` : ''}
+                      </button>
+                    )
+                  })}
+                </div>
+                {/* Sort button */}
+                <div className="relative flex-shrink-0">
+                  <button
+                    onClick={() => setShowSortMenu(v => !v)}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium"
+                    style={{
+                      backgroundColor: materialSort !== 'custom' ? accentColor + '22' : 'var(--bg-surf)',
+                      color: materialSort !== 'custom' ? accentColor : 'var(--text-2)',
+                      border: `1px solid ${materialSort !== 'custom' ? accentColor + '55' : 'var(--border)'}`,
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
+                      <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="15" y2="12" /><line x1="3" y1="18" x2="9" y2="18" />
+                    </svg>
+                    Sort
+                  </button>
+                  {showSortMenu && (
+                    <>
+                      <div className="fixed inset-0 z-30" onClick={() => setShowSortMenu(false)} />
+                      <div
+                        className="absolute right-0 top-8 z-40 rounded-xl overflow-hidden min-w-[160px]"
+                        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}
+                      >
+                        {[
+                          { key: 'custom', label: 'Custom Order' },
+                          { key: 'name', label: 'Name A–Z' },
+                          { key: 'progress', label: 'Progress %' },
+                        ].map(({ key, label }) => (
+                          <button
+                            key={key}
+                            onClick={() => { setMaterialSort(key); setShowSortMenu(false) }}
+                            className="w-full text-left px-4 py-2.5 text-xs font-medium flex items-center justify-between"
+                            style={{ color: materialSort === key ? accentColor : 'var(--text-1)' }}
+                          >
+                            {label}
+                            {materialSort === key && (
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3.5 h-3.5">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Drag hint when in custom order */}
+              {dragEnabled && resources.length > 1 && (
+                <p className="text-[10px]" style={{ color: 'var(--text-2)' }}>Hold a card to drag and reorder</p>
+              )}
+            </>
+          )}
+
           {resources.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-8 text-center">
               <span className="text-4xl">📚</span>
@@ -499,20 +641,49 @@ export default function CourseDetail() {
                 Add Material
               </button>
             </div>
+          ) : displayResources.length === 0 ? (
+            <p className="text-xs py-4 text-center" style={{ color: 'var(--text-2)' }}>
+              No materials match this filter.
+            </p>
           ) : (
-            <div className="space-y-3">
-              {resources.map(r => (
-                <ResourceCard
-                  key={r.id}
-                  resource={r}
-                  minutesStudied={minutesByResource[r.id] || 0}
-                  courseColor={course.color}
-                  onEdit={() => openEditMaterial(r)}
-                  onDelete={() => setDeleteMaterialTarget(r)}
-                  onUpdate={updated => setResources(prev => prev.map(x => x.id === updated.id ? updated : x))}
-                />
-              ))}
-            </div>
+            <DndContext
+              sensors={dndSensors}
+              collisionDetection={closestCenter}
+              onDragStart={dragEnabled ? handleDragStart : undefined}
+              onDragEnd={dragEnabled ? handleDragEnd : undefined}
+              onDragCancel={() => setActiveDragId(null)}
+            >
+              <SortableContext items={displayResources.map(r => r.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-3">
+                  {displayResources.map(r => (
+                    <SortableResourceCard
+                      key={r.id}
+                      resource={r}
+                      minutesStudied={minutesByResource[r.id] || 0}
+                      courseColor={course.color}
+                      dragEnabled={dragEnabled}
+                      onEdit={() => openEditMaterial(r)}
+                      onDelete={() => setDeleteMaterialTarget(r)}
+                      onUpdate={updated => setResources(prev => prev.map(x => x.id === updated.id ? updated : x))}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+              <DragOverlay>
+                {activeDragId ? (
+                  <ResourceCard
+                    resource={resources.find(r => r.id === activeDragId)}
+                    minutesStudied={minutesByResource[activeDragId] || 0}
+                    courseColor={course.color}
+                    dragEnabled={false}
+                    isOverlay
+                    onEdit={() => {}}
+                    onDelete={() => {}}
+                    onUpdate={() => {}}
+                  />
+                ) : null}
+              </DragOverlay>
+            </DndContext>
           )}
         </section>
 
@@ -574,13 +745,38 @@ export default function CourseDetail() {
   )
 }
 
+// ── SortableResourceCard ──────────────────────────────────────────────────────
+function SortableResourceCard({ resource, dragEnabled, ...props }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: resource.id })
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.35 : 1,
+        position: 'relative',
+        zIndex: isDragging ? 10 : undefined,
+      }}
+      {...attributes}
+    >
+      <ResourceCard
+        resource={resource}
+        dragEnabled={dragEnabled}
+        dragHandleProps={dragEnabled ? listeners : undefined}
+        {...props}
+      />
+    </div>
+  )
+}
+
 // ── ResourceCard ──────────────────────────────────────────────────────────────
-function ResourceCard({ resource: r, minutesStudied, courseColor, onEdit, onDelete, onUpdate }) {
+function ResourceCard({ resource: r, minutesStudied, courseColor, dragEnabled, dragHandleProps, isOverlay, onEdit, onDelete, onUpdate }) {
   const { accentColor } = useTheme()
   const isCompleted = r.status === 'completed'
   const [editingPos, setEditingPos] = useState(false)
   const [posValue, setPosValue] = useState(r.current_position || '')
-  const [togglingComplete, setTogglingComplete] = useState(false)
+  const [togglingStatus, setTogglingStatus] = useState(false)
   const posInputRef = useRef(null)
 
   useEffect(() => { setPosValue(r.current_position || '') }, [r.current_position])
@@ -589,6 +785,7 @@ function ResourceCard({ resource: r, minutesStudied, courseColor, onEdit, onDele
   const posNum = parseInt(posValue.trim(), 10)
   const showBar = r.total_pages && posValue.trim() !== '' && !isNaN(posNum) && String(posNum) === posValue.trim()
   const barPct = showBar ? Math.min(100, Math.round((posNum / r.total_pages) * 100)) : 0
+  const suggestComplete = barPct >= 100 && r.status !== 'completed'
 
   async function savePosition() {
     const val = posValue.trim()
@@ -600,63 +797,90 @@ function ResourceCard({ resource: r, minutesStudied, courseColor, onEdit, onDele
     if (!error && data) onUpdate(data)
   }
 
-  async function toggleComplete() {
-    if (togglingComplete) return
-    setTogglingComplete(true)
-    const newStatus = isCompleted ? 'in_progress' : 'completed'
+  async function setStatus(newStatus) {
+    if (togglingStatus) return
+    setTogglingStatus(true)
     const { data, error } = await supabase
-      .from('resources').update({ status: newStatus })
-      .eq('id', r.id).select().single()
+      .from('resources').update({ status: newStatus }).eq('id', r.id).select().single()
     if (!error && data) onUpdate(data)
-    setTogglingComplete(false)
+    setTogglingStatus(false)
+  }
+
+  function cycleStatus() {
+    const order = ['not_started', 'in_progress', 'completed']
+    setStatus(order[(order.indexOf(r.status) + 1) % 3])
   }
 
   return (
     <div
-      className="hoverable-card rounded-2xl overflow-hidden"
+      className="rounded-2xl overflow-hidden"
       style={{
         border: `1px solid ${isCompleted ? '#2A9D8F44' : 'var(--border)'}`,
         backgroundColor: isCompleted ? 'rgba(42,157,143,0.04)' : 'var(--bg-card)',
+        ...(isOverlay ? { boxShadow: '0 12px 40px rgba(0,0,0,0.3)', transform: 'scale(1.02)' } : {}),
       }}
     >
       <div className="h-1" style={{ backgroundColor: courseColor, opacity: isCompleted ? 0.4 : 1 }} />
       <div className="p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          {isCompleted ? (
-            <span className="flex items-center gap-0.5 text-xs font-medium" style={{ color: '#2A9D8F' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3 h-3">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-              Done
-            </span>
-          ) : <span />}
-          {r.link && (
-            <a
-              href={r.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium"
-              style={{ backgroundColor: 'var(--bg-surf)', color: accentColor, border: '1px solid var(--border)' }}
+        {/* Top row */}
+        <div className="flex items-center gap-2">
+          {dragEnabled && dragHandleProps && (
+            <button
+              {...dragHandleProps}
+              className="flex flex-col justify-center items-center gap-[3px] px-1.5 py-2 rounded-lg flex-shrink-0 touch-none"
+              style={{ color: 'var(--text-2)', cursor: 'grab' }}
+              aria-label="Drag to reorder"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                <polyline points="15 3 21 3 21 9" />
-                <line x1="10" y1="14" x2="21" y2="3" />
-              </svg>
-              Open
-            </a>
+              <span className="block w-3.5 h-[2px] rounded-full" style={{ backgroundColor: 'currentColor' }} />
+              <span className="block w-3.5 h-[2px] rounded-full" style={{ backgroundColor: 'currentColor' }} />
+              <span className="block w-3.5 h-[2px] rounded-full" style={{ backgroundColor: 'currentColor' }} />
+            </button>
           )}
+          <div className="flex-1 flex items-center justify-between min-w-0">
+            {isCompleted ? (
+              <span className="flex items-center gap-0.5 text-xs font-medium" style={{ color: '#2A9D8F' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3 h-3">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Done
+              </span>
+            ) : <span />}
+            {r.link && (
+              <a
+                href={r.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium"
+                style={{ backgroundColor: 'var(--bg-surf)', color: accentColor, border: '1px solid var(--border)' }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
+                Open
+              </a>
+            )}
+          </div>
         </div>
 
         <p className="font-bold text-base leading-snug" style={{ color: isCompleted ? 'var(--text-2)' : 'var(--text-1)' }}>{r.name}</p>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span
+          {/* Status badge — tap to cycle */}
+          <button
+            onClick={cycleStatus}
+            disabled={togglingStatus}
             className="px-2 py-0.5 rounded-full text-xs font-medium"
-            style={{ backgroundColor: MAT_STATUS_COLOR[r.status] + '22', color: MAT_STATUS_COLOR[r.status] }}
+            style={{
+              backgroundColor: MAT_STATUS_COLOR[r.status] + '22',
+              color: MAT_STATUS_COLOR[r.status],
+              outline: suggestComplete ? `1.5px solid ${MAT_STATUS_COLOR['in_progress']}` : 'none',
+            }}
+            title="Tap to change status"
           >
             {MAT_STATUS_LABEL[r.status]}
-          </span>
+          </button>
           <span className="px-2 py-0.5 rounded-full text-xs font-medium"
             style={{ backgroundColor: 'var(--bg-surf)', color: 'var(--text-2)', border: '1px solid var(--border)' }}>
             {TYPE_ICON[r.type]} {TYPE_LABEL[r.type] || r.type}
@@ -724,11 +948,13 @@ function ResourceCard({ resource: r, minutesStudied, courseColor, onEdit, onDele
 
         <div className="flex gap-2 pt-1">
           <button
-            onClick={toggleComplete}
-            disabled={togglingComplete}
+            onClick={() => setStatus(isCompleted ? 'in_progress' : 'completed')}
+            disabled={togglingStatus}
             className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1"
             style={isCompleted
               ? { backgroundColor: 'rgba(42,157,143,0.15)', color: '#2A9D8F', border: '1px solid #2A9D8F44' }
+              : suggestComplete
+              ? { backgroundColor: accentColor + '22', color: accentColor, border: `1px solid ${accentColor}55` }
               : { backgroundColor: 'var(--bg-surf)', color: 'var(--text-2)', border: '1px solid var(--border)' }
             }
           >
