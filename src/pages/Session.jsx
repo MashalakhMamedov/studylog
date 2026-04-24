@@ -5,6 +5,7 @@ import { useTimer, fmtTime } from '../context/TimerContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import SwipeableRow from '../components/SwipeableRow.jsx'
+import FullscreenTimer from '../components/FullscreenTimer.jsx'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -235,12 +236,13 @@ function FocusTab() {
       {toast && <Toast />}
 
       {fullscreen && phase === 'running' && currentSeg && (
-        <FullscreenOverlay
+        <FullscreenTimer
           totalSeconds={totalSeconds}
           running={running}
           segment={currentSeg}
           onPause={pauseClock}
           onResume={startClock}
+          onFinish={openFinish}
           onExit={() => setFullscreen(false)}
         />
       )}
@@ -920,72 +922,6 @@ function DiscardModal({ onConfirm, onCancel }) {
           </button>
         </div>
       </div>
-    </div>
-  )
-}
-
-function FullscreenOverlay({ totalSeconds, running, segment, onPause, onResume, onExit }) {
-  const { accentColor } = useTheme()
-  return (
-    <div
-      className="fixed inset-0 z-[200] flex flex-col items-center justify-center select-none"
-      style={{ backgroundColor: '#0a0a0b' }}
-      onClick={() => running ? onPause() : onResume()}
-    >
-      <button
-        onClick={e => { e.stopPropagation(); onExit() }}
-        className="absolute top-4 right-4 flex items-center justify-center w-10 h-10 rounded-full"
-        style={{ color: '#ffffff55', border: '1px solid #ffffff18' }}
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
-          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
-      </button>
-
-      <div className="flex flex-col items-center gap-5">
-        <span
-          className="font-mono font-bold tabular-nums tracking-tight leading-none"
-          style={{ color: '#ffffff', fontSize: 'clamp(5rem, 22vw, 12.5rem)' }}
-        >
-          {fmtTime(totalSeconds)}
-        </span>
-        <div className="flex flex-col items-center gap-1.5 text-center px-6">
-          <span className="text-lg font-medium" style={{ color: '#ffffff99' }}>
-            {segment.courseEmoji} {segment.courseName}
-          </span>
-          {segment.resourceName && (
-            <span className="text-sm" style={{ color: '#ffffff55' }}>
-              {segment.resourceName}
-            </span>
-          )}
-        </div>
-        <span className="text-xs mt-1" style={{ color: running ? accentColor : '#ffffff44' }}>
-          {running ? 'Tap to pause' : 'Paused — tap to resume'}
-        </span>
-      </div>
-
-      <button
-        onClick={e => { e.stopPropagation(); running ? onPause() : onResume() }}
-        className="absolute bottom-10 flex items-center gap-2 px-8 py-3 rounded-2xl font-semibold text-sm"
-        style={{ backgroundColor: '#ffffff10', color: '#ffffffcc', border: '1px solid #ffffff1a' }}
-      >
-        {running ? (
-          <>
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-              <rect x="6" y="4" width="4" height="16" rx="1" />
-              <rect x="14" y="4" width="4" height="16" rx="1" />
-            </svg>
-            Pause
-          </>
-        ) : (
-          <>
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-              <polygon points="5 3 19 12 5 21 5 3" />
-            </svg>
-            Resume
-          </>
-        )}
-      </button>
     </div>
   )
 }

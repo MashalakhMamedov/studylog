@@ -51,6 +51,11 @@
 
 /* ── Animations ──────────────────────────────────────────────────────────── */
 
+@keyframes breathe {
+  0%, 100% { transform: scale(1);     opacity: 1;    }
+  50%       { transform: scale(1.012); opacity: 0.92; }
+}
+
 @keyframes timerPulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50%       { opacity: 0.35; transform: scale(1.4); }
