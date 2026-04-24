@@ -20,7 +20,7 @@ function localDateStr(d = new Date()) {
 }
 
 function formatHeaderDate() {
-  return new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+  return new Date().toLocaleDateString(navigator.language, { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
 function weekStartStr() {
@@ -140,7 +140,8 @@ export default function Home() {
   const stats = useMemo(() => allSessions ? computeStats(allSessions) : null, [allSessions])
   const loading = allSessions === null
 
-  const firstName = authSession?.user?.user_metadata?.full_name?.split(' ')[0] ?? ''
+  const meta = authSession?.user?.user_metadata ?? {}
+  const firstName = meta.first_name || meta.full_name?.split(' ')[0] || ''
   const greetingText = firstName ? `${greeting()}, ${firstName}` : greeting()
 
   useEffect(() => {

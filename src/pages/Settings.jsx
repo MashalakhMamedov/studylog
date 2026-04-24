@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme, COLORS } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
@@ -147,9 +147,24 @@ export default function Settings() {
   const { session } = useAuth()
   const { accentColor, setAccentColor } = useTheme()
 
-  const displayName = session?.user?.user_metadata?.full_name?.split(' ')[0] || 'Student'
+  const meta = session?.user?.user_metadata ?? {}
+  const savedFirstName = meta.first_name || meta.full_name?.split(' ')[0] || ''
   const email = session?.user?.email ?? ''
   const userId = session?.user?.id
+
+  const [nameEditing, setNameEditing] = useState(false)
+  const [nameValue, setNameValue] = useState(savedFirstName)
+  const [nameSaving, setNameSaving] = useState(false)
+  const nameInputRef = useRef(null)
+
+  async function saveName() {
+    const trimmed = nameValue.trim()
+    if (trimmed === savedFirstName) { setNameEditing(false); return }
+    setNameSaving(true)
+    await supabase.auth.updateUser({ data: { first_name: trimmed } })
+    setNameSaving(false)
+    setNameEditing(false)
+  }
 
   const [focusDuration, setFocusDurationState] = useState(
     () => parseInt(localStorage.getItem('studylog-focus-duration') || '25', 10)
@@ -171,10 +186,64 @@ export default function Settings() {
       <div>
         <SectionLabel>Profile</SectionLabel>
         <Card>
+          {/* Name row */}
           <Row>
-            <p className="text-base font-bold" style={{ color: 'var(--text-1)' }}>{displayName}</p>
-            <p className="text-sm mt-0.5" style={{ color: '#6b7280' }}>{email}</p>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs mb-1" style={{ color: '#6b7280' }}>First name</p>
+                {nameEditing ? (
+                  <input
+                    ref={nameInputRef}
+                    value={nameValue}
+                    onChange={e => setNameValue(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') { setNameValue(savedFirstName); setNameEditing(false) } }}
+                    autoFocus
+                    placeholder="Your first name"
+                    className="w-full text-sm outline-none rounded-lg px-2 py-1"
+                    style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
+                  />
+                ) : (
+                  <p className="text-sm font-semibold" style={{ color: savedFirstName ? 'var(--text-1)' : '#6b7280' }}>
+                    {savedFirstName || 'Not set'}
+                  </p>
+                )}
+              </div>
+              {nameEditing ? (
+                <div className="flex gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => { setNameValue(savedFirstName); setNameEditing(false) }}
+                    className="text-xs px-3 py-1.5 rounded-lg"
+                    style={{ color: 'var(--text-2)', backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={saveName}
+                    disabled={nameSaving}
+                    className="text-xs px-3 py-1.5 rounded-lg font-semibold disabled:opacity-50"
+                    style={{ backgroundColor: accentColor, color: '#fff' }}
+                  >
+                    {nameSaving ? '…' : 'Save'}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => { setNameEditing(true); setTimeout(() => nameInputRef.current?.focus(), 0) }}
+                  className="flex-shrink-0 text-xs px-3 py-1.5 rounded-lg"
+                  style={{ color: accentColor, backgroundColor: `${accentColor}18`, border: `1px solid ${accentColor}30` }}
+                >
+                  {savedFirstName ? 'Edit' : 'Set name'}
+                </button>
+              )}
+            </div>
           </Row>
+
+          {/* Email row */}
+          <Row>
+            <p className="text-xs mb-0.5" style={{ color: '#6b7280' }}>Email</p>
+            <p className="text-sm" style={{ color: 'var(--text-1)' }}>{email}</p>
+          </Row>
+
           <Row noBorder>
             <button
               onClick={() => supabase.auth.signOut()}

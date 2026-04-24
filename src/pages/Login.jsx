@@ -9,6 +9,7 @@ export default function Login() {
   const [mode, setMode] = useState('login') // 'login' | 'signup'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [firstName, setFirstName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -20,7 +21,11 @@ export default function Login() {
     const { error } =
       mode === 'login'
         ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password })
+        : await supabase.auth.signUp({
+            email,
+            password,
+            options: { data: { first_name: firstName.trim() } },
+          })
 
     setLoading(false)
 
@@ -64,12 +69,25 @@ export default function Login() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-3">
+            {mode === 'signup' && (
+              <input
+                type="text"
+                required
+                value={firstName}
+                onChange={e => setFirstName(e.target.value)}
+                placeholder="First name"
+                autoComplete="given-name"
+                className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+                style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
+              />
+            )}
             <input
               type="email"
               required
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="Email address"
+              autoComplete="email"
               className="w-full px-4 py-3 rounded-xl text-sm outline-none"
               style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
             />
@@ -80,6 +98,7 @@ export default function Login() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               placeholder="Password"
+              autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
               className="w-full px-4 py-3 rounded-xl text-sm outline-none"
               style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
             />
