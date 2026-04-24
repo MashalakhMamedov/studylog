@@ -18,7 +18,12 @@
       "Bash(python -c \"import PIL; print\\('PIL ok'\\)\")",
       "Bash(node -e \"const sharp = require\\('sharp'\\); console.log\\(sharp.versions\\)\")",
       "Bash(node scripts/generate-pwa-icons.js)",
-      "Bash(node scripts/generate-pwa-icons.cjs)"
+      "Bash(node scripts/generate-pwa-icons.cjs)",
+      "Bash(python -c \"from PIL import Image; print\\('Pillow OK'\\)\")",
+      "Bash(python3 -c \"from PIL import Image; print\\('Pillow OK'\\)\")",
+      "Bash(pip install *)",
+      "Bash(npm list *)",
+      "Bash(python *)"
     ]
   }
 }

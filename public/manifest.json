@@ -4,7 +4,7 @@
   "description": "Track your learning sessions and study progress",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#10B981",
+  "background_color": "#0a0a0b",
   "theme_color": "#0a0a0b",
   "orientation": "portrait-primary",
   "icons": [
