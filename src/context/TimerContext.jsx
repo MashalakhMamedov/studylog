@@ -15,6 +15,16 @@ function localDateStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+// ── localStorage keys ─────────────────────────────────────────────────────────
+
+const LS = {
+  startedAt:     'sl_timer_startedAt',     // ms timestamp when session started
+  totalPausedMs: 'sl_timer_totalPausedMs', // cumulative ms spent paused (completed pauses only)
+  pausedAt:      'sl_timer_pausedAt',      // ms timestamp when current pause started ('' if running)
+  running:       'sl_timer_running',       // 'true' | 'false'
+  segments:      'sl_timer_segments',      // JSON array of segment objects
+}
+
 const TimerContext = createContext(null)
 
 export function useTimer() {
@@ -24,25 +34,28 @@ export function useTimer() {
 export function TimerProvider({ children }) {
   const { session } = useAuth()
 
-  const [courses, setCourses] = useState([])
+  const [courses, setCourses]         = useState([])
   const [allResources, setAllResources] = useState([])
 
-  const [phase, setPhase] = useState('setup')
-  const [courseId, setCourseId] = useState('')
+  const [phase, setPhase]           = useState('setup')
+  const [courseId, setCourseId]     = useState('')
   const [resourceId, setResourceId] = useState('')
 
   const [totalSeconds, setTotalSeconds] = useState(0)
-  const [running, setRunning] = useState(false)
-  const accumulatedRef = useRef(0)
-  const startTsRef = useRef(null)
-  const intervalRef = useRef(null)
-  const runningRef = useRef(false)
-  const segmentsRef = useRef([])
+  const [running, setRunning]           = useState(false)
+  const [segments, setSegments]         = useState([])
 
-  const [segments, setSegments] = useState([])
+  // ── Wall-clock tracking refs ──────────────────────────────────────────────
+  // Elapsed = (now - sessionStartedAt) - totalPausedMs - currentPauseDuration
+  const sessionStartedAtRef = useRef(null) // Date.now() when session began
+  const totalPausedMsRef    = useRef(0)    // sum of all completed pause durations (ms)
+  const pauseStartedAtRef   = useRef(null) // Date.now() when the current pause began (null if running)
 
-  const [showSwap, setShowSwap] = useState(false)
-  const [swapCourseId, setSwapCourseId] = useState('')
+  const intervalRef  = useRef(null)
+  const segmentsRef  = useRef([])          // mirror of segments state for event-handler closures
+
+  const [showSwap, setShowSwap]           = useState(false)
+  const [swapCourseId, setSwapCourseId]   = useState('')
   const [swapResourceId, setSwapResourceId] = useState('')
 
   const [showFinish, setShowFinish] = useState(false)
@@ -54,7 +67,76 @@ export function TimerProvider({ children }) {
   const [saving, setSaving] = useState(false)
 
   const [showDiscard, setShowDiscard] = useState(false)
-  const [toast, setToast] = useState(false)
+  const [toast, setToast]             = useState(false)
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  // Always reads from refs — safe to call inside intervals and event handlers.
+  function calcElapsedSeconds() {
+    if (!sessionStartedAtRef.current) return 0
+    const currentPausedMs = pauseStartedAtRef.current
+      ? Date.now() - pauseStartedAtRef.current
+      : 0
+    const elapsed =
+      Date.now() - sessionStartedAtRef.current -
+      totalPausedMsRef.current -
+      currentPausedMs
+    return Math.max(0, Math.floor(elapsed / 1000))
+  }
+
+  function persistTimer() {
+    if (!sessionStartedAtRef.current) return
+    localStorage.setItem(LS.startedAt,     String(sessionStartedAtRef.current))
+    localStorage.setItem(LS.totalPausedMs, String(totalPausedMsRef.current))
+    localStorage.setItem(LS.pausedAt,      pauseStartedAtRef.current ? String(pauseStartedAtRef.current) : '')
+    localStorage.setItem(LS.running,       pauseStartedAtRef.current ? 'false' : 'true')
+    localStorage.setItem(LS.segments,      JSON.stringify(segmentsRef.current))
+  }
+
+  function clearPersistedTimer() {
+    Object.values(LS).forEach(k => localStorage.removeItem(k))
+  }
+
+  // ── Restore from localStorage on mount (handles page kills & PWA restarts) ─
+
+  useEffect(() => {
+    const startedAtStr = localStorage.getItem(LS.startedAt)
+    if (!startedAtStr) return
+
+    const startedAt     = Number(startedAtStr)
+    const totalPausedMs = Number(localStorage.getItem(LS.totalPausedMs) || '0')
+    const pausedAtStr   = localStorage.getItem(LS.pausedAt)
+    const pausedAt      = pausedAtStr ? Number(pausedAtStr) : null
+    const wasRunning    = localStorage.getItem(LS.running) === 'true'
+    const savedSegs     = JSON.parse(localStorage.getItem(LS.segments) || '[]')
+
+    // Guard against corrupt / impossibly old data (> 24 h)
+    if (!startedAt || savedSegs.length === 0 || Date.now() - startedAt > 86_400_000) {
+      clearPersistedTimer()
+      return
+    }
+
+    sessionStartedAtRef.current = startedAt
+    totalPausedMsRef.current    = totalPausedMs
+    pauseStartedAtRef.current   = wasRunning ? null : (pausedAt ?? Date.now())
+
+    segmentsRef.current = savedSegs
+    setSegments(savedSegs)
+    setPhase('running')
+    setTotalSeconds(calcElapsedSeconds())
+
+    if (wasRunning) {
+      intervalRef.current = setInterval(() => setTotalSeconds(calcElapsedSeconds()), 1000)
+      setRunning(true)
+    }
+    // If paused: display the frozen elapsed time, leave interval stopped.
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Keep segmentsRef in sync for closures ─────────────────────────────────
+
+  useEffect(() => { segmentsRef.current = segments }, [segments])
+
+  // ── Load courses + resources ──────────────────────────────────────────────
 
   useEffect(() => {
     Promise.all([
@@ -67,8 +149,7 @@ export function TimerProvider({ children }) {
     return () => clearInterval(intervalRef.current)
   }, [])
 
-  useEffect(() => { runningRef.current = running }, [running])
-  useEffect(() => { segmentsRef.current = segments }, [segments])
+  // ── Browser tab title ─────────────────────────────────────────────────────
 
   useEffect(() => {
     document.title = phase === 'running'
@@ -76,20 +157,19 @@ export function TimerProvider({ children }) {
       : 'StudyLog'
   }, [totalSeconds, phase])
 
+  // ── Background notification (fires when tab is hidden) ────────────────────
+
   useEffect(() => {
     if (phase !== 'running') return
-    let notif = null
+    let notif  = null
     let tickId = null
 
     function getLabel() {
       const seg = segmentsRef.current[segmentsRef.current.length - 1]
-      const elapsed = runningRef.current && startTsRef.current
-        ? accumulatedRef.current + Math.floor((Date.now() - startTsRef.current) / 1000)
-        : accumulatedRef.current
       const ctx = seg
         ? `${seg.courseName}${seg.resourceName ? ` › ${seg.resourceName}` : ''}`
         : 'Session'
-      return `${ctx} — ${fmtTime(elapsed)} elapsed`
+      return `${ctx} — ${fmtTime(calcElapsedSeconds())} elapsed`
     }
 
     function notify() {
@@ -102,7 +182,7 @@ export function TimerProvider({ children }) {
     function onVisibility() {
       if (document.hidden) {
         notify()
-        tickId = setInterval(notify, 60000)
+        tickId = setInterval(notify, 60_000)
       } else {
         clearInterval(tickId)
         tickId = null
@@ -118,36 +198,54 @@ export function TimerProvider({ children }) {
     }
   }, [phase])
 
+  // ── Clock controls ────────────────────────────────────────────────────────
+
   function startClock() {
-    startTsRef.current = Date.now()
-    intervalRef.current = setInterval(() => {
-      setTotalSeconds(accumulatedRef.current + Math.floor((Date.now() - startTsRef.current) / 1000))
-    }, 500)
+    // Account for the just-ended pause (works for both fresh start and resume).
+    // On fresh start pauseStartedAtRef is already null so nothing changes.
+    if (pauseStartedAtRef.current !== null) {
+      totalPausedMsRef.current += Date.now() - pauseStartedAtRef.current
+      pauseStartedAtRef.current = null
+    }
+    clearInterval(intervalRef.current)
+    intervalRef.current = setInterval(() => setTotalSeconds(calcElapsedSeconds()), 1000)
     setRunning(true)
+    persistTimer()
   }
 
   function pauseClock() {
     clearInterval(intervalRef.current)
-    accumulatedRef.current += Math.floor((Date.now() - startTsRef.current) / 1000)
-    setTotalSeconds(accumulatedRef.current)
+    pauseStartedAtRef.current = Date.now()
+    setTotalSeconds(calcElapsedSeconds()) // snapshot the correct elapsed time
     setRunning(false)
+    persistTimer()
   }
+
+  // ── Session lifecycle ─────────────────────────────────────────────────────
 
   function startSession() {
     if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
       Notification.requestPermission()
     }
-    const course = courses.find(c => c.id === courseId)
+    const course   = courses.find(c => c.id === courseId)
     const resource = allResources.find(r => r.id === resourceId)
-    setSegments([{
+
+    const initialSegments = [{
       course_id: course.id, resource_id: resource?.id ?? null,
       courseName: course.name, courseEmoji: course.emoji, courseColor: course.color,
       resourceName: resource?.name ?? null, startSeconds: 0,
-    }])
-    accumulatedRef.current = 0
+    }]
+    segmentsRef.current = initialSegments
+    setSegments(initialSegments)
+
+    // Initialise wall-clock tracking — must happen before startClock()
+    sessionStartedAtRef.current = Date.now()
+    totalPausedMsRef.current    = 0
+    pauseStartedAtRef.current   = null
+
     setTotalSeconds(0)
     setPhase('running')
-    startClock()
+    startClock() // starts interval + persists
   }
 
   function openSwap() {
@@ -158,49 +256,55 @@ export function TimerProvider({ children }) {
   }
 
   function confirmSwap() {
-    const course = courses.find(c => c.id === swapCourseId)
+    const course   = courses.find(c => c.id === swapCourseId)
     const resource = allResources.find(r => r.id === swapResourceId)
-    const snapSeconds = accumulatedRef.current + (running ? Math.floor((Date.now() - startTsRef.current) / 1000) : 0)
-    setSegments(prev => [...prev, {
+    const snapSecs = calcElapsedSeconds()
+
+    const next = [...segmentsRef.current, {
       course_id: course.id, resource_id: resource?.id ?? null,
       courseName: course.name, courseEmoji: course.emoji, courseColor: course.color,
-      resourceName: resource?.name ?? null, startSeconds: snapSeconds,
-    }])
+      resourceName: resource?.name ?? null, startSeconds: snapSecs,
+    }]
+    segmentsRef.current = next
+    setSegments(next)
     setShowSwap(false)
+    persistTimer()
   }
 
   function openFinish() {
     if (running) pauseClock()
+    const elapsed = calcElapsedSeconds() // accurate from wall-clock refs
     const lastSeg = segments[segments.length - 1]
     setFinishForm({
       pages_covered: '', notes: '',
       focus_type: 'deep_focus', energy_level: 'high',
       date: localDateStr(),
-      course_id: lastSeg?.course_id ?? '',
+      course_id:  lastSeg?.course_id  ?? '',
       resource_id: lastSeg?.resource_id ?? '',
-      duration_minutes: String(Math.max(1, Math.round(accumulatedRef.current / 60))),
+      duration_minutes: String(Math.max(1, Math.round(elapsed / 60))),
     })
     setShowFinish(true)
   }
 
   async function submitFinish() {
     setSaving(true)
+    const totalElapsed = calcElapsedSeconds()
     const isSingle = segments.length === 1
     const rows = segments.map((seg, i) => {
-      const endSec = i < segments.length - 1 ? segments[i + 1].startSeconds : totalSeconds
+      const endSec      = i < segments.length - 1 ? segments[i + 1].startSeconds : totalElapsed
       const timerDuration = Math.max(1, Math.round((endSec - seg.startSeconds) / 60))
       return {
-        user_id: session.user.id,
-        course_id: isSingle ? finishForm.course_id : seg.course_id,
-        resource_id: isSingle ? (finishForm.resource_id || null) : (seg.resource_id ?? null),
+        user_id:          session.user.id,
+        course_id:        isSingle ? finishForm.course_id       : seg.course_id,
+        resource_id:      isSingle ? (finishForm.resource_id || null) : (seg.resource_id ?? null),
         duration_minutes: isSingle && finishForm.duration_minutes
           ? Math.max(1, parseInt(finishForm.duration_minutes, 10))
           : timerDuration,
         pages_covered: finishForm.pages_covered.trim() || null,
-        focus_type: finishForm.focus_type || null,
-        energy_level: finishForm.energy_level || null,
-        date: finishForm.date,
-        notes: finishForm.notes.trim() || null,
+        focus_type:    finishForm.focus_type   || null,
+        energy_level:  finishForm.energy_level || null,
+        date:          finishForm.date,
+        notes:         finishForm.notes.trim() || null,
       }
     })
     const { error } = await supabase.from('sessions').insert(rows)
@@ -210,8 +314,10 @@ export function TimerProvider({ children }) {
 
   function resetAll() {
     clearInterval(intervalRef.current)
-    accumulatedRef.current = 0
-    startTsRef.current = null
+    sessionStartedAtRef.current = null
+    totalPausedMsRef.current    = 0
+    pauseStartedAtRef.current   = null
+    clearPersistedTimer()
     setTotalSeconds(0)
     setRunning(false)
     setSegments([])
