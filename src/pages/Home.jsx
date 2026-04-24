@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import SwipeableRow from '../components/SwipeableRow.jsx'
+import BottomSheet from '../components/BottomSheet.jsx'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -89,6 +90,13 @@ const ENERGY_COLOR = {
   post_night_shift: '#8B5CF6',
 }
 
+const ENERGY_LABEL = { high: 'High', medium: 'Medium', low: 'Low', post_night_shift: 'Post-Night-Shift' }
+
+const FOCUS_LABEL = {
+  deep_focus: 'Deep Focus', light_review: 'Light Review',
+  practice: 'Practice', video: 'Video Lecture', project: 'Project Work',
+}
+
 // ── Stats computation ─────────────────────────────────────────────────────────
 
 function computeStats(allSessions) {
@@ -151,7 +159,7 @@ export default function Home() {
       supabase.from('sessions')
         .select('id, date, duration_minutes, pages_covered, focus_type, energy_level, notes, created_at, course_id, courses(name, emoji, color), resources(name)')
         .order('created_at', { ascending: false })
-        .limit(5),
+        .limit(7),
     ]).then(([{ data: s }, { data: c }, { data: r }]) => {
       setAllSessions(s ?? [])
       setActiveCourses(c ?? [])
@@ -462,118 +470,209 @@ function CoursesRow({ courses, weekSessionsMap }) {
 }
 
 function RecentSessionsList({ sessions, loading, onDelete }) {
+  const { accentColor } = useTheme()
+  const [selected, setSelected] = useState(null)
+
+  function handleDelete(id) {
+    onDelete(id)
+    setSelected(null)
+  }
+
   return (
     <div>
-      <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text-1)' }}>Recent Sessions</p>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-sm font-semibold" style={{ color: 'var(--text-1)' }}>Recent Sessions</p>
+        <Link to="/session?mode=log" className="text-xs font-medium" style={{ color: accentColor }}>See all</Link>
+      </div>
       {loading
         ? <div className="space-y-2">{[0, 1, 2].map(i => <Skel key={i} h={72} />)}</div>
-        : <div className="space-y-2">{sessions.map(s => <SessionCard key={s.id} s={s} onDelete={onDelete} />)}</div>
+        : <div className="space-y-2">{sessions.map(s => (
+            <SessionCard key={s.id} s={s} onDelete={onDelete} onTap={() => setSelected(s)} />
+          ))}</div>
       }
+      <SessionDetailSheet
+        session={selected}
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        onDelete={handleDelete}
+      />
     </div>
   )
 }
 
-function SessionCard({ s, onDelete }) {
+function SessionCard({ s, onDelete, onTap }) {
   const { accentColor } = useTheme()
-  const [confirming, setConfirming] = useState(false)
   const course = s.courses
   if (!course) return null
 
   const energyColor = ENERGY_COLOR[s.energy_level] ?? '#6b7280'
 
   return (
-    <>
-      <SwipeableRow onDelete={() => setConfirming(true)}>
-        <div className="rounded-xl p-3 relative" style={{ backgroundColor: '#111113' }}>
-          {/* Trash */}
-          <button
-            onClick={() => setConfirming(true)}
-            className="absolute top-3 right-3 p-1"
-            style={{ color: 'var(--text-3)' }}
-            aria-label="Delete session"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
-              <polyline points="3 6 5 6 21 6" />
-              <path d="M19 6l-1 14H6L5 6" />
-              <path d="M10 11v6M14 11v6M9 6V4h6v2" />
-            </svg>
-          </button>
+    <SwipeableRow onDelete={() => onDelete(s.id)}>
+      <button
+        onClick={onTap}
+        className="w-full rounded-xl p-3 text-left"
+        style={{ backgroundColor: '#111113' }}
+      >
+        {/* Course + duration */}
+        <div className="flex items-center gap-2">
+          <span className="text-base leading-none flex-shrink-0">{course.emoji}</span>
+          <p className="text-sm font-semibold truncate flex-1" style={{ color: 'var(--text-1)' }}>
+            {course.name}
+          </p>
+          <span className="text-sm font-bold flex-shrink-0" style={{ color: accentColor }}>
+            {fmtMins(s.duration_minutes)}
+          </span>
+        </div>
 
-          {/* Course + duration */}
-          <div className="flex items-center gap-2 pr-8">
-            <span className="text-base leading-none flex-shrink-0">{course.emoji}</span>
-            <p className="text-sm font-semibold truncate flex-1" style={{ color: 'var(--text-1)' }}>
-              {course.name}
-            </p>
-            <span className="text-sm font-bold flex-shrink-0" style={{ color: accentColor }}>
-              {fmtMins(s.duration_minutes)}
+        {/* Resource + energy dot + time */}
+        <div className="flex items-center gap-2 mt-1.5">
+          <p className="text-xs truncate flex-1" style={{ color: '#9ca3af' }}>
+            {[s.resources?.name, s.pages_covered ? `p.${s.pages_covered}` : null].filter(Boolean).join(' · ') || '—'}
+          </p>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {s.energy_level && (
+              <span
+                className="w-2 h-2 rounded-full flex-shrink-0"
+                style={{ backgroundColor: energyColor }}
+              />
+            )}
+            <span className="text-xs" style={{ color: '#6b7280' }}>
+              {fmtRelativeTime(s.created_at)}
             </span>
           </div>
-
-          {/* Resource + energy dot + time */}
-          <div className="flex items-center gap-2 mt-1.5 pr-8">
-            <p className="text-xs truncate flex-1" style={{ color: '#9ca3af' }}>
-              {[s.resources?.name, s.pages_covered ? `p.${s.pages_covered}` : null].filter(Boolean).join(' · ') || '—'}
-            </p>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              {s.energy_level && (
-                <span
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: energyColor }}
-                  title={s.energy_level}
-                />
-              )}
-              <span className="text-xs" style={{ color: '#6b7280' }}>
-                {fmtRelativeTime(s.created_at)}
-              </span>
-            </div>
-          </div>
         </div>
-      </SwipeableRow>
-
-      {confirming && (
-        <DeleteConfirmModal
-          onConfirm={() => { onDelete(s.id); setConfirming(false) }}
-          onCancel={() => setConfirming(false)}
-        />
-      )}
-    </>
+      </button>
+    </SwipeableRow>
   )
 }
 
-function DeleteConfirmModal({ onConfirm, onCancel }) {
+function SessionDetailSheet({ session: s, open, onClose, onDelete }) {
   const { accentColor } = useTheme()
+  const [confirming, setConfirming] = useState(false)
+
+  useEffect(() => { if (!open) setConfirming(false) }, [open])
+
+  if (!s) return null
+
+  const course = s.courses
+  const energyColor = ENERGY_COLOR[s.energy_level] ?? '#6b7280'
+
+  function fmtDetailDate(dateStr) {
+    const [y, m, d] = dateStr.split('-').map(Number)
+    return new Date(y, m - 1, d).toLocaleDateString(navigator.language, {
+      weekday: 'long', day: 'numeric', month: 'long',
+    })
+  }
+
+  function fmtDetailTime(iso) {
+    return new Date(iso).toLocaleTimeString(navigator.language, { hour: '2-digit', minute: '2-digit' })
+  }
+
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-      style={{ backgroundColor: 'var(--modal-overlay)' }}
-      onClick={e => e.target === e.currentTarget && onCancel()}
-    >
-      <div
-        className="w-full max-w-xs rounded-2xl p-5 space-y-4"
-        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
-      >
-        <div className="space-y-1">
-          <p className="font-bold" style={{ color: 'var(--text-1)' }}>Delete this session?</p>
-          <p className="text-sm" style={{ color: 'var(--text-2)' }}>This can't be undone.</p>
+    <BottomSheet open={open} onClose={onClose}>
+      <div className="px-5 pb-10">
+
+        {/* Course header */}
+        <div className="flex items-center gap-3 pb-4 mb-1" style={{ borderBottom: '1px solid var(--border)' }}>
+          <span className="text-3xl leading-none flex-shrink-0">{course?.emoji}</span>
+          <div className="min-w-0">
+            <p className="font-bold text-base leading-tight" style={{ color: 'var(--text-1)' }}>
+              {course?.name}
+            </p>
+            <span
+              className="inline-block mt-0.5 text-xs font-semibold px-2 py-0.5 rounded-full"
+              style={{ backgroundColor: `${course?.color}22`, color: course?.color }}
+            >
+              {fmtMins(s.duration_minutes)}
+            </span>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={onCancel}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-            style={{ backgroundColor: 'var(--bg-surf)', color: 'var(--text-1)', border: '1px solid var(--border)' }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-            style={{ backgroundColor: accentColor, color: '#fff' }}
-          >
-            Delete
-          </button>
+
+        {/* Detail rows */}
+        <div>
+          <DetailRow label="Date">{fmtDetailDate(s.date)}</DetailRow>
+          <DetailRow label="Logged at">{fmtDetailTime(s.created_at)}</DetailRow>
+          {s.resources?.name && (
+            <DetailRow label="Resource">{s.resources.name}</DetailRow>
+          )}
+          {s.pages_covered && (
+            <DetailRow label="Pages">{s.pages_covered}</DetailRow>
+          )}
+          {s.focus_type && (
+            <DetailRow label="Focus">
+              <span
+                className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                style={{ backgroundColor: `${accentColor}22`, color: accentColor }}
+              >
+                {FOCUS_LABEL[s.focus_type] ?? s.focus_type}
+              </span>
+            </DetailRow>
+          )}
+          {s.energy_level && (
+            <DetailRow label="Energy">
+              <span
+                className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                style={{ backgroundColor: `${energyColor}22`, color: energyColor }}
+              >
+                {ENERGY_LABEL[s.energy_level] ?? s.energy_level}
+              </span>
+            </DetailRow>
+          )}
+        </div>
+
+        {/* Notes */}
+        {s.notes && (
+          <div className="py-4" style={{ borderBottom: '1px solid var(--border)' }}>
+            <p className="text-xs font-medium mb-1.5" style={{ color: '#6b7280' }}>Notes</p>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--text-1)' }}>{s.notes}</p>
+          </div>
+        )}
+
+        {/* Delete */}
+        <div className="pt-5">
+          {confirming ? (
+            <div className="space-y-3">
+              <p className="text-sm text-center" style={{ color: 'var(--text-2)' }}>
+                Delete this session? This can't be undone.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setConfirming(false)}
+                  className="flex-1 py-3 rounded-xl text-sm font-semibold"
+                  style={{ backgroundColor: 'var(--bg-surf)', color: 'var(--text-1)', border: '1px solid var(--border)' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => onDelete(s.id)}
+                  className="flex-1 py-3 rounded-xl text-sm font-semibold"
+                  style={{ backgroundColor: '#EF4444', color: '#fff' }}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirming(true)}
+              className="w-full py-3 rounded-xl text-sm font-semibold"
+              style={{ backgroundColor: '#EF444420', color: '#EF4444', border: '1px solid #EF444430' }}
+            >
+              Delete Session
+            </button>
+          )}
         </div>
       </div>
+    </BottomSheet>
+  )
+}
+
+function DetailRow({ label, children }) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
+      <span className="text-sm flex-shrink-0" style={{ color: '#6b7280' }}>{label}</span>
+      <span className="text-sm font-medium text-right" style={{ color: 'var(--text-1)' }}>{children}</span>
     </div>
   )
 }
