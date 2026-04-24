@@ -23,7 +23,8 @@
       "Bash(python3 -c \"from PIL import Image; print\\('Pillow OK'\\)\")",
       "Bash(pip install *)",
       "Bash(npm list *)",
-      "Bash(python *)"
+      "Bash(python *)",
+      "Bash(curl -s http://localhost:3001/)"
     ]
   }
 }

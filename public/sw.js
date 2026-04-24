@@ -1,7 +1,6 @@
-const CACHE_NAME = 'studylog-v4';
+const CACHE_NAME = 'studylog-v5';
 
 const PRECACHE_ASSETS = [
-  '/',
   '/manifest.json',
   '/apple-touch-icon.png',
   '/favicon-32x32.png',
