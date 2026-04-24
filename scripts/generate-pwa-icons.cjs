@@ -31,13 +31,13 @@ function iconSVG({ size = 512, favicon = false } = {}) {
 
   // Corner radius for pages
   const pr = bh * 0.06;
-  // Page colors
-  const pageLeft  = '#1c1c2e';
-  const pageRight = '#16162a';
-  const green = '#10B981';
-  const lineColor = '#10B981';
-  const lineOpacity = '0.45';
-  const spineColor = '#10B981';
+  // Teal background, white pages, dark-green accents
+  const pageLeft  = '#ffffff';
+  const pageRight = '#f0fdf4';
+  const accent    = '#065f46';
+  const lineColor = '#065f46';
+  const lineOpacity = '0.35';
+  const spineColor = '#065f46';
 
   // Left page: top-left rounded, bottom-left rounded
   const lx1 = bx, ly1 = by;
@@ -71,7 +71,7 @@ function iconSVG({ size = 512, favicon = false } = {}) {
   const arcCY = by + bh + bh * 0.14;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-  <rect width="${size}" height="${size}" rx="${r}" fill="#111113"/>
+  <rect width="${size}" height="${size}" rx="${r}" fill="#10B981"/>
   <!-- left page -->
   <path d="M ${lx1 + pr},${ly1} Q ${lx1},${ly1} ${lx1},${ly1 + pr}
             L ${lx4},${ly4 - pr} Q ${lx4},${ly4} ${lx4 + pr},${ly4}
@@ -94,8 +94,8 @@ function iconSVG({ size = 512, favicon = false } = {}) {
   <!-- bottom open-book curve -->
   <path d="M ${bx},${by + bh} Q ${mid},${arcCY} ${bx + bw},${by + bh}"
         fill="none" stroke="${spineColor}" stroke-width="${size * 0.016}" stroke-linecap="round"/>
-  <!-- green dot on spine top -->
-  <circle cx="${spine}" cy="${by - size * 0.018}" r="${size * 0.022}" fill="${green}"/>
+  <!-- dot on spine top -->
+  <circle cx="${spine}" cy="${by - size * 0.018}" r="${size * 0.022}" fill="${accent}"/>
 </svg>`;
 }
 
@@ -128,7 +128,7 @@ async function savePNG(svgString, outFile, size) {
   const buf = Buffer.from(svgString);
   await sharp(buf)
     .resize(size, size, { fit: 'fill' })
-    .flatten({ background: '#111113' })
+    .flatten({ background: '#10B981' })
     .png({ compressionLevel: 9 })
     .toFile(outFile);
   console.log(`  ✓  ${path.basename(outFile)}`);
