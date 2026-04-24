@@ -9,9 +9,20 @@ import {
 } from '../components/CourseModal.jsx'
 
 // ── Material constants ────────────────────────────────────────────────────────
-const TYPE_OPTIONS = ['pdf', 'video', 'online_course', 'textbook', 'exercises', 'other']
-const TYPE_LABEL = { pdf: 'PDF', video: 'Video', online_course: 'Online Course', textbook: 'Textbook', exercises: 'Exercises', other: 'Other' }
-const TYPE_ICON = { pdf: '📄', video: '🎬', online_course: '🌐', textbook: '📖', exercises: '✏️', other: '📎' }
+const TYPE_OPTIONS = ['pdf', 'textbook', 'notes', 'slides', 'video', 'lecture_recording', 'podcast', 'article', 'problem_set']
+const TYPE_LABEL = {
+  pdf: 'PDF', textbook: 'Textbook', notes: 'Notes', slides: 'Slides',
+  video: 'Video', lecture_recording: 'Lecture Recording', podcast: 'Podcast',
+  article: 'Article', problem_set: 'Problem Set',
+  online_course: 'Online Course', exercises: 'Exercises', other: 'Other',
+}
+const TYPE_ICON = {
+  pdf: '📄', textbook: '📖', notes: '📝', slides: '🖥️',
+  video: '🎬', lecture_recording: '🎙️', podcast: '🎧',
+  article: '📰', problem_set: '✏️',
+  online_course: '🌐', exercises: '✏️', other: '📎',
+}
+const TIME_BASED_TYPES = new Set(['video', 'lecture_recording', 'podcast', 'online_course'])
 const MAT_STATUS_OPTIONS = ['not_started', 'in_progress', 'completed']
 const MAT_STATUS_LABEL = { not_started: 'Not Started', in_progress: 'In Progress', completed: 'Completed' }
 const MAT_STATUS_COLOR = { not_started: '#E63946', in_progress: '#E9C46A', completed: '#2A9D8F' }
@@ -651,7 +662,9 @@ function ResourceCard({ resource: r, minutesStudied, courseColor, onEdit, onDele
             {TYPE_ICON[r.type]} {TYPE_LABEL[r.type] || r.type}
           </span>
           {r.total_pages && (
-            <span className="text-xs" style={{ color: 'var(--text-2)' }}>{r.total_pages} pages</span>
+            <span className="text-xs" style={{ color: 'var(--text-2)' }}>
+              {r.total_pages} {TIME_BASED_TYPES.has(r.type) ? 'min' : 'pages'}
+            </span>
           )}
           {minutesStudied > 0 && (
             <span className="flex items-center gap-1 text-xs" style={{ color: accentColor }}>
@@ -810,12 +823,12 @@ function MaterialModal({ form, setForm, editing, saving, onSave, onClose }) {
           </Field>
         </div>
 
-        <Field label="Total Pages (optional)">
+        <Field label={TIME_BASED_TYPES.has(form.type) ? 'Total Duration (optional, in minutes)' : 'Total Pages (optional)'}>
           <input
             type="number"
             value={form.total_pages}
             onChange={e => setForm(f => ({ ...f, total_pages: e.target.value }))}
-            placeholder="e.g. 120"
+            placeholder={TIME_BASED_TYPES.has(form.type) ? 'e.g. 90' : 'e.g. 120'}
             min="1"
             className="h-10 px-3 rounded-xl text-sm w-full outline-none"
             style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}

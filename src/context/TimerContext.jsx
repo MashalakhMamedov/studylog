@@ -141,7 +141,7 @@ export function TimerProvider({ children }) {
   useEffect(() => {
     Promise.all([
       supabase.from('courses').select('id, name, emoji, color').order('name'),
-      supabase.from('resources').select('id, course_id, name').order('name'),
+      supabase.from('resources').select('id, course_id, name, type').order('name'),
     ]).then(([{ data: c }, { data: r }]) => {
       if (c) setCourses(c)
       if (r) setAllResources(r)

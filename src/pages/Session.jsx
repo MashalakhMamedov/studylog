@@ -33,6 +33,8 @@ function fmtRelativeDate(dateStr) {
 
 const today = () => new Date().toISOString().split('T')[0]
 
+const TIME_BASED_TYPES = new Set(['video', 'lecture_recording', 'podcast', 'online_course'])
+
 const FOCUS_TYPES = [
   { value: 'deep_focus',   label: 'Deep Focus' },
   { value: 'light_review', label: 'Light Review' },
@@ -317,6 +319,8 @@ function LogTab() {
   }
 
   const canSubmit = form.course_id && form.duration && !saving
+  const selectedResource = resources.find(r => r.id === form.resource_id)
+  const coverIsTime = selectedResource && TIME_BASED_TYPES.has(selectedResource.type)
 
   return (
     <div className="px-4 pt-2 pb-8 space-y-5">
@@ -383,12 +387,12 @@ function LogTab() {
         </Field>
       </div>
 
-      <Field label="Pages / Section Covered (optional)">
+      <Field label={coverIsTime ? 'Minutes Watched (optional)' : 'Pages / Section Covered (optional)'}>
         <input
           type="text"
           value={form.pages_covered}
           onChange={e => set('pages_covered', e.target.value)}
-          placeholder="e.g. 45–62 or Chapter 3"
+          placeholder={coverIsTime ? 'e.g. 45 or 1:30:00' : 'e.g. 45–62 or Chapter 3'}
           className="h-11 px-3 rounded-xl text-sm w-full outline-none"
           style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
         />
@@ -706,6 +710,8 @@ function FinishModal({ totalSeconds, segments, form, setForm, courses, allResour
   const multiSegment = segments.length > 1
   const resources = allResources.filter(r => r.course_id === form.course_id)
   const totalMins = Math.max(1, Math.round(totalSeconds / 60))
+  const selectedResource = resources.find(r => r.id === form.resource_id)
+  const coverIsTime = selectedResource && TIME_BASED_TYPES.has(selectedResource.type)
 
   function set(key, val) { setForm(f => ({ ...f, [key]: val })) }
 
@@ -817,12 +823,12 @@ function FinishModal({ totalSeconds, segments, form, setForm, courses, allResour
           </Field>
         )}
 
-        <Field label="Pages / Section Covered (optional)">
+        <Field label={coverIsTime ? 'Minutes Watched (optional)' : 'Pages / Section Covered (optional)'}>
           <input
             type="text"
             value={form.pages_covered}
             onChange={e => set('pages_covered', e.target.value)}
-            placeholder="e.g. 45–62 or Chapter 3"
+            placeholder={coverIsTime ? 'e.g. 45 or 1:30:00' : 'e.g. 45–62 or Chapter 3'}
             className="h-11 px-3 rounded-xl text-sm w-full outline-none"
             style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
           />
