@@ -5,7 +5,20 @@
       "Bash(echo \"EXIT:$?\")",
       "Bash(npm install *)",
       "Bash(npm run *)",
-      "Bash(npx vite *)"
+      "Bash(npx vite *)",
+      "Bash(python -c ' *)",
+      "Bash(node -e ' *)",
+      "Bash(node -e \"const s=require\\('sharp'\\); console.log\\(s.versions\\)\")",
+      "Bash(where inkscape *)",
+      "Bash(where magick *)",
+      "Bash(where convert *)",
+      "Bash(where rsvg-convert *)",
+      "Bash(python -c \"import cairosvg; print\\('cairosvg ok'\\)\")",
+      "Bash(python -c \"import wand; print\\('wand ok'\\)\")",
+      "Bash(python -c \"import PIL; print\\('PIL ok'\\)\")",
+      "Bash(node -e \"const sharp = require\\('sharp'\\); console.log\\(sharp.versions\\)\")",
+      "Bash(node scripts/generate-pwa-icons.js)",
+      "Bash(node scripts/generate-pwa-icons.cjs)"
     ]
   }
 }
