@@ -99,7 +99,7 @@ const FOCUS_LABEL = {
 
 // ── Stats computation ─────────────────────────────────────────────────────────
 
-function computeStats(allSessions) {
+function computeStats(allSessions, courses = []) {
   const todayStr = localDateStr()
   const wStart = weekStartStr()
   const weekDays = currentWeekDays()
@@ -124,6 +124,13 @@ function computeStats(allSessions) {
     }
   })
 
+  const todayCourseMap = {}
+  todaySessions.forEach(s => {
+    if (s.course_id) todayCourseMap[s.course_id] = (todayCourseMap[s.course_id] || 0) + (s.duration_minutes || 0)
+  })
+  const topCourseId = Object.entries(todayCourseMap).sort(([, a], [, b]) => b - a)[0]?.[0] ?? null
+  const topCourseToday = courses.find(c => c.id === topCourseId) ?? null
+
   return {
     todayMins,
     todaySessionCount: todaySessions.length,
@@ -131,6 +138,7 @@ function computeStats(allSessions) {
     chartData,
     weekSessionsMap,
     streak: calcStreak(allSessions),
+    topCourseToday,
   }
 }
 
@@ -145,8 +153,11 @@ export default function Home() {
   const [activeCourses, setActiveCourses] = useState(null)
   const [recentSessions, setRecentSessions] = useState(null)
 
-  const stats = useMemo(() => allSessions ? computeStats(allSessions) : null, [allSessions])
-  const loading = allSessions === null
+  const stats = useMemo(
+    () => allSessions && activeCourses ? computeStats(allSessions, activeCourses) : null,
+    [allSessions, activeCourses]
+  )
+  const loading = allSessions === null || activeCourses === null
 
   const meta = authSession?.user?.user_metadata ?? {}
   const firstName = meta.first_name || meta.full_name?.split(' ')[0] || ''
@@ -232,14 +243,14 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 2 — Today's Stats */}
+      {/* 2 — Today's Summary */}
       <div style={{ animation: 'sectionFadeIn 400ms ease both', animationDelay: '80ms' }}>
-        <TodayStatsCard stats={stats} loading={loading} />
+        <TodaySummaryCard stats={stats} loading={loading} />
       </div>
 
-      {/* 3 — Weekly Bar Chart */}
+      {/* 3 — Weekly Dots */}
       <div style={{ animation: 'sectionFadeIn 400ms ease both', animationDelay: '160ms' }}>
-        <WeeklyBarChart chartData={stats?.chartData} loading={loading} />
+        <WeeklyDots chartData={stats?.chartData} loading={loading} />
       </div>
 
       {/* 4 — Quick Actions */}
@@ -267,117 +278,126 @@ export default function Home() {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function TodayStatsCard({ stats, loading }) {
+function TodaySummaryCard({ stats, loading }) {
   const { accentColor } = useTheme()
+  const navigate = useNavigate()
+
+  if (loading) {
+    return (
+      <div className="rounded-xl px-5 py-4" style={{ backgroundColor: '#111113' }}>
+        <Skel h={52} />
+      </div>
+    )
+  }
+
+  if (stats.todaySessionCount === 0) {
+    return (
+      <div
+        className="rounded-xl px-5 py-4 flex items-center gap-4"
+        style={{ backgroundColor: '#111113' }}
+      >
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold" style={{ color: 'var(--text-1)' }}>No sessions yet today</p>
+          <p className="text-xs mt-0.5" style={{ color: '#6b7280' }}>Ready to start? Your streak is waiting.</p>
+        </div>
+        <button
+          onClick={() => navigate('/session?mode=focus')}
+          className="flex-shrink-0 px-4 py-2 rounded-xl text-xs font-bold"
+          style={{ backgroundColor: accentColor, color: '#fff' }}
+        >
+          Start
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="rounded-xl px-5 py-4" style={{ backgroundColor: '#111113' }}>
       <div className="flex items-center">
         <div className="flex-1 text-center">
-          {loading
-            ? <Skel h={26} />
-            : <p className="text-xl font-bold leading-none" style={{ color: accentColor }}>
-                {fmtMins(stats?.todayMins ?? 0)}
-              </p>
-          }
+          <p className="text-xl font-bold leading-none" style={{ color: accentColor }}>
+            {fmtMins(stats.todayMins)}
+          </p>
           <p className="text-xs mt-1.5" style={{ color: '#6b7280' }}>studied</p>
         </div>
 
-        <div style={{ width: 1, height: 40, backgroundColor: 'var(--border)', flexShrink: 0 }} />
+        <div style={{ width: 1, height: 36, backgroundColor: 'var(--border)', flexShrink: 0 }} />
 
         <div className="flex-1 text-center">
-          {loading
-            ? <Skel h={26} />
-            : <p className="text-xl font-bold leading-none" style={{ color: 'var(--text-1)' }}>
-                {stats?.todaySessionCount ?? 0}
-              </p>
-          }
+          <p className="text-xl font-bold leading-none" style={{ color: 'var(--text-1)' }}>
+            {stats.todaySessionCount}
+          </p>
           <p className="text-xs mt-1.5" style={{ color: '#6b7280' }}>sessions</p>
         </div>
 
-        <div style={{ width: 1, height: 40, backgroundColor: 'var(--border)', flexShrink: 0 }} />
+        <div style={{ width: 1, height: 36, backgroundColor: 'var(--border)', flexShrink: 0 }} />
 
-        <div className="flex-1 text-center">
-          {loading
-            ? <Skel h={26} />
-            : <p className="text-xl font-bold leading-none" style={{ color: 'var(--text-1)' }}>
-                {stats?.todayPages ?? 0}
+        <div className="flex-1 text-center px-1">
+          {stats.topCourseToday ? (
+            <>
+              <p className="text-xl leading-none">{stats.topCourseToday.emoji}</p>
+              <p
+                className="text-xs mt-1.5 truncate"
+                style={{ color: '#6b7280' }}
+                title={stats.topCourseToday.name}
+              >
+                {stats.topCourseToday.name}
               </p>
-          }
-          <p className="text-xs mt-1.5" style={{ color: '#6b7280' }}>pages</p>
+            </>
+          ) : (
+            <p className="text-xl font-bold leading-none" style={{ color: 'var(--text-3)' }}>—</p>
+          )}
         </div>
       </div>
     </div>
   )
 }
 
-function WeeklyBarChart({ chartData, loading }) {
+function WeeklyDots({ chartData, loading }) {
   const { accentColor } = useTheme()
+
   if (loading) {
     return (
-      <div className="rounded-xl p-4" style={{ backgroundColor: '#111113' }}>
-        <BarSkeleton />
+      <div className="rounded-xl px-5 py-3" style={{ backgroundColor: '#111113' }}>
+        <Skel h={38} />
       </div>
     )
   }
 
-  const max = Math.max(...(chartData?.map(d => d.minutes) ?? [0]), 1)
-
   return (
-    <div className="rounded-xl p-4" style={{ backgroundColor: '#111113' }}>
-      {/* Bar columns — fixed height, bars grow from bottom */}
-      <div className="flex gap-1" style={{ height: 116 }}>
-        {chartData?.map(({ date, minutes, isToday }) => {
-          const barH = minutes === 0 ? 2 : Math.max(8, Math.round((minutes / max) * 100))
-          const opacity = isToday ? 1 : minutes > 0 ? 0.6 : 0.18
-
+    <div className="rounded-xl px-5 py-3" style={{ backgroundColor: '#111113' }}>
+      <div className="flex items-center justify-between">
+        {chartData?.map(({ date, label, minutes, isToday, isFuture }) => {
+          const studied = minutes > 0
           return (
-            <div
-              key={date}
-              className="flex-1 flex flex-col items-center justify-end"
-              style={{ gap: 3 }}
-            >
+            <div key={date} className="flex flex-col items-center gap-2">
               <span
                 style={{
-                  fontSize: 9,
-                  color: '#6b7280',
-                  height: 13,
-                  display: 'flex',
-                  alignItems: 'flex-end',
-                  justifyContent: 'center',
+                  fontSize: 11,
+                  fontWeight: isToday ? 700 : 500,
+                  color: isToday ? accentColor : '#6b7280',
                   lineHeight: 1,
                 }}
               >
-                {minutes > 0 ? fmtMins(minutes) : ''}
+                {label}
               </span>
               <div
                 style={{
-                  width: '100%',
-                  height: barH,
-                  backgroundColor: accentColor,
-                  opacity,
-                  borderRadius: minutes === 0 ? 1 : '3px 3px 0 0',
+                  width: 7,
+                  height: 7,
+                  borderRadius: '50%',
+                  backgroundColor: studied ? accentColor : 'transparent',
+                  border: isToday && !studied
+                    ? `2px solid ${accentColor}`
+                    : studied ? 'none'
+                    : '1.5px solid #3a3a3e',
+                  opacity: isFuture ? 0.25 : 1,
+                  flexShrink: 0,
                 }}
               />
             </div>
           )
         })}
-      </div>
-
-      {/* Day labels */}
-      <div className="flex gap-1 mt-2">
-        {chartData?.map(({ date, label, isToday }) => (
-          <div key={date} className="flex-1 text-center">
-            <span
-              style={{
-                fontSize: 11,
-                color: isToday ? accentColor : '#6b7280',
-                fontWeight: isToday ? 600 : 400,
-              }}
-            >
-              {label}
-            </span>
-          </div>
-        ))}
       </div>
     </div>
   )
@@ -387,41 +407,61 @@ function QuickActions() {
   const navigate = useNavigate()
   const { accentColor } = useTheme()
 
-  return (
-    <div className="flex gap-3">
-      <button
-        onClick={() => navigate('/session?mode=focus')}
-        className="flex-1 flex items-center gap-3 px-4 py-4 rounded-xl text-left"
-        style={{ backgroundColor: '#111113', border: `1px solid ${accentColor}` }}
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2" className="w-5 h-5 flex-shrink-0">
+  const actions = [
+    {
+      label: 'Focus',
+      href: '/session?mode=focus',
+      primary: true,
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
           <circle cx="12" cy="12" r="10" />
-          <circle cx="12" cy="12" r="4" />
-          <line x1="12" y1="2" x2="12" y2="6" />
-          <line x1="12" y1="18" x2="12" y2="22" />
-          <line x1="2" y1="12" x2="6" y2="12" />
-          <line x1="18" y1="12" x2="22" y2="12" />
+          <circle cx="12" cy="12" r="3" />
+          <line x1="12" y1="2" x2="12" y2="5" />
+          <line x1="12" y1="19" x2="12" y2="22" />
+          <line x1="2" y1="12" x2="5" y2="12" />
+          <line x1="19" y1="12" x2="22" y2="12" />
         </svg>
-        <div>
-          <p className="text-sm font-semibold" style={{ color: 'var(--text-1)' }}>Start Focus</p>
-          <p className="text-xs" style={{ color: '#6b7280' }}>Timer session</p>
-        </div>
-      </button>
-
-      <button
-        onClick={() => navigate('/session?mode=log')}
-        className="flex-1 flex items-center gap-3 px-4 py-4 rounded-xl text-left"
-        style={{ backgroundColor: '#111113', border: `1px solid ${accentColor}` }}
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2" className="w-5 h-5 flex-shrink-0">
+      ),
+    },
+    {
+      label: 'Log',
+      href: '/session?mode=log',
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
           <path d="M12 20h9" />
           <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
         </svg>
-        <div>
-          <p className="text-sm font-semibold" style={{ color: 'var(--text-1)' }}>Log Session</p>
-          <p className="text-xs" style={{ color: '#6b7280' }}>Add manually</p>
-        </div>
-      </button>
+      ),
+    },
+    {
+      label: 'Material',
+      href: '/courses',
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+        </svg>
+      ),
+    },
+  ]
+
+  return (
+    <div className="flex gap-2.5">
+      {actions.map(({ label, href, primary, icon }) => (
+        <button
+          key={label}
+          onClick={() => navigate(href)}
+          className="flex-1 flex flex-col items-center gap-2 py-3.5 rounded-xl"
+          style={{
+            backgroundColor: '#111113',
+            border: primary ? `1px solid ${accentColor}55` : '1px solid var(--border)',
+            color: primary ? accentColor : 'var(--text-2)',
+          }}
+        >
+          {icon}
+          <span style={{ fontSize: 11, fontWeight: 600, lineHeight: 1 }}>{label}</span>
+        </button>
+      ))}
     </div>
   )
 }
@@ -688,16 +728,3 @@ function Skel({ h }) {
   )
 }
 
-function BarSkeleton() {
-  return (
-    <div className="flex items-end gap-1" style={{ height: '80px' }}>
-      {[55, 30, 70, 45, 85, 35, 60].map((h, i) => (
-        <div
-          key={i}
-          className="flex-1 rounded-t-sm animate-pulse"
-          style={{ height: `${h}%`, backgroundColor: 'var(--bg-surf)' }}
-        />
-      ))}
-    </div>
-  )
-}
