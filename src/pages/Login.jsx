@@ -13,6 +13,25 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  async function handleForgotPassword() {
+    const trimmedEmail = email.trim()
+    if (!trimmedEmail) {
+      setError('Enter your email address first.')
+      return
+    }
+
+    setLoading(true)
+    setError('')
+    const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail)
+    setLoading(false)
+
+    if (error) {
+      setError(error.message)
+    } else {
+      setError('Password reset email sent. Check your inbox for the reset link.')
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     setLoading(true)
@@ -40,6 +59,10 @@ export default function Login() {
       navigate('/', { replace: true })
     }
   }
+
+  const successMessage =
+    error.startsWith('Account created') ||
+    error.startsWith('Password reset email sent')
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ backgroundColor: 'var(--bg)' }}>
@@ -102,12 +125,25 @@ export default function Login() {
               className="w-full px-4 py-3 rounded-xl text-sm outline-none"
               style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
             />
+            {mode === 'login' && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  disabled={loading}
+                  className="text-xs font-medium disabled:opacity-60"
+                  style={{ color: accentColor }}
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
           </div>
 
           {error && (
             <p
               className="text-sm text-center"
-              style={{ color: error.startsWith('Account created') ? accentColor : '#f87171' }}
+              style={{ color: successMessage ? accentColor : '#f87171' }}
             >
               {error}
             </p>
