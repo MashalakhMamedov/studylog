@@ -428,6 +428,7 @@ export default function CourseDetail() {
             value={syllabusText}
             onChange={e => { setSyllabusText(e.target.value); setSyllabusChanged(true) }}
             placeholder="Paste your course syllabus here…"
+            maxLength={10000}
             rows={6}
             className="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-none leading-relaxed"
             style={{
@@ -1071,6 +1072,7 @@ function MaterialModal({ form, setForm, editing, saving, onSave, onClose }) {
             value={form.name}
             onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
             placeholder="e.g. Lecture slides week 3"
+            maxLength={100}
             className="h-10 px-3 rounded-xl text-sm w-full outline-none"
             style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
           />

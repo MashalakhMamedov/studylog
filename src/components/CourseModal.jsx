@@ -61,6 +61,7 @@ export function CourseModal({ form, setForm, editing, saving, onSave, onClose })
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               placeholder="e.g. PEED"
+              maxLength={60}
               className="h-10 px-3 rounded-xl text-sm w-full outline-none"
               style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
               onKeyDown={e => e.key === 'Enter' && canSave && onSave()}

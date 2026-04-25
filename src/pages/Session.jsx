@@ -140,7 +140,7 @@ function FocusTab() {
     totalSeconds, running,
     segments,
     showSwap, setShowSwap, swapCourseId, setSwapCourseId, swapResourceId, setSwapResourceId,
-    showFinish, setShowFinish, finishForm, setFinishForm, saving,
+    showFinish, setShowFinish, finishForm, setFinishForm, saving, finishError,
     showDiscard, setShowDiscard,
     toast, setToast,
     startClock, pauseClock,
@@ -226,6 +226,7 @@ function FocusTab() {
           courses={courses}
           allResources={allResources}
           saving={saving}
+          finishError={finishError}
           onSubmit={submitFinish}
           onClose={() => { setShowFinish(false); if (!running) startClock() }}
         />
@@ -267,6 +268,7 @@ function LogTab() {
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(false)
   const [history, setHistory] = useState(null)
+  const [formError, setFormError] = useState('')
 
   useEffect(() => {
     supabase.from('courses').select('id, name, emoji').order('name')
@@ -292,16 +294,27 @@ function LogTab() {
     return () => clearTimeout(t)
   }, [toast])
 
-  function set(key, val) { setForm(f => ({ ...f, [key]: val })) }
+  function set(key, val) {
+    setForm(f => ({ ...f, [key]: val }))
+    setFormError('')
+  }
 
   async function submit() {
-    if (!form.course_id || !form.duration) return
+    setFormError('')
+    if (!form.course_id || !form.duration) {
+      setFormError('Choose a course and enter a duration.')
+      return
+    }
+    if (durationError) {
+      setFormError(durationError)
+      return
+    }
     setSaving(true)
     const { data: inserted, error } = await supabase.from('sessions').insert({
       user_id: session.user.id,
       course_id: form.course_id,
       resource_id: form.resource_id || null,
-      duration_minutes: parseInt(form.duration, 10),
+      duration_minutes: durationValue,
       pages_covered: form.pages_covered.trim() || null,
       focus_type: form.focus_type,
       energy_level: form.energy_level,
@@ -309,7 +322,9 @@ function LogTab() {
       notes: form.notes.trim() || null,
     }).select('id, date, duration_minutes, pages_covered, focus_type, energy_level, notes, courses(name, emoji, color), resources(name)').single()
     setSaving(false)
-    if (!error) {
+    if (error) {
+      setFormError(error.message || 'Could not save session. Please try again.')
+    } else {
       if (inserted) setHistory(prev => [inserted, ...(prev ?? [])])
       setForm({ ...DEFAULT_LOG_FORM, date: today() })
       setToast(true)
@@ -321,7 +336,15 @@ function LogTab() {
     await supabase.from('sessions').delete().eq('id', id)
   }
 
-  const canSubmit = form.course_id && form.duration && !saving
+  const durationValue = Number(form.duration)
+  const durationError = form.duration && (
+    !Number.isInteger(durationValue) || durationValue < 1
+      ? 'Duration must be a whole number of minutes.'
+      : durationValue > 720
+        ? 'Duration cannot exceed 720 minutes.'
+        : ''
+  )
+  const canSubmit = form.course_id && form.duration && !durationError && !saving
   const selectedResource = resources.find(r => r.id === form.resource_id)
   const coverIsTime = selectedResource && TIME_BASED_TYPES.has(selectedResource.type)
 
@@ -375,6 +398,7 @@ function LogTab() {
             onChange={e => set('duration', e.target.value)}
             placeholder="e.g. 45"
             min="1"
+            max="720"
             className="h-11 px-3 rounded-xl text-sm w-full outline-none"
             style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
           />
@@ -445,11 +469,16 @@ function LogTab() {
           value={form.notes}
           onChange={e => set('notes', e.target.value)}
           placeholder="What did you work on? Any blockers?"
+          maxLength={2000}
           rows={3}
           className="px-3 py-2.5 rounded-xl text-sm w-full outline-none resize-none"
           style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
         />
       </Field>
+
+      {(durationError || formError) && (
+        <p className="text-xs" style={{ color: '#f87171' }}>{durationError || formError}</p>
+      )}
 
       <button
         onClick={submit}
@@ -716,13 +745,22 @@ function SwapModal({ courses, resources, courseId, resourceId, onCourseChange, o
   )
 }
 
-function FinishModal({ totalSeconds, segments, form, setForm, courses, allResources, saving, onSubmit, onClose }) {
+function FinishModal({ totalSeconds, segments, form, setForm, courses, allResources, saving, finishError, onSubmit, onClose }) {
   const { accentColor } = useTheme()
   const multiSegment = segments.length > 1
   const resources = allResources.filter(r => r.course_id === form.course_id)
   const totalMins = Math.max(1, Math.round(totalSeconds / 60))
   const selectedResource = resources.find(r => r.id === form.resource_id)
   const coverIsTime = selectedResource && TIME_BASED_TYPES.has(selectedResource.type)
+  const durationValue = Number(form.duration_minutes)
+  const durationError = !multiSegment && form.duration_minutes && (
+    !Number.isInteger(durationValue) || durationValue < 1
+      ? 'Duration must be a whole number of minutes.'
+      : durationValue > 720
+        ? 'Duration cannot exceed 720 minutes.'
+        : ''
+  )
+  const canSubmit = !saving && !durationError
 
   function set(key, val) { setForm(f => ({ ...f, [key]: val })) }
 
@@ -808,6 +846,7 @@ function FinishModal({ totalSeconds, segments, form, setForm, courses, allResour
                 value={form.duration_minutes}
                 onChange={e => set('duration_minutes', e.target.value)}
                 min="1"
+                max="720"
                 className="h-11 px-3 rounded-xl text-sm w-full outline-none"
                 style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
               />
@@ -889,6 +928,7 @@ function FinishModal({ totalSeconds, segments, form, setForm, courses, allResour
             value={form.notes}
             onChange={e => set('notes', e.target.value)}
             placeholder="What did you work on? Any blockers?"
+            maxLength={2000}
             rows={2}
             className="px-3 py-2.5 rounded-xl text-sm w-full outline-none resize-none"
             style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
@@ -896,11 +936,15 @@ function FinishModal({ totalSeconds, segments, form, setForm, courses, allResour
         </Field>
       </div>
 
+      {(durationError || finishError) && (
+        <p className="text-xs mt-3" style={{ color: '#f87171' }}>{durationError || finishError}</p>
+      )}
+
       <button
         onClick={onSubmit}
-        disabled={saving}
+        disabled={!canSubmit}
         className="w-full py-3.5 rounded-xl font-bold text-sm mt-4"
-        style={{ backgroundColor: saving ? 'var(--bg-surf)' : accentColor, color: saving ? 'var(--text-2)' : '#fff' }}
+        style={{ backgroundColor: canSubmit ? accentColor : 'var(--bg-surf)', color: canSubmit ? '#fff' : 'var(--text-2)' }}
       >
         {saving ? 'Saving…' : `Log Session${multiSegment ? `s (${segments.length})` : ''}`}
       </button>

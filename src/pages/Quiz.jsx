@@ -36,6 +36,7 @@ export default function Quiz() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(false)
+  const [formError, setFormError] = useState('')
   const [courseFilter, setCourseFilter] = useState('all')
 
   useEffect(() => {
@@ -67,17 +68,38 @@ export default function Quiz() {
     setHistory(data ?? [])
   }
 
-  function set(key, val) { setForm(f => ({ ...f, [key]: val })) }
+  function set(key, val) {
+    setForm(f => ({ ...f, [key]: val }))
+    setFormError('')
+  }
 
-  const total = parseInt(form.total_questions, 10)
-  const correct = parseInt(form.correct_answers, 10)
-  const liveScore = !isNaN(total) && total > 0 && !isNaN(correct) && correct >= 0
+  const total = Number(form.total_questions)
+  const correct = Number(form.correct_answers)
+  const validationError =
+    form.total_questions && (!Number.isInteger(total) || total < 1)
+      ? 'Total questions must be a whole number.'
+      : total > 500
+        ? 'Total questions cannot exceed 500.'
+        : form.correct_answers && (!Number.isInteger(correct) || correct < 0)
+          ? 'Correct answers must be a whole number.'
+          : form.total_questions && form.correct_answers && correct > total
+            ? 'Correct answers cannot exceed total questions.'
+            : ''
+  const liveScore = Number.isInteger(total) && total > 0 && Number.isInteger(correct) && correct >= 0 && correct <= total
     ? Math.round((correct / total) * 100)
     : null
-  const canSubmit = form.course_id && total > 0 && !isNaN(correct) && correct >= 0 && correct <= total && !saving
+  const canSubmit = form.course_id && form.total_questions && form.correct_answers !== '' && !validationError && !saving
 
   async function submit() {
-    if (!canSubmit) return
+    setFormError('')
+    if (!form.course_id) {
+      setFormError('Choose a course before logging a quiz.')
+      return
+    }
+    if (validationError || !form.total_questions || form.correct_answers === '') {
+      setFormError(validationError || 'Enter total questions and correct answers.')
+      return
+    }
     setSaving(true)
     const { error } = await supabase.from('quiz_results').insert({
       user_id: session.user.id,
@@ -89,7 +111,9 @@ export default function Quiz() {
       date: form.date,
     })
     setSaving(false)
-    if (!error) {
+    if (error) {
+      setFormError(error.message || 'Could not save quiz. Please try again.')
+    } else {
       setForm({ ...EMPTY_FORM, course_id: form.course_id, date: todayStr() })
       setHistory(null) // invalidate cache so history refreshes next visit
       setToast(true)
@@ -144,6 +168,7 @@ export default function Quiz() {
           liveScore={liveScore}
           canSubmit={canSubmit}
           saving={saving}
+          validationError={validationError || formError}
           onSubmit={submit}
         />
       ) : (
@@ -175,7 +200,7 @@ export default function Quiz() {
 
 // ── Log tab ──────────────────────────────────────────────────────────────────
 
-function LogTab({ courses, resources, form, set, liveScore, canSubmit, saving, onSubmit }) {
+function LogTab({ courses, resources, form, set, liveScore, canSubmit, saving, validationError, onSubmit }) {
   const { accentColor } = useTheme()
   return (
     <div className="space-y-4">
@@ -217,6 +242,7 @@ function LogTab({ courses, resources, form, set, liveScore, canSubmit, saving, o
             onChange={e => set('total_questions', e.target.value)}
             placeholder="e.g. 20"
             min="1"
+            max="500"
             className="h-11 px-3 rounded-xl text-sm w-full outline-none"
             style={{ backgroundColor: '#1a1a1e', border: '1px solid var(--border)', color: '#e8e8ec' }}
           />
@@ -228,6 +254,7 @@ function LogTab({ courses, resources, form, set, liveScore, canSubmit, saving, o
             onChange={e => set('correct_answers', e.target.value)}
             placeholder="e.g. 16"
             min="0"
+            max={Number(form.total_questions) > 0 ? Math.min(Number(form.total_questions), 500) : 500}
             className="h-11 px-3 rounded-xl text-sm w-full outline-none"
             style={{ backgroundColor: '#1a1a1e', border: '1px solid var(--border)', color: '#e8e8ec' }}
           />
@@ -260,6 +287,7 @@ function LogTab({ courses, resources, form, set, liveScore, canSubmit, saving, o
             value={form.topic}
             onChange={e => set('topic', e.target.value)}
             placeholder="e.g. Chapter 4"
+            maxLength={120}
             className="h-11 px-3 rounded-xl text-sm w-full outline-none"
             style={{ backgroundColor: '#1a1a1e', border: '1px solid var(--border)', color: '#e8e8ec' }}
           />
@@ -274,6 +302,10 @@ function LogTab({ courses, resources, form, set, liveScore, canSubmit, saving, o
           />
         </Field>
       </div>
+
+      {validationError && (
+        <p className="text-xs" style={{ color: '#f87171' }}>{validationError}</p>
+      )}
 
       <button
         onClick={onSubmit}

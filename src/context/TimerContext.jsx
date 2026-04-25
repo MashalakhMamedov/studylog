@@ -65,6 +65,7 @@ export function TimerProvider({ children }) {
     date: localDateStr(), course_id: '', resource_id: '', duration_minutes: '',
   })
   const [saving, setSaving] = useState(false)
+  const [finishError, setFinishError] = useState('')
 
   const [showDiscard, setShowDiscard] = useState(false)
   const [toast, setToast]             = useState(false)
@@ -273,6 +274,7 @@ export function TimerProvider({ children }) {
 
   function openFinish() {
     if (running) pauseClock()
+    setFinishError('')
     const elapsed = calcElapsedSeconds() // accurate from wall-clock refs
     const lastSeg = segments[segments.length - 1]
     setFinishForm({
@@ -287,9 +289,14 @@ export function TimerProvider({ children }) {
   }
 
   async function submitFinish() {
-    setSaving(true)
+    setFinishError('')
     const totalElapsed = calcElapsedSeconds()
     const isSingle = segments.length === 1
+    const explicitDuration = Number(finishForm.duration_minutes)
+    if (isSingle && (!Number.isInteger(explicitDuration) || explicitDuration < 1 || explicitDuration > 720)) {
+      setFinishError('Duration must be a whole number between 1 and 720 minutes.')
+      return
+    }
     const rows = segments.map((seg, i) => {
       const endSec      = i < segments.length - 1 ? segments[i + 1].startSeconds : totalElapsed
       const timerDuration = Math.max(1, Math.round((endSec - seg.startSeconds) / 60))
@@ -298,7 +305,7 @@ export function TimerProvider({ children }) {
         course_id:        isSingle ? finishForm.course_id       : seg.course_id,
         resource_id:      isSingle ? (finishForm.resource_id || null) : (seg.resource_id ?? null),
         duration_minutes: isSingle && finishForm.duration_minutes
-          ? Math.max(1, parseInt(finishForm.duration_minutes, 10))
+          ? explicitDuration
           : timerDuration,
         pages_covered: finishForm.pages_covered.trim() || null,
         focus_type:    finishForm.focus_type   || null,
@@ -307,9 +314,19 @@ export function TimerProvider({ children }) {
         notes:         finishForm.notes.trim() || null,
       }
     })
+    if (rows.some(row => row.duration_minutes > 720)) {
+      setFinishError('Duration cannot exceed 720 minutes.')
+      return
+    }
+    setSaving(true)
     const { error } = await supabase.from('sessions').insert(rows)
     setSaving(false)
-    if (!error) { resetAll(); setToast(true) }
+    if (error) {
+      setFinishError(error.message || 'Could not save session. Please try again.')
+    } else {
+      resetAll()
+      setToast(true)
+    }
   }
 
   function resetAll() {
@@ -323,6 +340,7 @@ export function TimerProvider({ children }) {
     setSegments([])
     setPhase('setup')
     setShowFinish(false)
+    setFinishError('')
     setShowSwap(false)
     setShowDiscard(false)
   }
@@ -336,7 +354,7 @@ export function TimerProvider({ children }) {
       totalSeconds, running,
       segments,
       showSwap, setShowSwap, swapCourseId, setSwapCourseId, swapResourceId, setSwapResourceId,
-      showFinish, setShowFinish, finishForm, setFinishForm, saving,
+      showFinish, setShowFinish, finishForm, setFinishForm, saving, finishError,
       showDiscard, setShowDiscard,
       toast, setToast,
       startClock, pauseClock,
