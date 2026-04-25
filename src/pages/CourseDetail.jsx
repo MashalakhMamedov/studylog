@@ -96,6 +96,22 @@ function isSafeMaterialLink(link) {
   }
 }
 
+function isMissingColumn(error, column) {
+  const text = `${error?.message || ''} ${error?.details || ''} ${error?.hint || ''}`.toLowerCase()
+  return error?.code === '42703' || (text.includes('column') && text.includes(column.toLowerCase()))
+}
+
+async function fetchResourcesForCourse(courseId) {
+  const ordered = await supabase.from('resources').select('*').eq('course_id', courseId)
+    .order('sort_order', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: true })
+
+  if (!isMissingColumn(ordered.error, 'sort_order')) return ordered
+
+  return supabase.from('resources').select('*').eq('course_id', courseId)
+    .order('created_at', { ascending: true })
+}
+
 function calcAvgEnergy(sessions) {
   const scored = sessions.filter(s => ENERGY_SCORE[s.energy_level] !== undefined)
   if (!scored.length) return null
@@ -172,9 +188,7 @@ export default function CourseDetail() {
         .order('date', { ascending: false })
         .order('created_at', { ascending: false })
         .limit(50),
-      supabase.from('resources').select('*').eq('course_id', id)
-        .order('sort_order', { ascending: true, nullsFirst: false })
-        .order('created_at', { ascending: true }),
+      fetchResourcesForCourse(id),
       supabase.from('sessions')
         .select('resource_id, duration_minutes')
         .eq('course_id', id)
@@ -345,8 +359,12 @@ export default function CourseDetail() {
         const order = r.sort_order === null || r.sort_order === undefined ? idx : Number(r.sort_order)
         return Math.max(max, Number.isFinite(order) ? order : idx)
       }, -1) + 1
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('resources').insert({ ...payload, user_id: session.user.id, sort_order: nextSortOrder }).select().single()
+      if (isMissingColumn(error, 'sort_order')) {
+        ;({ data, error } = await supabase
+          .from('resources').insert({ ...payload, user_id: session.user.id }).select().single())
+      }
       if (error) {
         setMaterialSaveError(error.message || 'Could not save material. Please try again.')
         setSavingMaterial(false)
