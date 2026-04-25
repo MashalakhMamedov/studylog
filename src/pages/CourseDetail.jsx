@@ -12,6 +12,7 @@ import {
 } from '../components/CourseModal.jsx'
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay,
+  MeasuringStrategy,
 } from '@dnd-kit/core'
 import {
   SortableContext, useSortable, verticalListSortingStrategy, arrayMove,
@@ -291,7 +292,7 @@ export default function CourseDetail() {
 
   // ── Drag handlers ────────────────────────────────────────────────────────
   const dndSensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { delay: 300, tolerance: 8 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   )
 
   function handleDragStart({ active }) { setActiveDragId(active.id) }
@@ -637,6 +638,7 @@ export default function CourseDetail() {
             <DndContext
               sensors={dndSensors}
               collisionDetection={closestCenter}
+              measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
               onDragStart={dragEnabled ? handleDragStart : undefined}
               onDragEnd={dragEnabled ? handleDragEnd : undefined}
               onDragCancel={() => setActiveDragId(null)}
@@ -657,7 +659,7 @@ export default function CourseDetail() {
                   ))}
                 </div>
               </SortableContext>
-              <DragOverlay>
+              <DragOverlay adjustScale={false} dropAnimation={null}>
                 {activeDragId ? (
                   <ResourceCard
                     resource={resources.find(r => r.id === activeDragId)}
@@ -775,23 +777,37 @@ function CourseDetailSkeleton() {
 }
 
 function SortableResourceCard({ resource, dragEnabled, ...props }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: resource.id })
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: resource.id, disabled: !dragEnabled })
+
+  const translate = transform
+    ? { x: transform.x, y: transform.y, z: transform.z, scaleX: 1, scaleY: 1 }
+    : null
+
   return (
     <div
       ref={setNodeRef}
       style={{
-        transform: CSS.Transform.toString(transform),
+        transform: CSS.Translate.toString(translate),
         transition,
         opacity: isDragging ? 0.35 : 1,
         position: 'relative',
         zIndex: isDragging ? 10 : undefined,
+        willChange: isDragging ? 'transform' : undefined,
       }}
-      {...attributes}
     >
       <ResourceCard
         resource={resource}
         dragEnabled={dragEnabled}
-        dragHandleProps={dragEnabled ? listeners : undefined}
+        dragHandleRef={setActivatorNodeRef}
+        dragHandleProps={dragEnabled ? { ...attributes, ...listeners } : undefined}
         {...props}
       />
     </div>
@@ -799,7 +815,7 @@ function SortableResourceCard({ resource, dragEnabled, ...props }) {
 }
 
 // ── ResourceCard ──────────────────────────────────────────────────────────────
-function ResourceCard({ resource: r, minutesStudied, courseColor, dragEnabled, dragHandleProps, isOverlay, onEdit, onDelete, onUpdate }) {
+function ResourceCard({ resource: r, minutesStudied, courseColor, dragEnabled, dragHandleRef, dragHandleProps, isOverlay, onEdit, onDelete, onUpdate }) {
   const { accentColor } = useTheme()
   const isCompleted = r.status === 'completed'
   const [editingPos, setEditingPos] = useState(false)
@@ -854,9 +870,15 @@ function ResourceCard({ resource: r, minutesStudied, courseColor, dragEnabled, d
         <div className="flex items-center gap-2">
           {dragEnabled && dragHandleProps && (
             <button
+              ref={dragHandleRef}
               {...dragHandleProps}
               className="flex flex-col justify-center items-center gap-[3px] px-1.5 py-2 rounded-lg flex-shrink-0 touch-none"
-              style={{ color: 'var(--text-2)', cursor: 'grab' }}
+              style={{
+                color: 'var(--text-2)',
+                cursor: 'grab',
+                touchAction: 'none',
+                transform: 'none',
+              }}
               aria-label="Drag to reorder"
             >
               <span className="block w-3.5 h-[2px] rounded-full" style={{ backgroundColor: 'currentColor' }} />
