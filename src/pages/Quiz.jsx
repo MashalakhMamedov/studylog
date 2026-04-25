@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
@@ -132,15 +131,8 @@ export default function Quiz() {
     <div className="px-4 pt-8 pb-6 space-y-5">
 
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold" style={{ color: '#e8e8ec' }}>Quizzes</h1>
-        <Link
-          to="/session?mode=log"
-          className="text-xs px-3 py-1.5 rounded-lg"
-          style={{ color: '#6b6b78', border: '1px solid var(--border)' }}
-        >
-          ← Back
-        </Link>
+      <div>
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-1)' }}>Quizzes</h1>
       </div>
 
       {/* Tab switcher */}
@@ -152,7 +144,7 @@ export default function Quiz() {
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
             style={tab === t
               ? { backgroundColor: accentColor, color: '#fff' }
-              : { backgroundColor: '#1a1a1e', color: '#6b6b78', border: '1px solid var(--border)' }
+              : { backgroundColor: 'var(--bg-surf)', color: 'var(--text-2)', border: '1px solid var(--border)' }
             }
           >
             {label}
@@ -192,7 +184,7 @@ export default function Quiz() {
               <polyline points="20 6 9 17 4 12" />
             </svg>
           </span>
-          <span className="text-sm font-medium whitespace-nowrap" style={{ color: '#e8e8ec' }}>Quiz logged!</span>
+          <span className="text-sm font-medium whitespace-nowrap" style={{ color: 'var(--text-1)' }}>Quiz logged!</span>
         </div>
       )}
     </div>
@@ -227,7 +219,7 @@ function LogTab({ courses, resources, form, set, liveScore, canSubmit, saving, v
           value={form.course_id}
           onChange={e => { set('course_id', e.target.value); set('resource_id', '') }}
           className="h-11 px-3 rounded-xl text-sm w-full outline-none"
-          style={{ backgroundColor: '#1a1a1e', border: '1px solid var(--border)', color: form.course_id ? '#e8e8ec' : '#6b6b78' }}
+          style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: form.course_id ? 'var(--text-1)' : 'var(--text-2)' }}
         >
           <option value="" disabled>Select a course</option>
           {courses.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
@@ -245,7 +237,7 @@ function LogTab({ courses, resources, form, set, liveScore, canSubmit, saving, v
             min="1"
             max="500"
             className="h-11 px-3 rounded-xl text-sm w-full outline-none"
-            style={{ backgroundColor: '#1a1a1e', border: '1px solid var(--border)', color: '#e8e8ec' }}
+            style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
           />
         </Field>
         <Field label="Correct Answers *">
@@ -257,7 +249,7 @@ function LogTab({ courses, resources, form, set, liveScore, canSubmit, saving, v
             min="0"
             max={Number(form.total_questions) > 0 ? Math.min(Number(form.total_questions), 500) : 500}
             className="h-11 px-3 rounded-xl text-sm w-full outline-none"
-            style={{ backgroundColor: '#1a1a1e', border: '1px solid var(--border)', color: '#e8e8ec' }}
+            style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
           />
         </Field>
       </div>
@@ -270,8 +262,8 @@ function LogTab({ courses, resources, form, set, liveScore, canSubmit, saving, v
           disabled={!form.course_id}
           className="h-11 px-3 rounded-xl text-sm w-full outline-none"
           style={{
-            backgroundColor: '#1a1a1e', border: '1px solid var(--border)',
-            color: form.resource_id ? '#e8e8ec' : '#6b6b78',
+            backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)',
+            color: form.resource_id ? 'var(--text-1)' : 'var(--text-2)',
             opacity: form.course_id ? 1 : 0.45,
           }}
         >
@@ -290,7 +282,7 @@ function LogTab({ courses, resources, form, set, liveScore, canSubmit, saving, v
             placeholder="e.g. Chapter 4"
             maxLength={120}
             className="h-11 px-3 rounded-xl text-sm w-full outline-none"
-            style={{ backgroundColor: '#1a1a1e', border: '1px solid var(--border)', color: '#e8e8ec' }}
+            style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
           />
         </Field>
         <Field label="Date">
@@ -299,7 +291,7 @@ function LogTab({ courses, resources, form, set, liveScore, canSubmit, saving, v
             value={form.date}
             onChange={e => set('date', e.target.value)}
             className="h-11 px-3 rounded-xl text-sm w-full outline-none"
-            style={{ backgroundColor: '#1a1a1e', border: '1px solid var(--border)', color: '#e8e8ec', colorScheme: 'dark' }}
+            style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
           />
         </Field>
       </div>
@@ -313,9 +305,9 @@ function LogTab({ courses, resources, form, set, liveScore, canSubmit, saving, v
         disabled={!canSubmit}
         className="w-full py-3.5 rounded-xl font-bold text-sm"
         style={{
-          backgroundColor: canSubmit ? accentColor : '#1a1a1e',
-          color: canSubmit ? '#fff' : '#6b6b78',
-          border: canSubmit ? 'none' : '1px solid #2a2a30',
+          backgroundColor: canSubmit ? accentColor : 'var(--bg-surf)',
+          color: canSubmit ? '#fff' : 'var(--text-2)',
+          border: canSubmit ? 'none' : '1px solid var(--border)',
         }}
       >
         {saving ? 'Saving…' : 'Log Quiz'}
@@ -353,7 +345,7 @@ function HistoryTab({ history, courses, courseFilter, setCourseFilter, filteredH
       )}
 
       {filteredHistory.length === 0 ? (
-        <p className="text-center py-16 text-sm" style={{ color: '#6b6b78' }}>No quizzes logged yet</p>
+        <p className="text-center py-16 text-sm" style={{ color: 'var(--text-2)' }}>No quizzes logged yet</p>
       ) : (
         <div className="space-y-2.5">
           {filteredHistory.map(q => <QuizHistoryCard key={q.id} quiz={q} />)}
@@ -370,7 +362,7 @@ function QuizHistoryCard({ quiz: q }) {
 
   return (
     <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
-      <div className="h-1" style={{ backgroundColor: c?.color ?? '#6b6b78' }} />
+      <div className="h-1" style={{ backgroundColor: c?.color ?? 'var(--text-3)' }} />
       <div className="p-4 flex items-start gap-3">
 
         {/* Score circle */}
@@ -384,7 +376,7 @@ function QuizHistoryCard({ quiz: q }) {
 
         {/* Details */}
         <div className="flex-1 min-w-0 space-y-1.5">
-          <p className="text-sm font-semibold leading-tight truncate" style={{ color: '#e8e8ec' }}>
+          <p className="text-sm font-semibold leading-tight truncate" style={{ color: 'var(--text-1)' }}>
             {q.topic || 'Quiz'}
           </p>
 
@@ -398,16 +390,16 @@ function QuizHistoryCard({ quiz: q }) {
               </span>
             )}
             {q.resources?.name && (
-              <span className="text-[10px]" style={{ color: '#6b6b78' }}>{q.resources.name}</span>
+              <span className="text-[10px]" style={{ color: 'var(--text-2)' }}>{q.resources.name}</span>
             )}
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs" style={{ color: '#6b6b78' }}>
+            <span className="text-xs" style={{ color: 'var(--text-2)' }}>
               {q.correct_answers}/{q.total_questions} correct
             </span>
-            <span className="text-xs" style={{ color: '#2a2a30' }}>·</span>
-            <span className="text-xs" style={{ color: '#6b6b78' }}>
+            <span className="text-xs" style={{ color: 'var(--border)' }}>·</span>
+            <span className="text-xs" style={{ color: 'var(--text-2)' }}>
               {new Date(q.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             </span>
           </div>
@@ -427,7 +419,7 @@ function Pill({ active, onClick, children }) {
       className="px-3 py-1.5 rounded-lg text-xs font-medium"
       style={active
         ? { backgroundColor: accentColor, color: '#fff' }
-        : { backgroundColor: '#1a1a1e', color: '#6b6b78', border: '1px solid var(--border)' }
+        : { backgroundColor: 'var(--bg-surf)', color: 'var(--text-2)', border: '1px solid var(--border)' }
       }
     >
       {children}
@@ -438,7 +430,7 @@ function Pill({ active, onClick, children }) {
 function Field({ label, children }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-medium" style={{ color: '#6b6b78' }}>{label}</label>
+      <label className="text-xs font-medium" style={{ color: 'var(--text-2)' }}>{label}</label>
       {children}
     </div>
   )
