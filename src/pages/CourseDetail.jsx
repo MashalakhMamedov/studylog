@@ -39,6 +39,7 @@ const MAT_STATUS_OPTIONS = ['not_started', 'in_progress', 'completed']
 const MAT_STATUS_LABEL = { not_started: 'Not Started', in_progress: 'In Progress', completed: 'Completed' }
 const MAT_STATUS_COLOR = { not_started: '#ef4444', in_progress: '#eab308', completed: '#22c55e' }
 const EMPTY_MATERIAL_FORM = { name: '', type: 'pdf', total_pages: '', link: '', status: 'not_started' }
+const MATERIAL_LINK_ERROR = 'Enter a valid http:// or https:// link, or leave it blank.'
 
 // ── Session constants ─────────────────────────────────────────────────────────
 const FOCUS_LABEL = {
@@ -80,6 +81,19 @@ function daysUntil(dateStr) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   return Math.round((target - today) / 86400000)
+}
+
+function isSafeMaterialLink(link) {
+  const trimmed = (link || '').trim()
+  if (!trimmed) return true
+  if (!/^https?:\/\//i.test(trimmed)) return false
+
+  try {
+    const url = new URL(trimmed)
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
 }
 
 function calcAvgEnergy(sessions) {
@@ -129,6 +143,7 @@ export default function CourseDetail() {
   const [showMaterialModal, setShowMaterialModal] = useState(false)
   const [editingMaterial, setEditingMaterial] = useState(null)
   const [materialForm, setMaterialForm] = useState(EMPTY_MATERIAL_FORM)
+  const [materialLinkError, setMaterialLinkError] = useState('')
   const [savingMaterial, setSavingMaterial] = useState(false)
   const [deleteMaterialTarget, setDeleteMaterialTarget] = useState(null)
 
@@ -247,11 +262,13 @@ export default function CourseDetail() {
   function openAddMaterial() {
     setEditingMaterial(null)
     setMaterialForm(EMPTY_MATERIAL_FORM)
+    setMaterialLinkError('')
     setShowMaterialModal(true)
   }
 
   function openEditMaterial(r) {
     setEditingMaterial(r)
+    setMaterialLinkError('')
     setMaterialForm({
       name: r.name, type: r.type || 'pdf',
       total_pages: r.total_pages ?? '', link: r.link ?? '', status: r.status,
@@ -263,17 +280,25 @@ export default function CourseDetail() {
     setShowMaterialModal(false)
     setEditingMaterial(null)
     setMaterialForm(EMPTY_MATERIAL_FORM)
+    setMaterialLinkError('')
   }
 
   async function saveMaterial() {
     if (!materialForm.name.trim()) return
+    const trimmedLink = materialForm.link.trim()
+    if (!isSafeMaterialLink(trimmedLink)) {
+      setMaterialLinkError(MATERIAL_LINK_ERROR)
+      return
+    }
+
+    setMaterialLinkError('')
     setSavingMaterial(true)
     const payload = {
       name: materialForm.name.trim(),
       course_id: id,
       type: materialForm.type,
       total_pages: materialForm.total_pages ? parseInt(materialForm.total_pages, 10) : null,
-      link: materialForm.link.trim() || null,
+      link: trimmedLink || null,
       status: materialForm.status,
     }
 
@@ -725,6 +750,8 @@ export default function CourseDetail() {
         <MaterialModal
           form={materialForm}
           setForm={setMaterialForm}
+          linkError={materialLinkError}
+          setLinkError={setMaterialLinkError}
           editing={editingMaterial}
           saving={savingMaterial}
           onSave={saveMaterial}
@@ -838,6 +865,7 @@ function ResourceCard({ resource: r, minutesStudied, courseColor, dragEnabled, d
   const showBar = r.total_pages && posValue.trim() !== '' && !isNaN(posNum) && String(posNum) === posValue.trim()
   const barPct = showBar ? Math.min(100, Math.round((posNum / r.total_pages) * 100)) : 0
   const suggestComplete = barPct >= 100 && r.status !== 'completed'
+  const materialLink = isSafeMaterialLink(r.link) ? (r.link || '').trim() : ''
 
   async function savePosition() {
     const val = posValue.trim()
@@ -903,9 +931,9 @@ function ResourceCard({ resource: r, minutesStudied, courseColor, dragEnabled, d
                 Done
               </span>
             ) : <span />}
-            {r.link && (
+            {materialLink && (
               <a
-                href={r.link}
+                href={materialLink}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium"
@@ -1048,7 +1076,7 @@ function ResourceCard({ resource: r, minutesStudied, courseColor, dragEnabled, d
 }
 
 // ── MaterialModal ─────────────────────────────────────────────────────────────
-function MaterialModal({ form, setForm, editing, saving, onSave, onClose }) {
+function MaterialModal({ form, setForm, linkError, setLinkError, editing, saving, onSave, onClose }) {
   const { accentColor } = useTheme()
   const canSave = form.name.trim().length > 0 && !saving
 
@@ -1124,11 +1152,20 @@ function MaterialModal({ form, setForm, editing, saving, onSave, onClose }) {
           <input
             type="url"
             value={form.link}
-            onChange={e => setForm(f => ({ ...f, link: e.target.value }))}
+            onChange={e => {
+              setLinkError('')
+              setForm(f => ({ ...f, link: e.target.value }))
+            }}
             placeholder="https://…"
             className="h-10 px-3 rounded-xl text-sm w-full outline-none"
-            style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
+            aria-invalid={linkError ? 'true' : 'false'}
+            style={{
+              backgroundColor: 'var(--bg-surf)',
+              border: `1px solid ${linkError ? '#ef4444' : 'var(--border)'}`,
+              color: 'var(--text-1)',
+            }}
           />
+          {linkError && <p className="text-xs" style={{ color: '#ef4444' }}>{linkError}</p>}
         </Field>
 
         <button

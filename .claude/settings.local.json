@@ -24,7 +24,8 @@
       "Bash(pip install *)",
       "Bash(npm list *)",
       "Bash(python *)",
-      "Bash(curl -s http://localhost:3001/)"
+      "Bash(curl -s http://localhost:3001/)",
+      "Bash(curl -s http://localhost:5173)"
     ]
   }
 }
