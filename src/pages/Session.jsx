@@ -482,7 +482,11 @@ function LogTab() {
             className="rounded-xl overflow-hidden divide-y"
             style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
           >
-            {history.map(s => <HistoryCard key={s.id} s={s} onDelete={handleDeleteHistory} />)}
+            {history.map((s, i) => (
+              <div key={s.id} className="stagger-in" style={{ animationDelay: `${Math.min(i, 7) * 40}ms` }}>
+                <HistoryCard s={s} onDelete={handleDeleteHistory} />
+              </div>
+            ))}
           </div>
         )}
       </div>

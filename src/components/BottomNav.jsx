@@ -8,8 +8,12 @@ const tabs = [
   {
     to: '/',
     label: 'Home',
-    icon: (active) => (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.5 : 2} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+    icon: (active) => active ? (
+      <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+      </svg>
+    ) : (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
         <polyline points="9 22 9 12 15 12 15 22" />
       </svg>
@@ -18,8 +22,13 @@ const tabs = [
   {
     to: '/session',
     label: 'Session',
-    icon: (active) => (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.5 : 2} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+    icon: (active) => active ? (
+      <svg viewBox="0 0 24 24" className="w-5 h-5">
+        <circle cx="12" cy="12" r="10" fill="currentColor" />
+        <polyline points="12 6 12 12 16 14" fill="none" stroke="var(--bg-card)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ) : (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
         <circle cx="12" cy="12" r="10" />
         <polyline points="12 6 12 12 16 14" />
       </svg>
@@ -28,8 +37,15 @@ const tabs = [
   {
     to: '/courses',
     label: 'Courses',
-    icon: (active) => (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.5 : 2} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+    icon: (active) => active ? (
+      <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+        <rect x="3" y="3" width="7" height="7" rx="1" />
+        <rect x="14" y="3" width="7" height="7" rx="1" />
+        <rect x="3" y="14" width="7" height="7" rx="1" />
+        <rect x="14" y="14" width="7" height="7" rx="1" />
+      </svg>
+    ) : (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
         <rect x="3" y="3" width="7" height="7" rx="1" />
         <rect x="14" y="3" width="7" height="7" rx="1" />
         <rect x="3" y="14" width="7" height="7" rx="1" />
@@ -70,21 +86,6 @@ export default function BottomNav() {
         >
           {({ isActive }) => (
             <>
-              {/* Top indicator bar */}
-              <span
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: isActive ? '24px' : '0px',
-                  height: '2px',
-                  borderRadius: '0 0 2px 2px',
-                  backgroundColor: 'var(--accent)',
-                  transition: 'width 0.2s ease',
-                }}
-              />
-
               {/* Icon wrapper — with pulsing dot for Focus tab when timer running */}
               <span className="relative">
                 {icon(isActive)}

@@ -151,14 +151,15 @@ export default function Courses() {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {filtered.map(course => (
-            <CourseCard
-              key={course.id}
-              course={course}
-              materialCount={materialCounts[course.id] || 0}
-              onEdit={() => openEdit(course)}
-              onDelete={() => setDeleteTarget(course)}
-            />
+          {filtered.map((course, i) => (
+            <div key={course.id} className="stagger-in" style={{ animationDelay: `${Math.min(i, 7) * 50}ms` }}>
+              <CourseCard
+                course={course}
+                materialCount={materialCounts[course.id] || 0}
+                onEdit={() => openEdit(course)}
+                onDelete={() => setDeleteTarget(course)}
+              />
+            </div>
           ))}
         </div>
       )}

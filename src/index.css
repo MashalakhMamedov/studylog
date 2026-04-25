@@ -78,8 +78,17 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes staggerIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 .page-enter {
   animation: fadeIn 200ms ease both;
+}
+
+.stagger-in {
+  animation: staggerIn 200ms ease both;
 }
 
 .hide-scrollbar::-webkit-scrollbar {
@@ -111,6 +120,14 @@ select:focus-visible,
 textarea:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ── Base ────────────────────────────────────────────────────────────────── */

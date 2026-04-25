@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
@@ -81,6 +81,30 @@ function fmtRelativeTime(createdAt) {
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
   if (diff < 172800) return 'Yesterday'
   return new Date(createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+// ── Count-up animation ────────────────────────────────────────────────────────
+
+function useCountUp(target, duration = 600) {
+  const [count, setCount] = useState(0)
+  const rafRef = useRef(null)
+  useEffect(() => {
+    if (target == null) { setCount(0); return }
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      setCount(target); return
+    }
+    let startTime = null
+    function tick(now) {
+      if (!startTime) startTime = now
+      const progress = Math.min((now - startTime) / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setCount(Math.round(target * eased))
+      if (progress < 1) rafRef.current = requestAnimationFrame(tick)
+    }
+    rafRef.current = requestAnimationFrame(tick)
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
+  }, [target, duration])
+  return count
 }
 
 const ENERGY_COLOR = {
@@ -281,6 +305,8 @@ export default function Home() {
 function TodaySummaryCard({ stats, loading }) {
   const { accentColor } = useTheme()
   const navigate = useNavigate()
+  const animatedMins = useCountUp(stats?.todayMins ?? null)
+  const animatedCount = useCountUp(stats?.todaySessionCount ?? null)
 
   if (loading) {
     return (
@@ -316,7 +342,7 @@ function TodaySummaryCard({ stats, loading }) {
       <div className="flex items-center">
         <div className="flex-1 text-center">
           <p className="text-xl font-semibold tabular-nums leading-none" style={{ color: accentColor }}>
-            {fmtMins(stats.todayMins)}
+            {fmtMins(animatedMins)}
           </p>
           <p className="text-xs mt-1.5" style={{ color: 'var(--text-3)' }}>studied</p>
         </div>
@@ -325,7 +351,7 @@ function TodaySummaryCard({ stats, loading }) {
 
         <div className="flex-1 text-center">
           <p className="text-xl font-semibold tabular-nums leading-none" style={{ color: 'var(--text-1)' }}>
-            {stats.todaySessionCount}
+            {animatedCount}
           </p>
           <p className="text-xs mt-1.5" style={{ color: 'var(--text-3)' }}>sessions</p>
         </div>
@@ -527,8 +553,10 @@ function RecentSessionsList({ sessions, loading, onDelete }) {
       </div>
       {loading
         ? <div className="space-y-2">{[0, 1, 2].map(i => <Skel key={i} h={72} />)}</div>
-        : <div className="space-y-2">{sessions.map(s => (
-            <SessionCard key={s.id} s={s} onDelete={onDelete} onTap={() => setSelected(s)} />
+        : <div className="space-y-2">{sessions.map((s, i) => (
+            <div key={s.id} className="stagger-in" style={{ animationDelay: `${Math.min(i, 5) * 50}ms` }}>
+              <SessionCard s={s} onDelete={onDelete} onTap={() => setSelected(s)} />
+            </div>
           ))}</div>
       }
       <SessionDetailSheet
