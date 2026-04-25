@@ -4,8 +4,17 @@ import { useTheme, COLORS } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
 
 const FOCUS_DURATIONS = [25, 45, 60]
+const APP_VERSION = 'v1.3'
 
 const CHANGELOG = [
+  {
+    version: 'v1.3',
+    notes: 'Empty states, shimmer skeleton loading, visual polish, and clearer first-run guidance across courses, materials, home, and sessions',
+  },
+  {
+    version: 'v1.2',
+    notes: 'Home dashboard refresh, fullscreen focus timer, resilient timer tracking, richer material management, PWA icon updates',
+  },
   {
     version: 'v1.1',
     notes: 'New navigation, course detail pages, session tracking, customizable themes',
@@ -341,7 +350,7 @@ export default function Settings() {
                 className="text-xs px-2 py-0.5 rounded-full"
                 style={{ backgroundColor: `${accentColor}22`, color: accentColor, fontWeight: 600 }}
               >
-                v1.1
+                {APP_VERSION}
               </span>
             </div>
           </Row>
