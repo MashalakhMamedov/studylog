@@ -16,7 +16,7 @@ export const EMPTY_COURSE_FORM = {
   status: 'active', priority: 'medium', exam_date: '',
 }
 
-export function CourseModal({ form, setForm, editing, saving, onSave, onClose }) {
+export function CourseModal({ form, setForm, editing, saving, error, onSave, onClose }) {
   const { accentColor } = useTheme()
   const canSave = form.name.trim().length > 0 && !saving
 
@@ -142,6 +142,8 @@ export function CourseModal({ form, setForm, editing, saving, onSave, onClose })
             </div>
           </div>
         </div>
+
+        {error && <p className="text-xs" style={{ color: '#ef4444' }}>{error}</p>}
 
         <button
           onClick={onSave}

@@ -25,6 +25,7 @@ export default function Courses() {
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(EMPTY_COURSE_FORM)
   const [saving, setSaving] = useState(false)
+  const [courseSaveError, setCourseSaveError] = useState('')
   const [deleteTarget, setDeleteTarget] = useState(null)
 
   useEffect(() => { fetchCourses() }, [])
@@ -45,7 +46,12 @@ export default function Courses() {
   }
 
   async function saveCourse() {
-    if (!form.name.trim()) return
+    if (!form.name.trim()) {
+      setCourseSaveError('Enter a course name before saving.')
+      return
+    }
+
+    setCourseSaveError('')
     setSaving(true)
     const payload = {
       ...form,
@@ -56,6 +62,11 @@ export default function Courses() {
     if (editing) {
       const { data, error } = await supabase
         .from('courses').update(payload).eq('id', editing.id).select().single()
+      if (error) {
+        setCourseSaveError(error.message || 'Could not save course. Please try again.')
+        setSaving(false)
+        return
+      }
       if (!error) {
         setCourses(prev => prev.map(c => c.id === editing.id ? data : c))
         refreshActiveCourseCount()
@@ -63,6 +74,11 @@ export default function Courses() {
     } else {
       const { data, error } = await supabase
         .from('courses').insert({ ...payload, user_id: session.user.id }).select().single()
+      if (error) {
+        setCourseSaveError(error.message || 'Could not save course. Please try again.')
+        setSaving(false)
+        return
+      }
       if (!error) {
         setCourses(prev => [...prev, data])
         refreshActiveCourseCount()
@@ -70,6 +86,7 @@ export default function Courses() {
     }
 
     setSaving(false)
+    setCourseSaveError('')
     closeModal()
   }
 
@@ -82,9 +99,10 @@ export default function Courses() {
     setDeleteTarget(null)
   }
 
-  function openAdd() { setEditing(null); setForm(EMPTY_COURSE_FORM); setShowModal(true) }
+  function openAdd() { setEditing(null); setForm(EMPTY_COURSE_FORM); setCourseSaveError(''); setShowModal(true) }
   function openEdit(course) {
     setEditing(course)
+    setCourseSaveError('')
     setForm({
       name: course.name,
       emoji: course.emoji,
@@ -95,7 +113,7 @@ export default function Courses() {
     })
     setShowModal(true)
   }
-  function closeModal() { setShowModal(false); setEditing(null); setForm(EMPTY_COURSE_FORM) }
+  function closeModal() { setShowModal(false); setEditing(null); setForm(EMPTY_COURSE_FORM); setCourseSaveError('') }
 
   const filtered = courses
     .filter(c => filter === 'all' || c.status === filter)
@@ -172,6 +190,7 @@ export default function Courses() {
           setForm={setForm}
           editing={editing}
           saving={saving}
+          error={courseSaveError}
           onSave={saveCourse}
           onClose={closeModal}
         />

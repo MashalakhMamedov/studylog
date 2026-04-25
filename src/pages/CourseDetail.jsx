@@ -128,6 +128,7 @@ export default function CourseDetail() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [editForm, setEditForm] = useState(EMPTY_COURSE_FORM)
   const [saving, setSaving] = useState(false)
+  const [courseSaveError, setCourseSaveError] = useState('')
 
   // Syllabus
   const [syllabusText, setSyllabusText] = useState('')
@@ -144,6 +145,7 @@ export default function CourseDetail() {
   const [editingMaterial, setEditingMaterial] = useState(null)
   const [materialForm, setMaterialForm] = useState(EMPTY_MATERIAL_FORM)
   const [materialLinkError, setMaterialLinkError] = useState('')
+  const [materialSaveError, setMaterialSaveError] = useState('')
   const [savingMaterial, setSavingMaterial] = useState(false)
   const [deleteMaterialTarget, setDeleteMaterialTarget] = useState(null)
 
@@ -203,6 +205,7 @@ export default function CourseDetail() {
   // ── Edit course ──────────────────────────────────────────────────────────
   function openEdit() {
     if (!course) return
+    setCourseSaveError('')
     setEditForm({
       name: course.name, emoji: course.emoji, color: course.color,
       status: course.status, priority: course.priority, exam_date: course.exam_date || '',
@@ -210,17 +213,33 @@ export default function CourseDetail() {
     setShowEditModal(true)
   }
 
+  function closeEditModal() {
+    setShowEditModal(false)
+    setCourseSaveError('')
+  }
+
   async function saveCourse() {
-    if (!editForm.name.trim()) return
+    if (!editForm.name.trim()) {
+      setCourseSaveError('Enter a course name before saving.')
+      return
+    }
+
+    setCourseSaveError('')
     setSaving(true)
     const payload = { ...editForm, name: editForm.name.trim(), exam_date: editForm.exam_date || null }
     const { data, error } = await supabase.from('courses').update(payload).eq('id', id).select().single()
+    if (error) {
+      setCourseSaveError(error.message || 'Could not save course. Please try again.')
+      setSaving(false)
+      return
+    }
     if (!error && data) {
       setCourse(data)
       refreshActiveCourseCount()
     }
     setSaving(false)
-    setShowEditModal(false)
+    setCourseSaveError('')
+    closeEditModal()
   }
 
   // ── Syllabus ─────────────────────────────────────────────────────────────
@@ -263,12 +282,14 @@ export default function CourseDetail() {
     setEditingMaterial(null)
     setMaterialForm(EMPTY_MATERIAL_FORM)
     setMaterialLinkError('')
+    setMaterialSaveError('')
     setShowMaterialModal(true)
   }
 
   function openEditMaterial(r) {
     setEditingMaterial(r)
     setMaterialLinkError('')
+    setMaterialSaveError('')
     setMaterialForm({
       name: r.name, type: r.type || 'pdf',
       total_pages: r.total_pages ?? '', link: r.link ?? '', status: r.status,
@@ -281,17 +302,24 @@ export default function CourseDetail() {
     setEditingMaterial(null)
     setMaterialForm(EMPTY_MATERIAL_FORM)
     setMaterialLinkError('')
+    setMaterialSaveError('')
   }
 
   async function saveMaterial() {
-    if (!materialForm.name.trim()) return
+    if (!materialForm.name.trim()) {
+      setMaterialSaveError('Enter a material name before saving.')
+      return
+    }
+
     const trimmedLink = materialForm.link.trim()
     if (!isSafeMaterialLink(trimmedLink)) {
       setMaterialLinkError(MATERIAL_LINK_ERROR)
+      setMaterialSaveError('')
       return
     }
 
     setMaterialLinkError('')
+    setMaterialSaveError('')
     setSavingMaterial(true)
     const payload = {
       name: materialForm.name.trim(),
@@ -305,14 +333,25 @@ export default function CourseDetail() {
     if (editingMaterial) {
       const { data, error } = await supabase
         .from('resources').update(payload).eq('id', editingMaterial.id).select().single()
+      if (error) {
+        setMaterialSaveError(error.message || 'Could not save material. Please try again.')
+        setSavingMaterial(false)
+        return
+      }
       if (!error) setResources(prev => prev.map(r => r.id === editingMaterial.id ? data : r))
     } else {
       const { data, error } = await supabase
         .from('resources').insert({ ...payload, user_id: session.user.id }).select().single()
+      if (error) {
+        setMaterialSaveError(error.message || 'Could not save material. Please try again.')
+        setSavingMaterial(false)
+        return
+      }
       if (!error) setResources(prev => [...prev, data])
     }
 
     setSavingMaterial(false)
+    setMaterialSaveError('')
     closeMaterialModal()
   }
 
@@ -741,8 +780,9 @@ export default function CourseDetail() {
           setForm={setEditForm}
           editing={course}
           saving={saving}
+          error={courseSaveError}
           onSave={saveCourse}
-          onClose={() => setShowEditModal(false)}
+          onClose={closeEditModal}
         />
       )}
 
@@ -752,6 +792,7 @@ export default function CourseDetail() {
           setForm={setMaterialForm}
           linkError={materialLinkError}
           setLinkError={setMaterialLinkError}
+          saveError={materialSaveError}
           editing={editingMaterial}
           saving={savingMaterial}
           onSave={saveMaterial}
@@ -1076,7 +1117,7 @@ function ResourceCard({ resource: r, minutesStudied, courseColor, dragEnabled, d
 }
 
 // ── MaterialModal ─────────────────────────────────────────────────────────────
-function MaterialModal({ form, setForm, linkError, setLinkError, editing, saving, onSave, onClose }) {
+function MaterialModal({ form, setForm, linkError, setLinkError, saveError, editing, saving, onSave, onClose }) {
   const { accentColor } = useTheme()
   const canSave = form.name.trim().length > 0 && !saving
 
@@ -1167,6 +1208,8 @@ function MaterialModal({ form, setForm, linkError, setLinkError, editing, saving
           />
           {linkError && <p className="text-xs" style={{ color: '#ef4444' }}>{linkError}</p>}
         </Field>
+
+        {saveError && <p className="text-xs" style={{ color: '#ef4444' }}>{saveError}</p>}
 
         <button
           onClick={onSave}
