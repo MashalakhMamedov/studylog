@@ -32,7 +32,7 @@ const TYPE_ICON = {
 const TIME_BASED_TYPES = new Set(['video', 'lecture_recording', 'podcast', 'online_course'])
 const MAT_STATUS_OPTIONS = ['not_started', 'in_progress', 'completed']
 const MAT_STATUS_LABEL = { not_started: 'Not Started', in_progress: 'In Progress', completed: 'Completed' }
-const MAT_STATUS_COLOR = { not_started: '#E63946', in_progress: '#E9C46A', completed: '#2A9D8F' }
+const MAT_STATUS_COLOR = { not_started: '#ef4444', in_progress: '#eab308', completed: '#22c55e' }
 const EMPTY_MATERIAL_FORM = { name: '', type: 'pdf', total_pages: '', link: '', status: 'not_started' }
 
 // ── Session constants ─────────────────────────────────────────────────────────
@@ -40,7 +40,7 @@ const FOCUS_LABEL = {
   deep_focus: 'Deep Focus', light_review: 'Light Review',
   practice: 'Practice', video: 'Video Lecture', project: 'Project Work',
 }
-const ENERGY_COLOR = { high: '#2A9D8F', medium: '#E9C46A', low: '#E76F51', post_night_shift: '#E63946' }
+const ENERGY_COLOR = { high: '#22c55e', medium: '#eab308', low: '#ef4444', post_night_shift: '#8b5cf6' }
 const ENERGY_LABEL = { high: 'High', medium: 'Medium', low: 'Low', post_night_shift: 'Post-Night' }
 const ENERGY_SCORE = { high: 3, medium: 2, low: 1, post_night_shift: 0 }
 
@@ -394,8 +394,8 @@ export default function CourseDetail() {
               <span
                 className="px-2 py-0.5 rounded-lg text-xs font-medium"
                 style={{
-                  backgroundColor: examDays < 0 ? 'var(--bg-surf)' : examDays <= 7 ? '#E6394622' : examDays <= 14 ? '#E9C46A22' : 'var(--bg-surf)',
-                  color: examDays < 0 ? 'var(--text-2)' : examDays <= 7 ? '#E63946' : examDays <= 14 ? '#E9C46A' : 'var(--text-2)',
+                  backgroundColor: examDays < 0 ? 'var(--bg-surf)' : examDays <= 7 ? '#ef444422' : examDays <= 14 ? '#eab30822' : 'var(--bg-surf)',
+                  color: examDays < 0 ? 'var(--text-2)' : examDays <= 7 ? '#ef4444' : examDays <= 14 ? '#eab308' : 'var(--text-2)',
                   border: (examDays < 0 || examDays > 14) ? '1px solid var(--border)' : 'none',
                 }}
               >
@@ -462,15 +462,15 @@ export default function CourseDetail() {
                     key={i}
                     className="flex items-center gap-1.5 pl-1.5 pr-1 py-1 rounded-lg text-xs font-medium"
                     style={{
-                      backgroundColor: known ? '#2A9D8F18' : 'var(--bg-surf)',
-                      border: `1px solid ${known ? '#2A9D8F44' : 'var(--border)'}`,
+                      backgroundColor: known ? '#22c55e18' : 'var(--bg-surf)',
+                      border: `1px solid ${known ? '#22c55e44' : 'var(--border)'}`,
                       color: known ? 'var(--text-2)' : 'var(--text-1)',
                     }}
                   >
                     <button
                       onClick={() => togglePrereq(i)}
                       className="flex items-center justify-center w-4 h-4 rounded flex-shrink-0"
-                      style={{ backgroundColor: known ? '#2A9D8F' : 'transparent', border: known ? 'none' : '1.5px solid var(--border)' }}
+                      style={{ backgroundColor: known ? '#22c55e' : 'transparent', border: known ? 'none' : '1.5px solid var(--border)' }}
                       aria-label={known ? 'Mark unknown' : 'Mark as known'}
                     >
                       {known && (
@@ -699,7 +699,7 @@ export default function CourseDetail() {
           {recentSessions.length === 0 ? (
             <p className="text-xs" style={{ color: 'var(--text-2)' }}>No sessions logged yet.</p>
           ) : (
-            <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
+            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
               {recentSessions.map((s, i) => (
                 <div key={s.id}>
                   {i > 0 && <div style={{ height: '1px', backgroundColor: 'var(--border)' }} />}
@@ -812,10 +812,10 @@ function ResourceCard({ resource: r, minutesStudied, courseColor, dragEnabled, d
 
   return (
     <div
-      className="rounded-2xl overflow-hidden"
+      className="rounded-xl overflow-hidden"
       style={{
-        border: `1px solid ${isCompleted ? '#2A9D8F44' : 'var(--border)'}`,
-        backgroundColor: isCompleted ? 'rgba(42,157,143,0.04)' : 'var(--bg-card)',
+        border: `1px solid ${isCompleted ? '#22c55e33' : 'var(--border)'}`,
+        backgroundColor: isCompleted ? 'rgba(34,197,94,0.04)' : 'var(--bg-card)',
         ...(isOverlay ? { boxShadow: '0 12px 40px rgba(0,0,0,0.3)', transform: 'scale(1.02)' } : {}),
       }}
     >
@@ -837,7 +837,7 @@ function ResourceCard({ resource: r, minutesStudied, courseColor, dragEnabled, d
           )}
           <div className="flex-1 flex items-center justify-between min-w-0">
             {isCompleted ? (
-              <span className="flex items-center gap-0.5 text-xs font-medium" style={{ color: '#2A9D8F' }}>
+              <span className="flex items-center gap-0.5 text-xs font-medium" style={{ color: '#22c55e' }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3 h-3">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
@@ -938,7 +938,7 @@ function ResourceCard({ resource: r, minutesStudied, courseColor, dragEnabled, d
           {showBar && (
             <div className="flex items-center gap-2">
               <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--bg-surf)' }}>
-                <div className="h-full rounded-full transition-all" style={{ width: `${barPct}%`, backgroundColor: isCompleted ? '#2A9D8F' : courseColor }} />
+                <div className="h-full rounded-full transition-all" style={{ width: `${barPct}%`, backgroundColor: isCompleted ? '#22c55e' : courseColor }} />
               </div>
               <span className="text-xs shrink-0" style={{ color: 'var(--text-2)' }}>{barPct}%</span>
             </div>
@@ -951,7 +951,7 @@ function ResourceCard({ resource: r, minutesStudied, courseColor, dragEnabled, d
             disabled={togglingStatus}
             className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1"
             style={isCompleted
-              ? { backgroundColor: 'rgba(42,157,143,0.15)', color: '#2A9D8F', border: '1px solid #2A9D8F44' }
+              ? { backgroundColor: 'rgba(34,197,94,0.15)', color: '#22c55e', border: '1px solid #22c55e44' }
               : suggestComplete
               ? { backgroundColor: accentColor + '22', color: accentColor, border: `1px solid ${accentColor}55` }
               : { backgroundColor: 'var(--bg-surf)', color: 'var(--text-2)', border: '1px solid var(--border)' }
@@ -1001,7 +1001,7 @@ function MaterialModal({ form, setForm, editing, saving, onSave, onClose }) {
     >
       <div
         className="w-full max-w-sm rounded-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto"
-        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+        style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)' }}
       >
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold" style={{ color: 'var(--text-1)' }}>
@@ -1108,7 +1108,7 @@ function DeleteMaterialConfirm({ resource, onConfirm, onCancel }) {
     >
       <div
         className="w-full max-w-xs rounded-2xl p-5 space-y-4"
-        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+        style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)' }}
       >
         <div className="space-y-1.5">
           <p className="font-bold" style={{ color: 'var(--text-1)' }}>Delete material?</p>
@@ -1158,7 +1158,7 @@ function SessionRow({ session: s }) {
           )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="text-sm font-bold" style={{ color: 'var(--text-1)' }}>{fmtMins(s.duration_minutes)}</span>
+          <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--text-1)' }}>{fmtMins(s.duration_minutes)}</span>
           <span className="text-[11px]" style={{ color: 'var(--text-2)' }}>{fmtRelativeDate(s.date)}</span>
         </div>
       </div>

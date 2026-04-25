@@ -64,7 +64,7 @@ export default function BottomSheet({ open, onClose, children }) {
       <div
         className="absolute left-0 right-0 bottom-0 flex flex-col rounded-t-3xl"
         style={{
-          backgroundColor: '#111113',
+          backgroundColor: 'var(--bg-surf)',
           maxHeight: '92vh',
           transform: visible ? `translateY(${dragOffset}px)` : 'translateY(100%)',
           transition: isDragging ? 'none' : 'transform 350ms cubic-bezier(0.32, 0.72, 0, 1)',
@@ -80,7 +80,7 @@ export default function BottomSheet({ open, onClose, children }) {
           onTouchMove={onHandleTouchMove}
           onTouchEnd={onHandleTouchEnd}
         >
-          <div style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: '#3a3a3e' }} />
+          <div style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: 'var(--border)' }} />
         </div>
 
         {/* Scrollable content area */}

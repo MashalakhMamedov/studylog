@@ -84,10 +84,10 @@ function fmtRelativeTime(createdAt) {
 }
 
 const ENERGY_COLOR = {
-  high: '#10B981',
-  medium: '#F59E0B',
-  low: '#EF4444',
-  post_night_shift: '#8B5CF6',
+  high: '#22c55e',
+  medium: '#eab308',
+  low: '#ef4444',
+  post_night_shift: '#8b5cf6',
 }
 
 const ENERGY_LABEL = { high: 'High', medium: 'Medium', low: 'Low', post_night_shift: 'Post-Night-Shift' }
@@ -185,13 +185,13 @@ export default function Home() {
   }
 
   return (
-    <div className="px-4 pt-8 pb-6 space-y-5">
+    <div className="px-4 pt-8 pb-6 space-y-6">
 
       {/* 1 — Greeting */}
       <div style={{ animation: 'sectionFadeIn 400ms ease both', animationDelay: '0ms' }}>
         <div className="flex items-start justify-between">
           <div className="space-y-0.5 min-w-0 flex-1">
-            <h1 className="text-2xl font-bold leading-tight" style={{ color: 'var(--text-1)' }}>
+            <h1 className="text-2xl font-semibold leading-tight" style={{ color: 'var(--text-1)' }}>
               {greetingText}
             </h1>
             <p className="text-sm" style={{ color: 'var(--text-2)' }}>{formatHeaderDate()}</p>
@@ -284,7 +284,7 @@ function TodaySummaryCard({ stats, loading }) {
 
   if (loading) {
     return (
-      <div className="rounded-xl px-5 py-4" style={{ backgroundColor: '#111113' }}>
+      <div className="rounded-xl px-4 py-3" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
         <Skel h={52} />
       </div>
     )
@@ -293,12 +293,12 @@ function TodaySummaryCard({ stats, loading }) {
   if (stats.todaySessionCount === 0) {
     return (
       <div
-        className="rounded-xl px-5 py-4 flex items-center gap-4"
-        style={{ backgroundColor: '#111113' }}
+        className="rounded-xl px-4 py-3 flex items-center gap-4"
+        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
       >
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold" style={{ color: 'var(--text-1)' }}>No sessions yet today</p>
-          <p className="text-xs mt-0.5" style={{ color: '#6b7280' }}>Ready to start? Your streak is waiting.</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--text-3)' }}>Ready to start? Your streak is waiting.</p>
         </div>
         <button
           onClick={() => navigate('/session?mode=focus')}
@@ -312,22 +312,22 @@ function TodaySummaryCard({ stats, loading }) {
   }
 
   return (
-    <div className="rounded-xl px-5 py-4" style={{ backgroundColor: '#111113' }}>
+    <div className="rounded-xl px-4 py-3" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
       <div className="flex items-center">
         <div className="flex-1 text-center">
-          <p className="text-xl font-bold leading-none" style={{ color: accentColor }}>
+          <p className="text-xl font-semibold tabular-nums leading-none" style={{ color: accentColor }}>
             {fmtMins(stats.todayMins)}
           </p>
-          <p className="text-xs mt-1.5" style={{ color: '#6b7280' }}>studied</p>
+          <p className="text-xs mt-1.5" style={{ color: 'var(--text-3)' }}>studied</p>
         </div>
 
         <div style={{ width: 1, height: 36, backgroundColor: 'var(--border)', flexShrink: 0 }} />
 
         <div className="flex-1 text-center">
-          <p className="text-xl font-bold leading-none" style={{ color: 'var(--text-1)' }}>
+          <p className="text-xl font-semibold tabular-nums leading-none" style={{ color: 'var(--text-1)' }}>
             {stats.todaySessionCount}
           </p>
-          <p className="text-xs mt-1.5" style={{ color: '#6b7280' }}>sessions</p>
+          <p className="text-xs mt-1.5" style={{ color: 'var(--text-3)' }}>sessions</p>
         </div>
 
         <div style={{ width: 1, height: 36, backgroundColor: 'var(--border)', flexShrink: 0 }} />
@@ -338,7 +338,7 @@ function TodaySummaryCard({ stats, loading }) {
               <p className="text-xl leading-none">{stats.topCourseToday.emoji}</p>
               <p
                 className="text-xs mt-1.5 truncate"
-                style={{ color: '#6b7280' }}
+                style={{ color: 'var(--text-3)' }}
                 title={stats.topCourseToday.name}
               >
                 {stats.topCourseToday.name}
@@ -358,14 +358,14 @@ function WeeklyDots({ chartData, loading }) {
 
   if (loading) {
     return (
-      <div className="rounded-xl px-5 py-3" style={{ backgroundColor: '#111113' }}>
+      <div className="rounded-xl px-4 py-3" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
         <Skel h={38} />
       </div>
     )
   }
 
   return (
-    <div className="rounded-xl px-5 py-3" style={{ backgroundColor: '#111113' }}>
+    <div className="rounded-xl px-4 py-3" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
       <div className="flex items-center justify-between">
         {chartData?.map(({ date, label, minutes, isToday, isFuture }) => {
           const studied = minutes > 0
@@ -375,7 +375,7 @@ function WeeklyDots({ chartData, loading }) {
                 style={{
                   fontSize: 11,
                   fontWeight: isToday ? 700 : 500,
-                  color: isToday ? accentColor : '#6b7280',
+                  color: isToday ? accentColor : 'var(--text-3)',
                   lineHeight: 1,
                 }}
               >
@@ -390,7 +390,7 @@ function WeeklyDots({ chartData, loading }) {
                   border: isToday && !studied
                     ? `2px solid ${accentColor}`
                     : studied ? 'none'
-                    : '1.5px solid #3a3a3e',
+                    : '1.5px solid var(--border)',
                   opacity: isFuture ? 0.25 : 1,
                   flexShrink: 0,
                 }}
@@ -453,9 +453,9 @@ function QuickActions() {
           onClick={() => navigate(href)}
           className="flex-1 flex flex-col items-center gap-2 py-3.5 rounded-xl"
           style={{
-            backgroundColor: '#111113',
-            border: primary ? `1px solid ${accentColor}55` : '1px solid var(--border)',
-            color: primary ? accentColor : 'var(--text-2)',
+            backgroundColor: 'var(--bg-card)',
+            border: primary ? `1px solid ${accentColor}44` : '1px solid var(--border)',
+            color: primary ? accentColor : 'var(--text-3)',
           }}
         >
           {icon}
@@ -487,7 +487,8 @@ function CoursesRow({ courses, weekSessionsMap }) {
               className="flex-shrink-0 rounded-xl p-3 flex flex-col gap-1.5"
               style={{
                 width: 140,
-                backgroundColor: '#111113',
+                backgroundColor: 'var(--bg-card)',
+                border: '1px solid var(--border)',
                 borderLeft: `3px solid ${course.color}`,
               }}
             >
@@ -498,7 +499,7 @@ function CoursesRow({ courses, weekSessionsMap }) {
               >
                 {course.name}
               </p>
-              <p className="text-xs" style={{ color: '#6b7280' }}>
+              <p className="text-xs" style={{ color: 'var(--text-3)' }}>
                 {weekCount} session{weekCount !== 1 ? 's' : ''} this week
               </p>
             </Link>
@@ -545,14 +546,14 @@ function SessionCard({ s, onDelete, onTap }) {
   const course = s.courses
   if (!course) return null
 
-  const energyColor = ENERGY_COLOR[s.energy_level] ?? '#6b7280'
+  const energyColor = ENERGY_COLOR[s.energy_level] ?? 'var(--text-3)'
 
   return (
     <SwipeableRow onDelete={() => onDelete(s.id)}>
       <button
         onClick={onTap}
         className="w-full rounded-xl p-3 text-left"
-        style={{ backgroundColor: '#111113' }}
+        style={{ backgroundColor: 'var(--bg-card)' }}
       >
         {/* Course + duration */}
         <div className="flex items-center gap-2">
@@ -560,14 +561,14 @@ function SessionCard({ s, onDelete, onTap }) {
           <p className="text-sm font-semibold truncate flex-1" style={{ color: 'var(--text-1)' }}>
             {course.name}
           </p>
-          <span className="text-sm font-bold flex-shrink-0" style={{ color: accentColor }}>
+          <span className="text-sm font-semibold tabular-nums flex-shrink-0" style={{ color: accentColor }}>
             {fmtMins(s.duration_minutes)}
           </span>
         </div>
 
         {/* Resource + energy dot + time */}
         <div className="flex items-center gap-2 mt-1.5">
-          <p className="text-xs truncate flex-1" style={{ color: '#9ca3af' }}>
+          <p className="text-xs truncate flex-1" style={{ color: 'var(--text-2)' }}>
             {[s.resources?.name, s.pages_covered ? `p.${s.pages_covered}` : null].filter(Boolean).join(' · ') || '—'}
           </p>
           <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -577,7 +578,7 @@ function SessionCard({ s, onDelete, onTap }) {
                 style={{ backgroundColor: energyColor }}
               />
             )}
-            <span className="text-xs" style={{ color: '#6b7280' }}>
+            <span className="text-xs" style={{ color: 'var(--text-3)' }}>
               {fmtRelativeTime(s.created_at)}
             </span>
           </div>
@@ -596,7 +597,7 @@ function SessionDetailSheet({ session: s, open, onClose, onDelete }) {
   if (!s) return null
 
   const course = s.courses
-  const energyColor = ENERGY_COLOR[s.energy_level] ?? '#6b7280'
+  const energyColor = ENERGY_COLOR[s.energy_level] ?? 'var(--text-3)'
 
   function fmtDetailDate(dateStr) {
     const [y, m, d] = dateStr.split('-').map(Number)
@@ -664,7 +665,7 @@ function SessionDetailSheet({ session: s, open, onClose, onDelete }) {
         {/* Notes */}
         {s.notes && (
           <div className="py-4" style={{ borderBottom: '1px solid var(--border)' }}>
-            <p className="text-xs font-medium mb-1.5" style={{ color: '#6b7280' }}>Notes</p>
+            <p className="text-xs font-medium mb-1.5" style={{ color: 'var(--text-3)' }}>Notes</p>
             <p className="text-sm leading-relaxed" style={{ color: 'var(--text-1)' }}>{s.notes}</p>
           </div>
         )}
@@ -687,7 +688,7 @@ function SessionDetailSheet({ session: s, open, onClose, onDelete }) {
                 <button
                   onClick={() => onDelete(s.id)}
                   className="flex-1 py-3 rounded-xl text-sm font-semibold"
-                  style={{ backgroundColor: '#EF4444', color: '#fff' }}
+                  style={{ backgroundColor: '#ef4444', color: '#fff' }}
                 >
                   Delete
                 </button>
@@ -697,7 +698,7 @@ function SessionDetailSheet({ session: s, open, onClose, onDelete }) {
             <button
               onClick={() => setConfirming(true)}
               className="w-full py-3 rounded-xl text-sm font-semibold"
-              style={{ backgroundColor: '#EF444420', color: '#EF4444', border: '1px solid #EF444430' }}
+              style={{ backgroundColor: '#ef444418', color: '#ef4444', border: '1px solid #ef444428' }}
             >
               Delete Session
             </button>
@@ -711,7 +712,7 @@ function SessionDetailSheet({ session: s, open, onClose, onDelete }) {
 function DetailRow({ label, children }) {
   return (
     <div className="flex items-center justify-between gap-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
-      <span className="text-sm flex-shrink-0" style={{ color: '#6b7280' }}>{label}</span>
+      <span className="text-sm flex-shrink-0" style={{ color: 'var(--text-3)' }}>{label}</span>
       <span className="text-sm font-medium text-right" style={{ color: 'var(--text-1)' }}>{children}</span>
     </div>
   )

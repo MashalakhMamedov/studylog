@@ -190,7 +190,7 @@ function CourseCard({ course, materialCount, onEdit, onDelete }) {
 
   return (
     <div
-      className="hoverable-card rounded-2xl overflow-hidden cursor-pointer"
+      className="hoverable-card rounded-xl overflow-hidden cursor-pointer"
       style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}
       onClick={() => navigate(`/course/${course.id}`)}
     >
@@ -257,7 +257,7 @@ function DeleteConfirm({ course, onConfirm, onCancel }) {
     >
       <div
         className="w-full max-w-xs rounded-2xl p-5 space-y-4"
-        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+        style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)' }}
       >
         <div className="text-center space-y-1.5">
           <p className="text-4xl">{course.emoji}</p>

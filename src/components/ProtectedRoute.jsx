@@ -17,10 +17,10 @@ export default function ProtectedRoute({ children }) {
       >
         <span
           style={{
-            fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
             fontSize: '15px',
             fontWeight: 600,
-            color: '#10B981',
+            color: '#6366f1',
             letterSpacing: '0.02em',
           }}
         >

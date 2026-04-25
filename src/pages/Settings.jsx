@@ -21,10 +21,10 @@ const CHANGELOG = [
 function SectionLabel({ children }) {
   return (
     <p style={{
-      color: '#6b7280',
-      fontSize: '12px',
+      color: 'var(--text-3)',
+      fontSize: '11px',
       textTransform: 'uppercase',
-      letterSpacing: '0.05em',
+      letterSpacing: '0.07em',
       fontWeight: 600,
       marginBottom: '8px',
       paddingLeft: '4px',
@@ -36,7 +36,7 @@ function SectionLabel({ children }) {
 
 function Card({ children }) {
   return (
-    <div style={{ backgroundColor: '#111113', borderRadius: '12px', overflow: 'hidden' }}>
+    <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
       {children}
     </div>
   )
@@ -88,7 +88,7 @@ function DeleteModal({ onClose, userId }) {
     >
       <div
         className="w-full max-w-sm rounded-2xl p-5 space-y-4"
-        style={{ backgroundColor: '#111113', border: '1px solid var(--border)' }}
+        style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)' }}
       >
         <div className="space-y-1.5">
           <p className="font-bold text-base" style={{ color: 'var(--text-1)' }}>Delete account?</p>
@@ -112,7 +112,7 @@ function DeleteModal({ onClose, userId }) {
           />
         </div>
 
-        {err && <p className="text-xs" style={{ color: '#EF4444' }}>{err}</p>}
+        {err && <p className="text-xs" style={{ color: '#ef4444' }}>{err}</p>}
 
         <div className="flex gap-2">
           <button
@@ -128,7 +128,7 @@ function DeleteModal({ onClose, userId }) {
             disabled={busy || input !== 'DELETE'}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
             style={{
-              backgroundColor: '#EF4444',
+              backgroundColor: '#ef4444',
               color: '#fff',
               opacity: input !== 'DELETE' || busy ? 0.4 : 1,
             }}
@@ -190,7 +190,7 @@ export default function Settings() {
           <Row>
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <p className="text-xs mb-1" style={{ color: '#6b7280' }}>First name</p>
+                <p className="text-xs mb-1" style={{ color: 'var(--text-3)' }}>First name</p>
                 {nameEditing ? (
                   <input
                     ref={nameInputRef}
@@ -203,7 +203,7 @@ export default function Settings() {
                     style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
                   />
                 ) : (
-                  <p className="text-sm font-semibold" style={{ color: savedFirstName ? 'var(--text-1)' : '#6b7280' }}>
+                  <p className="text-sm font-semibold" style={{ color: savedFirstName ? 'var(--text-1)' : 'var(--text-3)' }}>
                     {savedFirstName || 'Not set'}
                   </p>
                 )}
@@ -240,7 +240,7 @@ export default function Settings() {
 
           {/* Email row */}
           <Row>
-            <p className="text-xs mb-0.5" style={{ color: '#6b7280' }}>Email</p>
+            <p className="text-xs mb-0.5" style={{ color: 'var(--text-3)' }}>Email</p>
             <p className="text-sm" style={{ color: 'var(--text-1)' }}>{email}</p>
           </Row>
 
@@ -248,7 +248,7 @@ export default function Settings() {
             <button
               onClick={() => supabase.auth.signOut()}
               className="text-sm font-semibold"
-              style={{ color: '#EF4444', background: 'none', padding: 0 }}
+              style={{ color: '#ef4444', background: 'none', padding: 0 }}
             >
               Sign Out
             </button>
@@ -297,7 +297,7 @@ export default function Settings() {
               })}
             </div>
 
-            <p className="text-xs mt-3" style={{ color: '#6b7280' }}>{selectedColor.name}</p>
+            <p className="text-xs mt-3" style={{ color: 'var(--text-3)' }}>{selectedColor.name}</p>
           </Row>
         </Card>
       </div>
@@ -319,7 +319,7 @@ export default function Settings() {
                   className="flex-1 py-2 rounded-lg text-sm font-semibold"
                   style={focusDuration === mins
                     ? { backgroundColor: accentColor, color: '#fff' }
-                    : { backgroundColor: 'transparent', color: '#6b7280' }
+                    : { backgroundColor: 'transparent', color: 'var(--text-3)' }
                   }
                 >
                   {mins} min
@@ -355,7 +355,7 @@ export default function Settings() {
                 >
                   {entry.version}
                 </span>
-                <p className="text-xs leading-relaxed" style={{ color: '#6b7280' }}>
+                <p className="text-xs leading-relaxed" style={{ color: 'var(--text-3)' }}>
                   {entry.notes}
                 </p>
               </div>
@@ -363,7 +363,7 @@ export default function Settings() {
           ))}
 
           <Row noBorder style={{ borderTop: '1px solid var(--border)' }}>
-            <p className="text-xs" style={{ color: '#6b7280' }}>Made by Mash</p>
+            <p className="text-xs" style={{ color: 'var(--text-3)' }}>Made by Mash</p>
           </Row>
         </Card>
       </div>
@@ -386,7 +386,7 @@ export default function Settings() {
               style={{
                 width: '16px',
                 height: '16px',
-                color: '#6b7280',
+                color: 'var(--text-3)',
                 transform: dangerExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
                 transition: 'transform 0.2s ease',
               }}
@@ -397,13 +397,13 @@ export default function Settings() {
 
           {dangerExpanded && (
             <div style={{ borderTop: '1px solid var(--border)', padding: '16px' }}>
-              <p className="text-xs mb-3" style={{ color: '#6b7280' }}>
+              <p className="text-xs mb-3" style={{ color: 'var(--text-3)' }}>
                 Permanently delete your account and all associated data. This cannot be undone.
               </p>
               <button
                 onClick={() => setShowDeleteModal(true)}
                 className="w-full py-3 rounded-xl text-sm font-semibold"
-                style={{ backgroundColor: '#EF4444', color: '#fff' }}
+                style={{ backgroundColor: '#ef4444', color: '#fff' }}
               >
                 Delete My Account
               </button>

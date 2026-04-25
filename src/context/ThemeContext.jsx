@@ -1,14 +1,14 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 
 export const COLORS = [
-  { name: 'Emerald', value: '#10B981' },
-  { name: 'Blue',    value: '#3B82F6' },
-  { name: 'Cyan',    value: '#06B6D4' },
-  { name: 'Amber',   value: '#F59E0B' },
-  { name: 'Orange',  value: '#F97316' },
-  { name: 'Red',     value: '#EF4444' },
-  { name: 'Purple',  value: '#8B5CF6' },
-  { name: 'Pink',    value: '#EC4899' },
+  { name: 'Indigo',  value: '#6366f1' },
+  { name: 'Violet',  value: '#8b5cf6' },
+  { name: 'Blue',    value: '#3b82f6' },
+  { name: 'Cyan',    value: '#06b6d4' },
+  { name: 'Emerald', value: '#10b981' },
+  { name: 'Amber',   value: '#f59e0b' },
+  { name: 'Rose',    value: '#f43f5e' },
+  { name: 'Pink',    value: '#ec4899' },
 ]
 
 const ThemeContext = createContext(null)
@@ -22,7 +22,7 @@ export function ThemeProvider({ children }) {
     () => localStorage.getItem('theme') || 'dark'
   )
   const [accentColor, setAccentColorState] = useState(
-    () => localStorage.getItem('studylog-accent') || '#10B981'
+    () => localStorage.getItem('studylog-accent') || '#6366f1'
   )
 
   useEffect(() => {

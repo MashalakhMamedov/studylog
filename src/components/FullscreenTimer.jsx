@@ -157,11 +157,12 @@ export default function FullscreenTimer({ totalSeconds, running, segment, onPaus
       >
         {/* Timer */}
         <span
-          className="font-mono tabular-nums tracking-tight leading-none"
+          className="tabular-nums tracking-tight leading-none"
           style={{
             fontSize: 'clamp(64px, 18vw, 108px)',
             fontWeight: 700,
             color: '#ffffff',
+            fontFamily: "'JetBrains Mono', monospace",
             letterSpacing: '-0.03em',
           }}
         >
@@ -187,7 +188,7 @@ export default function FullscreenTimer({ totalSeconds, running, segment, onPaus
             fontWeight: 600,
             letterSpacing: '0.12em',
             textTransform: 'uppercase',
-            color: running ? 'rgba(16,185,129,0.75)' : 'rgba(255,255,255,0.22)',
+            color: running ? 'var(--accent)' : 'rgba(255,255,255,0.22)',
             transition: 'color 400ms ease',
           }}
         >
@@ -237,7 +238,7 @@ export default function FullscreenTimer({ totalSeconds, running, segment, onPaus
                 onClick={handleConfirmStop}
                 style={{
                   padding: '11px 28px', borderRadius: 24,
-                  backgroundColor: '#10B981',
+                  backgroundColor: 'var(--accent)',
                   color: '#fff',
                   border: 'none',
                   fontSize: 14, fontWeight: 600, cursor: 'pointer',

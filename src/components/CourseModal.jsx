@@ -8,8 +8,8 @@ export const COLOR_SWATCHES = [
 
 export const STATUS_OPTIONS = ['active', 'backlog', 'completed']
 export const PRIORITY_OPTIONS = ['high', 'medium', 'low']
-export const STATUS_COLOR = { active: '#E9C46A', backlog: '#E63946', completed: '#2A9D8F' }
-export const PRIORITY_COLOR = { high: '#E63946', medium: '#E9C46A', low: 'var(--text-2)' }
+export const STATUS_COLOR = { active: '#22c55e', backlog: '#f59e0b', completed: '#a1a1aa' }
+export const PRIORITY_COLOR = { high: '#ef4444', medium: '#eab308', low: 'var(--text-3)' }
 export const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 }
 export const EMPTY_COURSE_FORM = {
   name: '', emoji: '📚', color: '#E63946',
@@ -28,7 +28,7 @@ export function CourseModal({ form, setForm, editing, saving, onSave, onClose })
     >
       <div
         className="w-full max-w-sm rounded-2xl p-5 space-y-4"
-        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+        style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)' }}
       >
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold" style={{ color: 'var(--text-1)' }}>

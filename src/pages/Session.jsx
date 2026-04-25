@@ -50,7 +50,7 @@ const ENERGY_LEVELS = [
   { value: 'post_night_shift', label: 'Post-Night-Shift' },
 ]
 
-const ENERGY_COLOR = { high: '#2A9D8F', medium: '#E9C46A', low: '#E76F51', post_night_shift: '#E63946' }
+const ENERGY_COLOR = { high: '#22c55e', medium: '#eab308', low: '#ef4444', post_night_shift: '#8b5cf6' }
 const ENERGY_LABEL = { high: 'High', medium: 'Medium', low: 'Low', post_night_shift: 'Post-Night-Shift' }
 const FOCUS_LABEL = {
   deep_focus: 'Deep Focus', light_review: 'Light Review',
@@ -91,13 +91,13 @@ export default function Session() {
     <div className="page-enter">
       {/* Segmented control */}
       <div className="px-4 pt-4 pb-3">
-        <div className="flex p-1 rounded-full" style={{ backgroundColor: '#1a1a1d' }}>
+        <div className="flex p-1 rounded-full" style={{ backgroundColor: 'var(--bg-surf)' }}>
           <button
             onClick={() => handleModeSwitch('focus')}
             className="flex-1 py-2 rounded-full text-sm font-semibold transition-colors"
             style={mode === 'focus'
               ? { backgroundColor: accentColor, color: '#fff' }
-              : { backgroundColor: 'transparent', color: '#6b7280' }
+              : { backgroundColor: 'transparent', color: 'var(--text-3)' }
             }
           >
             Focus Now
@@ -107,7 +107,7 @@ export default function Session() {
             className="flex-1 py-2 rounded-full text-sm font-semibold transition-colors"
             style={mode === 'log'
               ? { backgroundColor: accentColor, color: '#fff' }
-              : { backgroundColor: 'transparent', color: '#6b7280' }
+              : { backgroundColor: 'transparent', color: 'var(--text-3)' }
             }
           >
             Log Past Session
@@ -115,7 +115,7 @@ export default function Session() {
         </div>
 
         {switchWarning && (
-          <p className="text-xs mt-2.5 px-1" style={{ color: '#E9C46A' }}>
+          <p className="text-xs mt-2.5 px-1" style={{ color: '#eab308' }}>
             ⚠ Finish or discard your running session before switching.
           </p>
         )}
@@ -479,8 +479,8 @@ function LogTab() {
           </div>
         ) : (
           <div
-            className="rounded-2xl overflow-hidden divide-y"
-            style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderColor: 'var(--border)' }}
+            className="rounded-xl overflow-hidden divide-y"
+            style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
           >
             {history.map(s => <HistoryCard key={s.id} s={s} onDelete={handleDeleteHistory} />)}
           </div>
@@ -596,8 +596,13 @@ function RunningView({ totalSeconds, running, segment, segmentCount, onPause, on
 
       <div className="flex flex-col items-center gap-1 py-6">
         <span
-          className="font-bold tabular-nums tracking-tight leading-none"
-          style={{ color: 'var(--text-1)', fontSize: totalSeconds >= 3600 ? '4rem' : '5.5rem' }}
+          className="tabular-nums tracking-tight leading-none"
+          style={{
+            color: 'var(--text-1)',
+            fontSize: totalSeconds >= 3600 ? '4rem' : '5.5rem',
+            fontFamily: "'JetBrains Mono', monospace",
+            fontWeight: 700,
+          }}
         >
           {fmtTime(totalSeconds)}
         </span>
@@ -724,7 +729,7 @@ function FinishModal({ totalSeconds, segments, form, setForm, courses, allResour
 
       <div className="flex flex-col items-center gap-1 py-4 rounded-2xl mb-4"
         style={{ backgroundColor: 'var(--bg-surf)' }}>
-        <span className="text-3xl font-bold tabular-nums" style={{ color: 'var(--text-1)' }}>
+        <span className="tabular-nums" style={{ color: 'var(--text-1)', fontSize: '2rem', fontFamily: "'JetBrains Mono', monospace", fontWeight: 700 }}>
           {fmtTime(totalSeconds)}
         </span>
         <span className="text-xs mt-0.5" style={{ color: 'var(--text-2)' }}>
@@ -906,7 +911,7 @@ function DiscardModal({ onConfirm, onCancel }) {
       onClick={e => e.target === e.currentTarget && onCancel()}
     >
       <div className="w-full max-w-xs rounded-2xl p-5 space-y-4"
-        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+        style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)' }}>
         <div className="space-y-1">
           <p className="font-bold" style={{ color: 'var(--text-1)' }}>Discard this session?</p>
           <p className="text-sm" style={{ color: 'var(--text-2)' }}>All elapsed time will be lost.</p>
@@ -965,7 +970,7 @@ function HistoryCard({ s, onDelete }) {
               {course.emoji} {course.name}
             </span>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="text-sm font-bold" style={{ color: 'var(--text-1)' }}>{fmtMins(s.duration_minutes)}</span>
+              <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--text-1)' }}>{fmtMins(s.duration_minutes)}</span>
               <span className="text-[11px]" style={{ color: 'var(--text-2)' }}>{fmtRelativeDate(s.date)}</span>
             </div>
           </div>
@@ -1021,7 +1026,7 @@ function DeleteConfirmModal({ onConfirm, onCancel }) {
     >
       <div
         className="w-full max-w-xs rounded-2xl p-5 space-y-4"
-        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+        style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)' }}
       >
         <div className="space-y-1">
           <p className="font-bold" style={{ color: 'var(--text-1)' }}>Delete this session?</p>
@@ -1058,7 +1063,7 @@ function Overlay({ children, onClose }) {
       onClick={e => e.target === e.currentTarget && onClose()}
     >
       <div className="w-full max-w-sm rounded-2xl p-5 max-h-[90vh] overflow-y-auto"
-        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+        style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)' }}>
         {children}
       </div>
     </div>
@@ -1096,7 +1101,7 @@ function Toast() {
           animation: 'toastSlideDown 250ms ease both',
         }}
       >
-        <span className="flex items-center justify-center w-5 h-5 rounded-full flex-shrink-0" style={{ backgroundColor: '#2A9D8F' }}>
+        <span className="flex items-center justify-center w-5 h-5 rounded-full flex-shrink-0" style={{ backgroundColor: '#22c55e' }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" className="w-3 h-3">
             <polyline points="20 6 9 17 4 12" />
           </svg>

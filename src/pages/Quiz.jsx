@@ -7,8 +7,8 @@ import { supabase } from '../lib/supabase.js'
 const todayStr = () => new Date().toISOString().split('T')[0]
 
 function scoreColor(pct) {
-  if (pct >= 80) return '#10b981'
-  if (pct >= 60) return '#f59e0b'
+  if (pct >= 80) return '#22c55e'
+  if (pct >= 60) return '#eab308'
   return '#ef4444'
 }
 
@@ -111,7 +111,7 @@ export default function Quiz() {
         <Link
           to="/session?mode=log"
           className="text-xs px-3 py-1.5 rounded-lg"
-          style={{ color: '#6b6b78', border: '1px solid #2a2a30' }}
+          style={{ color: '#6b6b78', border: '1px solid var(--border)' }}
         >
           ← Back
         </Link>
@@ -126,7 +126,7 @@ export default function Quiz() {
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
             style={tab === t
               ? { backgroundColor: accentColor, color: '#fff' }
-              : { backgroundColor: '#1a1a1e', color: '#6b6b78', border: '1px solid #2a2a30' }
+              : { backgroundColor: '#1a1a1e', color: '#6b6b78', border: '1px solid var(--border)' }
             }
           >
             {label}
@@ -158,7 +158,7 @@ export default function Quiz() {
       {toast && (
         <div
           className="fixed bottom-20 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-3 rounded-2xl z-50"
-          style={{ backgroundColor: '#111113', border: '1px solid #2a2a30', boxShadow: '0 4px 24px rgba(0,0,0,0.5)' }}
+          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: '0 4px 24px rgba(0,0,0,0.5)' }}
         >
           <span className="flex items-center justify-center w-5 h-5 rounded-full flex-shrink-0" style={{ backgroundColor: '#10b981' }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" className="w-3 h-3">
@@ -200,7 +200,7 @@ function LogTab({ courses, resources, form, set, liveScore, canSubmit, saving, o
           value={form.course_id}
           onChange={e => { set('course_id', e.target.value); set('resource_id', '') }}
           className="h-11 px-3 rounded-xl text-sm w-full outline-none"
-          style={{ backgroundColor: '#1a1a1e', border: '1px solid #2a2a30', color: form.course_id ? '#e8e8ec' : '#6b6b78' }}
+          style={{ backgroundColor: '#1a1a1e', border: '1px solid var(--border)', color: form.course_id ? '#e8e8ec' : '#6b6b78' }}
         >
           <option value="" disabled>Select a course</option>
           {courses.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
@@ -217,7 +217,7 @@ function LogTab({ courses, resources, form, set, liveScore, canSubmit, saving, o
             placeholder="e.g. 20"
             min="1"
             className="h-11 px-3 rounded-xl text-sm w-full outline-none"
-            style={{ backgroundColor: '#1a1a1e', border: '1px solid #2a2a30', color: '#e8e8ec' }}
+            style={{ backgroundColor: '#1a1a1e', border: '1px solid var(--border)', color: '#e8e8ec' }}
           />
         </Field>
         <Field label="Correct Answers *">
@@ -228,7 +228,7 @@ function LogTab({ courses, resources, form, set, liveScore, canSubmit, saving, o
             placeholder="e.g. 16"
             min="0"
             className="h-11 px-3 rounded-xl text-sm w-full outline-none"
-            style={{ backgroundColor: '#1a1a1e', border: '1px solid #2a2a30', color: '#e8e8ec' }}
+            style={{ backgroundColor: '#1a1a1e', border: '1px solid var(--border)', color: '#e8e8ec' }}
           />
         </Field>
       </div>
@@ -241,7 +241,7 @@ function LogTab({ courses, resources, form, set, liveScore, canSubmit, saving, o
           disabled={!form.course_id}
           className="h-11 px-3 rounded-xl text-sm w-full outline-none"
           style={{
-            backgroundColor: '#1a1a1e', border: '1px solid #2a2a30',
+            backgroundColor: '#1a1a1e', border: '1px solid var(--border)',
             color: form.resource_id ? '#e8e8ec' : '#6b6b78',
             opacity: form.course_id ? 1 : 0.45,
           }}
@@ -260,7 +260,7 @@ function LogTab({ courses, resources, form, set, liveScore, canSubmit, saving, o
             onChange={e => set('topic', e.target.value)}
             placeholder="e.g. Chapter 4"
             className="h-11 px-3 rounded-xl text-sm w-full outline-none"
-            style={{ backgroundColor: '#1a1a1e', border: '1px solid #2a2a30', color: '#e8e8ec' }}
+            style={{ backgroundColor: '#1a1a1e', border: '1px solid var(--border)', color: '#e8e8ec' }}
           />
         </Field>
         <Field label="Date">
@@ -269,7 +269,7 @@ function LogTab({ courses, resources, form, set, liveScore, canSubmit, saving, o
             value={form.date}
             onChange={e => set('date', e.target.value)}
             className="h-11 px-3 rounded-xl text-sm w-full outline-none"
-            style={{ backgroundColor: '#1a1a1e', border: '1px solid #2a2a30', color: '#e8e8ec', colorScheme: 'dark' }}
+            style={{ backgroundColor: '#1a1a1e', border: '1px solid var(--border)', color: '#e8e8ec', colorScheme: 'dark' }}
           />
         </Field>
       </div>
@@ -334,7 +334,7 @@ function QuizHistoryCard({ quiz: q }) {
   const c = q.courses
 
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #2a2a30', backgroundColor: '#111113' }}>
+    <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
       <div className="h-1" style={{ backgroundColor: c?.color ?? '#6b6b78' }} />
       <div className="p-4 flex items-start gap-3">
 
@@ -392,7 +392,7 @@ function Pill({ active, onClick, children }) {
       className="px-3 py-1.5 rounded-lg text-xs font-medium"
       style={active
         ? { backgroundColor: accentColor, color: '#fff' }
-        : { backgroundColor: '#1a1a1e', color: '#6b6b78', border: '1px solid #2a2a30' }
+        : { backgroundColor: '#1a1a1e', color: '#6b6b78', border: '1px solid var(--border)' }
       }
     >
       {children}

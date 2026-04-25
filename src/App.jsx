@@ -89,7 +89,7 @@ function PageTitleBar() {
           </svg>
         </button>
       )}
-      <h1 className="text-lg font-bold" style={{ color: 'var(--text-1)' }}>{title}</h1>
+      <h1 className="text-lg font-semibold" style={{ color: 'var(--text-1)' }}>{title}</h1>
     </div>
   )
 }
