@@ -25,7 +25,10 @@
       "Bash(npm list *)",
       "Bash(python *)",
       "Bash(curl -s http://localhost:3001/)",
-      "Bash(curl -s http://localhost:5173)"
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(xargs grep *)",
+      "Bash(cat)",
+      "Read(//tmp/**)"
     ]
   }
 }

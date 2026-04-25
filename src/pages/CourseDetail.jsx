@@ -173,6 +173,7 @@ export default function CourseDetail() {
         .order('created_at', { ascending: false })
         .limit(50),
       supabase.from('resources').select('*').eq('course_id', id)
+        .order('sort_order', { ascending: true, nullsFirst: false })
         .order('created_at', { ascending: true }),
       supabase.from('sessions')
         .select('resource_id, duration_minutes')
@@ -340,8 +341,12 @@ export default function CourseDetail() {
       }
       if (!error) setResources(prev => prev.map(r => r.id === editingMaterial.id ? data : r))
     } else {
+      const nextSortOrder = resources.reduce((max, r, idx) => {
+        const order = r.sort_order === null || r.sort_order === undefined ? idx : Number(r.sort_order)
+        return Math.max(max, Number.isFinite(order) ? order : idx)
+      }, -1) + 1
       const { data, error } = await supabase
-        .from('resources').insert({ ...payload, user_id: session.user.id }).select().single()
+        .from('resources').insert({ ...payload, user_id: session.user.id, sort_order: nextSortOrder }).select().single()
       if (error) {
         setMaterialSaveError(error.message || 'Could not save material. Please try again.')
         setSavingMaterial(false)
@@ -731,7 +736,7 @@ export default function CourseDetail() {
                   ))}
                 </div>
               </SortableContext>
-              <DragOverlay adjustScale={false} dropAnimation={null}>
+              <DragOverlay adjustScale={false}>
                 {activeDragId ? (
                   <ResourceCard
                     resource={resources.find(r => r.id === activeDragId)}
