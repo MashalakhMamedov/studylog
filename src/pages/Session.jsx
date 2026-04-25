@@ -276,7 +276,8 @@ function LogTab() {
     supabase.from('sessions')
       .select('id, date, duration_minutes, pages_covered, focus_type, energy_level, notes, courses(name, emoji, color), resources(name)')
       .order('date', { ascending: false })
-      .limit(30)
+      .order('created_at', { ascending: false })
+      .limit(50)
       .then(({ data }) => setHistory(data ?? []))
   }, [])
 

@@ -65,6 +65,7 @@ export default function Quiz() {
       .select('*, courses(name, emoji, color), resources(name)')
       .order('date', { ascending: false })
       .order('created_at', { ascending: false })
+      .limit(100)
     setHistory(data ?? [])
   }
 
