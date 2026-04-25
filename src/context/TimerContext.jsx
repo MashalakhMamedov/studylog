@@ -137,6 +137,10 @@ export function TimerProvider({ children }) {
 
   useEffect(() => { segmentsRef.current = segments }, [segments])
 
+  useEffect(() => {
+    if (session === null) resetAll()
+  }, [session])
+
   // ── Load courses + resources ──────────────────────────────────────────────
 
   useEffect(() => {
@@ -331,6 +335,7 @@ export function TimerProvider({ children }) {
 
   function resetAll() {
     clearInterval(intervalRef.current)
+    intervalRef.current = null
     sessionStartedAtRef.current = null
     totalPausedMsRef.current    = 0
     pauseStartedAtRef.current   = null
