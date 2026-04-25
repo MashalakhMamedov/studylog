@@ -4,25 +4,16 @@ import { useTheme, COLORS } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
 
 const FOCUS_DURATIONS = [25, 45, 60]
-const APP_VERSION = 'v1.3'
+const APP_VERSION = 'v1.4.0'
 
 const CHANGELOG = [
-  {
-    version: 'v1.3',
-    notes: 'Empty states, shimmer skeleton loading, visual polish, and clearer first-run guidance across courses, materials, home, and sessions',
-  },
-  {
-    version: 'v1.2',
-    notes: 'Home dashboard refresh, fullscreen focus timer, resilient timer tracking, richer material management, PWA icon updates',
-  },
-  {
-    version: 'v1.1',
-    notes: 'New navigation, course detail pages, session tracking, customizable themes',
-  },
-  {
-    version: 'v1.0',
-    notes: 'Initial release',
-  },
+  'Safer resource link validation',
+  'Timer resets correctly after logout',
+  'Better save/delete error handling',
+  'Improved Quiz light mode support',
+  'Fixed material drag sorting and persistence',
+  'Added account security improvements',
+  'Added query limits and performance improvements',
 ]
 
 // ── Primitives ────────────────────────────────────────────────────────────────
@@ -304,7 +295,7 @@ export default function Settings() {
       <div>
         <SectionLabel>Security</SectionLabel>
         <Card>
-          <Row noBorder>
+          <Row>
             <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text-1)' }}>Change Password</p>
             <div className="space-y-3">
               <input
@@ -344,6 +335,46 @@ export default function Settings() {
                 {passwordSaving ? 'Updating...' : 'Update Password'}
               </button>
             </div>
+          </Row>
+
+          <Row noBorder>
+            <button
+              onClick={() => setDangerExpanded(v => !v)}
+              className="w-full flex items-center justify-between text-left"
+              style={{ color: 'var(--text-1)' }}
+            >
+              <span className="text-sm font-semibold">Account Actions</span>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                style={{
+                  width: '16px',
+                  height: '16px',
+                  color: 'var(--text-3)',
+                  transform: dangerExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s ease',
+                }}
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+
+            {dangerExpanded && (
+              <div style={{ borderTop: '1px solid var(--border)', marginTop: '14px', paddingTop: '14px' }}>
+                <p className="text-xs mb-3" style={{ color: 'var(--text-3)' }}>
+                  Permanently delete your account and all associated data. This cannot be undone.
+                </p>
+                <button
+                  onClick={() => setShowDeleteModal(true)}
+                  className="w-full py-3 rounded-xl text-sm font-semibold"
+                  style={{ backgroundColor: '#ef4444', color: '#fff' }}
+                >
+                  Delete My Account
+                </button>
+              </div>
+            )}
           </Row>
         </Card>
       </div>
@@ -424,7 +455,7 @@ export default function Settings() {
 
       {/* ── ABOUT ─────────────────────────────────────────────────────────── */}
       <div>
-        <SectionLabel>About</SectionLabel>
+        <SectionLabel>About StudyLog</SectionLabel>
         <Card>
           <Row>
             <div className="flex items-center justify-between">
@@ -438,72 +469,36 @@ export default function Settings() {
             </div>
           </Row>
 
-          {CHANGELOG.map((entry, i) => (
-            <Row key={entry.version} noBorder={i === CHANGELOG.length - 1}>
-              <div className="flex items-start gap-2.5">
-                <span
-                  className="flex-shrink-0 text-xs font-bold px-2 py-0.5 rounded-full mt-0.5"
-                  style={{ backgroundColor: 'var(--bg-surf)', color: 'var(--text-2)' }}
-                >
-                  {entry.version}
-                </span>
-                <p className="text-xs leading-relaxed" style={{ color: 'var(--text-3)' }}>
-                  {entry.notes}
-                </p>
-              </div>
-            </Row>
-          ))}
+          <Row>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--text-2)' }}>
+              StudyLog is a resource-level study tracker built to help students track what they studied, where they left off, and how their effort compounds over time.
+            </p>
+          </Row>
 
-          <Row noBorder style={{ borderTop: '1px solid var(--border)' }}>
-            <p className="text-xs" style={{ color: 'var(--text-3)' }}>Made by Mash</p>
+          <Row>
+            <p className="text-xs mb-1" style={{ color: 'var(--text-3)' }}>Creator</p>
+            <p className="text-sm" style={{ color: 'var(--text-2)' }}>Built by Mashalakh, an engineering student.</p>
+          </Row>
+
+          <Row noBorder>
+            <p className="text-xs mb-2.5" style={{ color: 'var(--text-3)' }}>Changelog</p>
+            <ul className="space-y-2">
+              {CHANGELOG.map(item => (
+                <li key={item} className="flex items-start gap-2 text-sm leading-snug" style={{ color: 'var(--text-2)' }}>
+                  <span
+                    aria-hidden="true"
+                    className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                    style={{ backgroundColor: accentColor }}
+                  />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
           </Row>
         </Card>
       </div>
 
       {/* ── DANGER ZONE ───────────────────────────────────────────────────── */}
-      <div>
-        <SectionLabel>Danger Zone</SectionLabel>
-        <Card>
-          <button
-            onClick={() => setDangerExpanded(v => !v)}
-            className="w-full flex items-center justify-between px-4 py-3.5 text-left"
-            style={{ color: 'var(--text-1)' }}
-          >
-            <span className="text-sm font-semibold">Account Actions</span>
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              style={{
-                width: '16px',
-                height: '16px',
-                color: 'var(--text-3)',
-                transform: dangerExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.2s ease',
-              }}
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </button>
-
-          {dangerExpanded && (
-            <div style={{ borderTop: '1px solid var(--border)', padding: '16px' }}>
-              <p className="text-xs mb-3" style={{ color: 'var(--text-3)' }}>
-                Permanently delete your account and all associated data. This cannot be undone.
-              </p>
-              <button
-                onClick={() => setShowDeleteModal(true)}
-                className="w-full py-3 rounded-xl text-sm font-semibold"
-                style={{ backgroundColor: '#ef4444', color: '#fff' }}
-              >
-                Delete My Account
-              </button>
-            </div>
-          )}
-        </Card>
-      </div>
-
       {showDeleteModal && (
         <DeleteModal userId={userId} onClose={() => setShowDeleteModal(false)} />
       )}

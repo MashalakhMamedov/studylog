@@ -30,8 +30,8 @@ export default function Logo({ variant = 'full', size = 32 }) {
           />
         </div>
         <span
-          className="text-white font-semibold tracking-[0.12em]"
-          style={{ fontSize: size * 0.28 }}
+          className="font-semibold"
+          style={{ color: 'var(--text-1)', fontSize: size * 0.28, letterSpacing: '0.08em' }}
         >
           StudyLog
         </span>
@@ -49,8 +49,8 @@ export default function Logo({ variant = 'full', size = 32 }) {
         className="rounded-md object-contain"
       />
       <span
-        className="text-white font-semibold"
-        style={{ fontSize: size * 0.6 }}
+        className="font-semibold"
+        style={{ color: 'var(--text-1)', fontSize: size * 0.6 }}
       >
         StudyLog
       </span>
