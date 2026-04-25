@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BookPlus, GraduationCap, Plus } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useCourses } from '../context/CoursesContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import EmptyState from '../components/EmptyState.jsx'
@@ -14,6 +15,7 @@ import {
 
 export default function Courses() {
   const { session } = useAuth()
+  const { refreshActiveCourseCount } = useCourses()
   const { accentColor } = useTheme()
   const [courses, setCourses] = useState([])
   const [materialCounts, setMaterialCounts] = useState({})
@@ -54,11 +56,17 @@ export default function Courses() {
     if (editing) {
       const { data, error } = await supabase
         .from('courses').update(payload).eq('id', editing.id).select().single()
-      if (!error) setCourses(prev => prev.map(c => c.id === editing.id ? data : c))
+      if (!error) {
+        setCourses(prev => prev.map(c => c.id === editing.id ? data : c))
+        refreshActiveCourseCount()
+      }
     } else {
       const { data, error } = await supabase
         .from('courses').insert({ ...payload, user_id: session.user.id }).select().single()
-      if (!error) setCourses(prev => [...prev, data])
+      if (!error) {
+        setCourses(prev => [...prev, data])
+        refreshActiveCourseCount()
+      }
     }
 
     setSaving(false)
@@ -66,8 +74,11 @@ export default function Courses() {
   }
 
   async function deleteCourse(id) {
-    await supabase.from('courses').delete().eq('id', id)
-    setCourses(prev => prev.filter(c => c.id !== id))
+    const { error } = await supabase.from('courses').delete().eq('id', id)
+    if (!error) {
+      setCourses(prev => prev.filter(c => c.id !== id))
+      refreshActiveCourseCount()
+    }
     setDeleteTarget(null)
   }
 

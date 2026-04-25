@@ -1,8 +1,7 @@
 import { NavLink } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useCourses } from '../context/CoursesContext.jsx'
 import { useTimer } from '../context/TimerContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
-import { supabase } from '../lib/supabase.js'
 
 const tabs = [
   {
@@ -57,19 +56,9 @@ const tabs = [
 
 export default function BottomNav() {
   const { phase } = useTimer()
+  const { activeCourseCount } = useCourses()
   const { accentColor } = useTheme()
   const timerRunning = phase === 'running'
-  const [activeCourses, setActiveCourses] = useState(null)
-
-  useEffect(() => {
-    supabase
-      .from('courses')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'active')
-      .then(({ count }) => {
-        if (count !== null) setActiveCourses(count)
-      })
-  }, [])
 
   return (
     <nav
@@ -104,7 +93,7 @@ export default function BottomNav() {
                   />
                 )}
                 {/* Courses count badge */}
-                {to === '/courses' && activeCourses !== null && activeCourses > 0 && (
+                {to === '/courses' && activeCourseCount !== null && activeCourseCount > 0 && (
                   <span
                     style={{
                       position: 'absolute',
@@ -124,7 +113,7 @@ export default function BottomNav() {
                       padding: '0 3px',
                     }}
                   >
-                    {activeCourses}
+                    {activeCourseCount}
                   </span>
                 )}
               </span>

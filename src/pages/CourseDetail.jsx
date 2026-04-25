@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { FilePlus, Plus } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useCourses } from '../context/CoursesContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import EmptyState from '../components/EmptyState.jsx'
@@ -100,6 +101,7 @@ export default function CourseDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { session } = useAuth()
+  const { refreshActiveCourseCount } = useCourses()
   const { accentColor } = useTheme()
 
   const [course, setCourse] = useState(null)
@@ -198,7 +200,10 @@ export default function CourseDetail() {
     setSaving(true)
     const payload = { ...editForm, name: editForm.name.trim(), exam_date: editForm.exam_date || null }
     const { data, error } = await supabase.from('courses').update(payload).eq('id', id).select().single()
-    if (!error && data) setCourse(data)
+    if (!error && data) {
+      setCourse(data)
+      refreshActiveCourseCount()
+    }
     setSaving(false)
     setShowEditModal(false)
   }
