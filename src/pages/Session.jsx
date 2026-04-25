@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
+import { Clock3 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTimer, fmtTime } from '../context/TimerContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import SwipeableRow from '../components/SwipeableRow.jsx'
 import FullscreenTimer from '../components/FullscreenTimer.jsx'
+import EmptyState from '../components/EmptyState.jsx'
+import { SkeletonCard } from '../components/Skeleton.jsx'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -466,17 +469,16 @@ function LogTab() {
         {history === null ? (
           <div className="space-y-3">
             {[0, 1, 2].map(i => (
-              <div key={i} className="w-full rounded-xl animate-pulse" style={{ height: '60px', backgroundColor: 'var(--bg-surf)' }} />
+              <SkeletonCard key={i} height={60} radius={12} />
             ))}
           </div>
         ) : history.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 py-12 text-center">
-            <span className="text-4xl">📋</span>
-            <div className="space-y-1">
-              <p className="font-semibold text-sm" style={{ color: 'var(--text-1)' }}>No sessions yet</p>
-              <p className="text-xs" style={{ color: 'var(--text-2)' }}>Log your first session above to get started</p>
-            </div>
-          </div>
+          <EmptyState
+            icon={Clock3}
+            title="Your study sessions will appear here"
+            description="Log a session or use the focus timer to get started"
+            compact
+          />
         ) : (
           <div
             className="rounded-xl overflow-hidden divide-y"

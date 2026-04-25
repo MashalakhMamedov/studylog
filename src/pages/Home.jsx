@@ -1,10 +1,13 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { CalendarClock, Clock3, CirclePlay } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import SwipeableRow from '../components/SwipeableRow.jsx'
 import BottomSheet from '../components/BottomSheet.jsx'
+import EmptyState from '../components/EmptyState.jsx'
+import { SkeletonCard } from '../components/Skeleton.jsx'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -290,7 +293,7 @@ export default function Home() {
       )}
 
       {/* 6 — Recent Sessions */}
-      {(loading || recentSessions?.length > 0) && (
+      {(loading || recentSessions !== null) && (
         <div style={{ animation: 'sectionFadeIn 400ms ease both', animationDelay: '400ms' }}>
           <RecentSessionsList sessions={recentSessions} loading={loading} onDelete={handleDeleteSession} />
         </div>
@@ -322,16 +325,17 @@ function TodaySummaryCard({ stats, loading }) {
         className="rounded-xl px-4 py-3 flex items-center gap-4"
         style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
       >
+        <CalendarClock size={22} strokeWidth={1.7} className="flex-shrink-0" style={{ color: 'var(--text-3)' }} />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold" style={{ color: 'var(--text-1)' }}>No sessions yet today</p>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--text-3)' }}>Ready to start? Your streak is waiting.</p>
+          <p className="text-sm font-semibold" style={{ color: 'var(--text-1)' }}>No study sessions today yet</p>
         </div>
         <button
           onClick={() => navigate('/session?mode=focus')}
-          className="flex-shrink-0 px-4 py-2 rounded-xl text-xs font-bold"
+          className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap"
           style={{ backgroundColor: accentColor, color: '#fff' }}
         >
-          Start
+          <CirclePlay size={14} strokeWidth={2.4} />
+          Start a session
         </button>
       </div>
     )
@@ -553,7 +557,14 @@ function RecentSessionsList({ sessions, loading, onDelete }) {
       </div>
       {loading
         ? <div className="space-y-2">{[0, 1, 2].map(i => <Skel key={i} h={72} />)}</div>
-        : <div className="space-y-2">{sessions.map((s, i) => (
+        : sessions.length === 0 ? (
+          <EmptyState
+            icon={Clock3}
+            title="Your study sessions will appear here"
+            description="Log a session or use the focus timer to get started"
+            compact
+          />
+        ) : <div className="space-y-2">{sessions.map((s, i) => (
             <div key={s.id} className="stagger-in" style={{ animationDelay: `${Math.min(i, 5) * 50}ms` }}>
               <SessionCard s={s} onDelete={onDelete} onTap={() => setSelected(s)} />
             </div>
@@ -749,11 +760,5 @@ function DetailRow({ label, children }) {
 // ── Skeleton helpers ──────────────────────────────────────────────────────────
 
 function Skel({ h }) {
-  return (
-    <div
-      className="w-full rounded-xl animate-pulse"
-      style={{ height: `${h}px`, backgroundColor: 'var(--bg-surf)' }}
-    />
-  )
+  return <SkeletonCard height={h} radius={12} />
 }
-

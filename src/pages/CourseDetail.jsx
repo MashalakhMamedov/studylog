@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { FilePlus, Plus } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
+import EmptyState from '../components/EmptyState.jsx'
+import { SkeletonBlock } from '../components/Skeleton.jsx'
 import {
   CourseModal, EMPTY_COURSE_FORM,
   STATUS_COLOR, PRIORITY_COLOR,
@@ -330,12 +333,7 @@ export default function CourseDetail() {
 
   // ── Render ───────────────────────────────────────────────────────────────
   if (loading) {
-    return (
-      <div className="flex justify-center py-24">
-        <div className="w-8 h-8 rounded-full border-2 animate-spin"
-          style={{ borderColor: 'var(--border)', borderTopColor: accentColor }} />
-      </div>
-    )
+    return <CourseDetailSkeleton />
   }
 
   if (!course) return null
@@ -623,23 +621,14 @@ export default function CourseDetail() {
           )}
 
           {resources.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 py-8 text-center">
-              <span className="text-4xl">📚</span>
-              <div className="space-y-1">
-                <p className="text-sm font-semibold" style={{ color: 'var(--text-1)' }}>No materials yet</p>
-                <p className="text-xs" style={{ color: 'var(--text-2)' }}>Add your first resource for this course</p>
-              </div>
-              <button
-                onClick={openAddMaterial}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold"
-                style={{ backgroundColor: accentColor, color: '#fff' }}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4">
-                  <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-                Add Material
-              </button>
-            </div>
+            <EmptyState
+              icon={FilePlus}
+              title="No materials added yet. Add your lecture slides, textbooks, or videos."
+              actionLabel="Add Material"
+              actionIcon={Plus}
+              onAction={openAddMaterial}
+              compact
+            />
           ) : displayResources.length === 0 ? (
             <p className="text-xs py-4 text-center" style={{ color: 'var(--text-2)' }}>
               No materials match this filter.
@@ -745,6 +734,46 @@ export default function CourseDetail() {
 }
 
 // ── SortableResourceCard ──────────────────────────────────────────────────────
+function CourseDetailSkeleton() {
+  return (
+    <div className="page-enter pb-10">
+      <SkeletonBlock className="h-1.5 w-full" />
+      <div className="px-4 pt-3 pb-4 space-y-3" style={{ borderBottom: '1px solid var(--border)' }}>
+        <div className="flex items-center justify-between">
+          <SkeletonBlock className="h-5 w-20 rounded-md" />
+          <SkeletonBlock className="h-8 w-20 rounded-xl" />
+        </div>
+        <div className="flex items-center gap-3">
+          <SkeletonBlock className="h-12 w-12 rounded-xl" />
+          <SkeletonBlock className="h-8 flex-1 rounded-lg" />
+        </div>
+        <div className="flex gap-2">
+          <SkeletonBlock className="h-6 w-20 rounded-lg" />
+          <SkeletonBlock className="h-6 w-24 rounded-lg" />
+        </div>
+      </div>
+
+      <div className="px-4 pt-5 space-y-7">
+        <div className="grid grid-cols-4 gap-2">
+          {[0, 1, 2, 3].map(i => (
+            <SkeletonBlock key={i} className="h-[58px] rounded-xl" />
+          ))}
+        </div>
+        <SkeletonBlock className="h-[168px] rounded-xl" />
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <SkeletonBlock className="h-5 w-24 rounded-md" />
+            <SkeletonBlock className="h-8 w-20 rounded-xl" />
+          </div>
+          {[0, 1, 2].map(i => (
+            <SkeletonBlock key={i} className="h-[156px] rounded-xl" />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function SortableResourceCard({ resource, dragEnabled, ...props }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: resource.id })
   return (

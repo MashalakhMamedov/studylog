@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
+import { SkeletonCard } from '../components/Skeleton.jsx'
 
 const todayStr = () => new Date().toISOString().split('T')[0]
 
@@ -296,9 +297,10 @@ function HistoryTab({ history, courses, courseFilter, setCourseFilter, filteredH
   const { accentColor } = useTheme()
   if (history === null) {
     return (
-      <div className="flex justify-center py-16">
-        <div className="w-8 h-8 rounded-full border-2 animate-spin"
-          style={{ borderColor: '#2a2a30', borderTopColor: accentColor }} />
+      <div className="space-y-3">
+        {[0, 1, 2].map(i => (
+          <SkeletonCard key={i} height={76} radius={12} />
+        ))}
       </div>
     )
   }

@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { BookPlus, GraduationCap, Plus } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
+import EmptyState from '../components/EmptyState.jsx'
+import { SkeletonBlock } from '../components/Skeleton.jsx'
 import {
   CourseModal, EMPTY_COURSE_FORM,
   STATUS_COLOR, PRIORITY_COLOR, PRIORITY_ORDER,
@@ -119,36 +122,24 @@ export default function Courses() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16">
-          <div
-            className="w-8 h-8 rounded-full border-2 animate-spin"
-            style={{ borderColor: 'var(--border)', borderTopColor: accentColor }}
-          />
-        </div>
+        <CourseGridSkeleton />
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center gap-4 py-16 text-center">
-          <span className="text-5xl">{courses.length === 0 ? '🎓' : '🔍'}</span>
-          <div className="space-y-1">
-            <p className="font-semibold text-sm" style={{ color: 'var(--text-1)' }}>
-              {courses.length === 0 ? 'No courses yet' : 'No courses match this filter'}
-            </p>
-            <p className="text-xs" style={{ color: 'var(--text-2)' }}>
-              {courses.length === 0 ? 'Add your first course to start tracking your studies' : 'Try a different status filter'}
-            </p>
-          </div>
-          {courses.length === 0 && (
-            <button
-              onClick={openAdd}
-              className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold"
-              style={{ backgroundColor: accentColor, color: '#fff' }}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4">
-                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-              Add First Course
-            </button>
-          )}
-        </div>
+        courses.length === 0 ? (
+          <EmptyState
+            icon={BookPlus}
+            title="Add your first course to start tracking"
+            actionLabel="Add Course"
+            actionIcon={Plus}
+            onAction={openAdd}
+          />
+        ) : (
+          <EmptyState
+            icon={GraduationCap}
+            title="No courses match this filter"
+            description="Try a different status filter."
+            compact
+          />
+        )
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {filtered.map((course, i) => (
@@ -182,6 +173,35 @@ export default function Courses() {
           onCancel={() => setDeleteTarget(null)}
         />
       )}
+    </div>
+  )
+}
+
+function CourseGridSkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      {[0, 1, 2, 3, 4, 5].map(i => (
+        <div
+          key={i}
+          className="rounded-xl overflow-hidden"
+          style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}
+        >
+          <SkeletonBlock className="h-1.5 w-full" />
+          <div className="p-3 space-y-2.5">
+            <SkeletonBlock className="w-9 h-9 rounded-lg" />
+            <SkeletonBlock className="h-4 w-4/5 rounded-md" />
+            <div className="flex gap-1">
+              <SkeletonBlock className="h-5 w-14 rounded" />
+              <SkeletonBlock className="h-5 w-12 rounded" />
+            </div>
+            <SkeletonBlock className="h-3 w-24 rounded" />
+            <div className="flex gap-1.5 pt-0.5">
+              <SkeletonBlock className="h-8 flex-1 rounded-lg" />
+              <SkeletonBlock className="h-8 w-9 rounded-lg" />
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
