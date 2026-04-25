@@ -148,7 +148,6 @@ export default function CourseDetail() {
         .eq('course_id', id)
         .order('date', { ascending: false }),
       supabase.from('resources').select('*').eq('course_id', id)
-        .order('sort_order', { ascending: true, nullsFirst: false })
         .order('created_at', { ascending: true }),
       supabase.from('sessions')
         .select('resource_id, duration_minutes')
