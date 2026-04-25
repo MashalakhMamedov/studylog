@@ -165,6 +165,11 @@ export default function Settings() {
   const [nameValue, setNameValue] = useState(savedFirstName)
   const [nameSaving, setNameSaving] = useState(false)
   const nameInputRef = useRef(null)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordSaving, setPasswordSaving] = useState(false)
+  const [passwordMessage, setPasswordMessage] = useState('')
+  const [passwordError, setPasswordError] = useState('')
 
   async function saveName() {
     const trimmed = nameValue.trim()
@@ -173,6 +178,36 @@ export default function Settings() {
     await supabase.auth.updateUser({ data: { first_name: trimmed } })
     setNameSaving(false)
     setNameEditing(false)
+  }
+
+  function clearPasswordStatus() {
+    setPasswordMessage('')
+    setPasswordError('')
+  }
+
+  async function savePassword() {
+    clearPasswordStatus()
+
+    if (newPassword.length < 6) {
+      setPasswordError('Password must be at least 6 characters.')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match.')
+      return
+    }
+
+    setPasswordSaving(true)
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    setPasswordSaving(false)
+
+    if (error) {
+      setPasswordError(error.message || 'Could not update password. Please try again.')
+    } else {
+      setNewPassword('')
+      setConfirmPassword('')
+      setPasswordMessage('Password updated.')
+    }
   }
 
   const [focusDuration, setFocusDurationState] = useState(
@@ -261,6 +296,54 @@ export default function Settings() {
             >
               Sign Out
             </button>
+          </Row>
+        </Card>
+      </div>
+
+      {/* ── SECURITY ──────────────────────────────────────────────────────── */}
+      <div>
+        <SectionLabel>Security</SectionLabel>
+        <Card>
+          <Row noBorder>
+            <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text-1)' }}>Change Password</p>
+            <div className="space-y-3">
+              <input
+                type="password"
+                value={newPassword}
+                onChange={e => { setNewPassword(e.target.value); clearPasswordStatus() }}
+                placeholder="New password"
+                autoComplete="new-password"
+                minLength={6}
+                className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
+              />
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={e => { setConfirmPassword(e.target.value); clearPasswordStatus() }}
+                placeholder="Confirm password"
+                autoComplete="new-password"
+                minLength={6}
+                className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
+              />
+
+              {passwordError && <p className="text-xs" style={{ color: '#ef4444' }}>{passwordError}</p>}
+              {passwordMessage && <p className="text-xs" style={{ color: accentColor }}>{passwordMessage}</p>}
+
+              <button
+                onClick={savePassword}
+                disabled={passwordSaving || !newPassword || !confirmPassword}
+                className="w-full py-3 rounded-xl text-sm font-semibold"
+                style={{
+                  backgroundColor: newPassword && confirmPassword && !passwordSaving ? accentColor : 'var(--bg-surf)',
+                  color: newPassword && confirmPassword && !passwordSaving ? '#fff' : 'var(--text-2)',
+                  border: newPassword && confirmPassword && !passwordSaving ? 'none' : '1px solid var(--border)',
+                }}
+              >
+                {passwordSaving ? 'Updating...' : 'Update Password'}
+              </button>
+            </div>
           </Row>
         </Card>
       </div>
