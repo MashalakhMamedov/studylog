@@ -11,14 +11,6 @@ import {
   CourseModal, EMPTY_COURSE_FORM,
   STATUS_COLOR, PRIORITY_COLOR,
 } from '../components/CourseModal.jsx'
-import {
-  DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay,
-  MeasuringStrategy,
-} from '@dnd-kit/core'
-import {
-  SortableContext, useSortable, verticalListSortingStrategy, arrayMove,
-} from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
 
 // ── Material constants ────────────────────────────────────────────────────────
 const TYPE_OPTIONS = ['pdf', 'textbook', 'notes', 'slides', 'video', 'lecture_recording', 'podcast', 'article', 'problem_set']
@@ -116,10 +108,10 @@ function isMissingColumn(error, column) {
 
 async function fetchResourcesForCourse(courseId) {
   const ordered = await supabase.from('resources').select('*').eq('course_id', courseId)
-    .order('sort_order', { ascending: true, nullsFirst: false })
+    .order('order_index', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: true })
 
-  if (!isMissingColumn(ordered.error, 'sort_order')) return ordered
+  if (!isMissingColumn(ordered.error, 'order_index')) return ordered
 
   return supabase.from('resources').select('*').eq('course_id', courseId)
     .order('created_at', { ascending: true })
@@ -221,8 +213,6 @@ export default function CourseDetail() {
   const [materialFilter, setMaterialFilter] = useState('all')
   const [materialSort, setMaterialSort] = useState('custom')
   const [showSortMenu, setShowSortMenu] = useState(false)
-  const [activeDragId, setActiveDragId] = useState(null)
-
   const userId = session?.user?.id
 
   useEffect(() => {
@@ -425,13 +415,13 @@ export default function CourseDetail() {
       }
       if (!error) setResources(prev => prev.map(r => r.id === editingMaterial.id ? data : r))
     } else {
-      const nextSortOrder = resources.reduce((max, r, idx) => {
-        const order = r.sort_order === null || r.sort_order === undefined ? idx : Number(r.sort_order)
+      const nextOrderIndex = resources.reduce((max, r, idx) => {
+        const order = r.order_index === null || r.order_index === undefined ? idx : Number(r.order_index)
         return Math.max(max, Number.isFinite(order) ? order : idx)
       }, -1) + 1
       let { data, error } = await supabase
-        .from('resources').insert({ ...payload, user_id: session.user.id, sort_order: nextSortOrder }).select().single()
-      if (isMissingColumn(error, 'sort_order')) {
+        .from('resources').insert({ ...payload, user_id: session.user.id, order_index: nextOrderIndex }).select().single()
+      if (isMissingColumn(error, 'order_index')) {
         ;({ data, error } = await supabase
           .from('resources').insert({ ...payload, user_id: session.user.id }).select().single())
       }
@@ -522,23 +512,25 @@ export default function CourseDetail() {
     setDeletingQuiz(false)
   }
 
-  // ── Drag handlers ────────────────────────────────────────────────────────
-  const dndSensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-  )
-
-  function handleDragStart({ active }) { setActiveDragId(active.id) }
-
-  async function handleDragEnd({ active, over }) {
-    setActiveDragId(null)
-    if (!over || active.id === over.id) return
-    const oldIdx = resources.findIndex(r => r.id === active.id)
-    const newIdx = resources.findIndex(r => r.id === over.id)
-    const reordered = arrayMove(resources, oldIdx, newIdx)
-    setResources(reordered)
-    await Promise.all(reordered.map((r, i) =>
-      supabase.from('resources').update({ sort_order: i }).eq('id', r.id)
-    ))
+  async function moveResource(resourceId, direction) {
+    const idx = resources.findIndex(r => r.id === resourceId)
+    if (idx === -1) return
+    const swapIdx = idx + direction
+    if (swapIdx < 0 || swapIdx >= resources.length) return
+    const a = resources[idx]
+    const b = resources[swapIdx]
+    const aOrder = a.order_index ?? idx
+    const bOrder = b.order_index ?? swapIdx
+    await supabase.from('resources').update({ order_index: bOrder }).eq('id', a.id)
+    await supabase.from('resources').update({ order_index: aOrder }).eq('id', b.id)
+    setResources(prev => {
+      const next = prev.map(r => {
+        if (r.id === a.id) return { ...r, order_index: bOrder }
+        if (r.id === b.id) return { ...r, order_index: aOrder }
+        return r
+      })
+      return next.sort((x, y) => (x.order_index ?? 9999) - (y.order_index ?? 9999))
+    })
   }
 
   // ── Derived display list ─────────────────────────────────────────────────
@@ -562,7 +554,7 @@ export default function CourseDetail() {
     return list
   }, [resources, materialFilter, materialSort])
 
-  const dragEnabled = materialSort === 'custom' && materialFilter === 'all'
+  const reorderEnabled = materialSort === 'custom' && materialFilter === 'all'
 
   // ── Render ───────────────────────────────────────────────────────────────
   if (loading) {
@@ -847,10 +839,6 @@ export default function CourseDetail() {
                 </div>
               </div>
 
-              {/* Drag hint when in custom order */}
-              {dragEnabled && resources.length > 1 && (
-                <p className="text-[10px]" style={{ color: 'var(--text-2)' }}>Hold a card to drag and reorder</p>
-              )}
             </>
           )}
 
@@ -868,45 +856,21 @@ export default function CourseDetail() {
               No materials match this filter.
             </p>
           ) : (
-            <DndContext
-              sensors={dndSensors}
-              collisionDetection={closestCenter}
-              measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
-              onDragStart={dragEnabled ? handleDragStart : undefined}
-              onDragEnd={dragEnabled ? handleDragEnd : undefined}
-              onDragCancel={() => setActiveDragId(null)}
-            >
-              <SortableContext items={displayResources.map(r => r.id)} strategy={verticalListSortingStrategy}>
-                <div className="space-y-3">
-                  {displayResources.map(r => (
-                    <SortableResourceCard
-                      key={r.id}
-                      resource={r}
-                      minutesStudied={minutesByResource[r.id] || 0}
-                      courseColor={course.color}
-                      dragEnabled={dragEnabled}
-                      onEdit={() => openEditMaterial(r)}
-                      onDelete={() => setDeleteMaterialTarget(r)}
-                      onUpdate={updated => setResources(prev => prev.map(x => x.id === updated.id ? updated : x))}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-              <DragOverlay adjustScale={false}>
-                {activeDragId ? (
-                  <ResourceCard
-                    resource={resources.find(r => r.id === activeDragId)}
-                    minutesStudied={minutesByResource[activeDragId] || 0}
-                    courseColor={course.color}
-                    dragEnabled={false}
-                    isOverlay
-                    onEdit={() => {}}
-                    onDelete={() => {}}
-                    onUpdate={() => {}}
-                  />
-                ) : null}
-              </DragOverlay>
-            </DndContext>
+            <div className="space-y-3">
+              {displayResources.map((r, idx) => (
+                <ResourceCard
+                  key={r.id}
+                  resource={r}
+                  minutesStudied={minutesByResource[r.id] || 0}
+                  courseColor={course.color}
+                  onEdit={() => openEditMaterial(r)}
+                  onDelete={() => setDeleteMaterialTarget(r)}
+                  onUpdate={updated => setResources(prev => prev.map(x => x.id === updated.id ? updated : x))}
+                  onMoveUp={reorderEnabled ? (idx > 0 ? () => moveResource(r.id, -1) : null) : undefined}
+                  onMoveDown={reorderEnabled ? (idx < displayResources.length - 1 ? () => moveResource(r.id, 1) : null) : undefined}
+                />
+              ))}
+            </div>
           )}
         </section>
 
@@ -1064,46 +1028,8 @@ function CourseDetailSkeleton() {
   )
 }
 
-function SortableResourceCard({ resource, dragEnabled, ...props }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    setActivatorNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: resource.id, disabled: !dragEnabled })
-
-  const translate = transform
-    ? { x: transform.x, y: transform.y, z: transform.z, scaleX: 1, scaleY: 1 }
-    : null
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={{
-        transform: CSS.Translate.toString(translate),
-        transition,
-        opacity: isDragging ? 0.35 : 1,
-        position: 'relative',
-        zIndex: isDragging ? 10 : undefined,
-        willChange: isDragging ? 'transform' : undefined,
-      }}
-    >
-      <ResourceCard
-        resource={resource}
-        dragEnabled={dragEnabled}
-        dragHandleRef={setActivatorNodeRef}
-        dragHandleProps={dragEnabled ? { ...attributes, ...listeners } : undefined}
-        {...props}
-      />
-    </div>
-  )
-}
-
 // ── ResourceCard ──────────────────────────────────────────────────────────────
-function ResourceCard({ resource: r, minutesStudied, courseColor, dragEnabled, dragHandleRef, dragHandleProps, isOverlay, onEdit, onDelete, onUpdate }) {
+function ResourceCard({ resource: r, minutesStudied, courseColor, onEdit, onDelete, onUpdate, onMoveUp, onMoveDown }) {
   const { accentColor } = useTheme()
   const isCompleted = r.status === 'completed'
   const [editingPos, setEditingPos] = useState(false)
@@ -1119,6 +1045,7 @@ function ResourceCard({ resource: r, minutesStudied, courseColor, dragEnabled, d
   const barPct = showBar ? Math.min(100, Math.round((posNum / r.total_pages) * 100)) : 0
   const suggestComplete = barPct >= 100 && r.status !== 'completed'
   const materialLink = isSafeMaterialLink(r.link) ? (r.link || '').trim() : ''
+  const showReorder = onMoveUp !== undefined || onMoveDown !== undefined
 
   async function savePosition() {
     const val = posValue.trim()
@@ -1150,31 +1077,12 @@ function ResourceCard({ resource: r, minutesStudied, courseColor, dragEnabled, d
       style={{
         border: `1px solid ${isCompleted ? '#22c55e33' : 'var(--border)'}`,
         backgroundColor: isCompleted ? 'rgba(34,197,94,0.04)' : 'var(--bg-card)',
-        ...(isOverlay ? { boxShadow: '0 12px 40px rgba(0,0,0,0.3)', transform: 'scale(1.02)' } : {}),
       }}
     >
       <div className="h-1" style={{ backgroundColor: courseColor, opacity: isCompleted ? 0.4 : 1 }} />
       <div className="p-4 space-y-3">
         {/* Top row */}
         <div className="flex items-center gap-2">
-          {dragEnabled && dragHandleProps && (
-            <button
-              ref={dragHandleRef}
-              {...dragHandleProps}
-              className="flex flex-col justify-center items-center gap-[3px] px-1.5 py-2 rounded-lg flex-shrink-0 touch-none"
-              style={{
-                color: 'var(--text-2)',
-                cursor: 'grab',
-                touchAction: 'none',
-                transform: 'none',
-              }}
-              aria-label="Drag to reorder"
-            >
-              <span className="block w-3.5 h-[2px] rounded-full" style={{ backgroundColor: 'currentColor' }} />
-              <span className="block w-3.5 h-[2px] rounded-full" style={{ backgroundColor: 'currentColor' }} />
-              <span className="block w-3.5 h-[2px] rounded-full" style={{ backgroundColor: 'currentColor' }} />
-            </button>
-          )}
           <div className="flex-1 flex items-center justify-between min-w-0">
             {isCompleted ? (
               <span className="flex items-center gap-0.5 text-xs font-medium" style={{ color: '#22c55e' }}>
@@ -1286,6 +1194,22 @@ function ResourceCard({ resource: r, minutesStudied, courseColor, dragEnabled, d
         </div>
 
         <div className="flex gap-2 pt-1">
+          {showReorder && (
+            <div className="flex gap-1 flex-shrink-0">
+              <button
+                onClick={onMoveUp ?? undefined}
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-sm"
+                style={{ color: '#6b7280', backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', visibility: onMoveUp ? 'visible' : 'hidden' }}
+                aria-label="Move up"
+              >↑</button>
+              <button
+                onClick={onMoveDown ?? undefined}
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-sm"
+                style={{ color: '#6b7280', backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', visibility: onMoveDown ? 'visible' : 'hidden' }}
+                aria-label="Move down"
+              >↓</button>
+            </div>
+          )}
           <button
             onClick={() => setStatus(isCompleted ? 'in_progress' : 'completed')}
             disabled={togglingStatus}
