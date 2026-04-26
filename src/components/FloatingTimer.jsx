@@ -2,14 +2,19 @@ import { useContext } from 'react'
 import { TimerContext, fmtTime } from '../context/TimerContext'
 import { useNavigate, useLocation } from 'react-router-dom'
 
+const POMO_PHASE_EMOJI = { work: '🍅', short_break: '☕', long_break: '☕' }
+const POMO_PHASE_LABEL = { work: 'Work', short_break: 'Break', long_break: 'Break' }
+
 export default function FloatingTimer() {
-  const { phase, totalSeconds, running, resetAll } = useContext(TimerContext)
+  const { phase, totalSeconds, running, resetAll, pomodoroMode, pomodoroPhase, pomodoroSecondsLeft } = useContext(TimerContext)
   const navigate = useNavigate()
   const location = useLocation()
 
   const isOnFocusTab = location.pathname === '/session'
 
   if (phase !== 'running' || isOnFocusTab) return null
+
+  const displaySeconds = pomodoroMode ? pomodoroSecondsLeft : totalSeconds
 
   return (
     <div
@@ -36,9 +41,21 @@ export default function FloatingTimer() {
         onClick={() => navigate('/session')}
         style={{ color: '#ffffff', fontFamily: 'monospace', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}
       >
-        <span style={{ fontSize: '11px', color: running ? '#E63946' : '#666' }}>⏱</span>
-        {fmtTime(totalSeconds)}
-        {!running && <span style={{ color: '#666', fontSize: '11px' }}>paused</span>}
+        {pomodoroMode ? (
+          <>
+            <span style={{ fontSize: '13px' }}>{POMO_PHASE_EMOJI[pomodoroPhase]}</span>
+            {fmtTime(displaySeconds)}
+            <span style={{ color: '#a1a1aa', fontSize: '11px', fontFamily: 'sans-serif' }}>
+              {POMO_PHASE_LABEL[pomodoroPhase]}
+            </span>
+          </>
+        ) : (
+          <>
+            <span style={{ fontSize: '11px', color: running ? '#E63946' : '#666' }}>⏱</span>
+            {fmtTime(displaySeconds)}
+            {!running && <span style={{ color: '#666', fontSize: '11px' }}>paused</span>}
+          </>
+        )}
       </span>
       <button
         onClick={e => { e.stopPropagation(); resetAll() }}

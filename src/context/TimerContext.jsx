@@ -18,11 +18,11 @@ function localDateStr() {
 // ── localStorage keys ─────────────────────────────────────────────────────────
 
 const LS = {
-  startedAt:     'sl_timer_startedAt',     // ms timestamp when session started
-  totalPausedMs: 'sl_timer_totalPausedMs', // cumulative ms spent paused (completed pauses only)
-  pausedAt:      'sl_timer_pausedAt',      // ms timestamp when current pause started ('' if running)
-  running:       'sl_timer_running',       // 'true' | 'false'
-  segments:      'sl_timer_segments',      // JSON array of segment objects
+  startedAt:     'sl_timer_startedAt',
+  totalPausedMs: 'sl_timer_totalPausedMs',
+  pausedAt:      'sl_timer_pausedAt',
+  running:       'sl_timer_running',
+  segments:      'sl_timer_segments',
 }
 
 export const TimerContext = createContext(null)
@@ -34,7 +34,7 @@ export function useTimer() {
 export function TimerProvider({ children }) {
   const { session } = useAuth()
 
-  const [courses, setCourses]         = useState([])
+  const [courses, setCourses]           = useState([])
   const [allResources, setAllResources] = useState([])
 
   const [phase, setPhase]           = useState('setup')
@@ -46,16 +46,15 @@ export function TimerProvider({ children }) {
   const [segments, setSegments]         = useState([])
 
   // ── Wall-clock tracking refs ──────────────────────────────────────────────
-  // Elapsed = (now - sessionStartedAt) - totalPausedMs - currentPauseDuration
-  const sessionStartedAtRef = useRef(null) // Date.now() when session began
-  const totalPausedMsRef    = useRef(0)    // sum of all completed pause durations (ms)
-  const pauseStartedAtRef   = useRef(null) // Date.now() when the current pause began (null if running)
+  const sessionStartedAtRef = useRef(null)
+  const totalPausedMsRef    = useRef(0)
+  const pauseStartedAtRef   = useRef(null)
 
   const intervalRef  = useRef(null)
-  const segmentsRef  = useRef([])          // mirror of segments state for event-handler closures
+  const segmentsRef  = useRef([])
 
-  const [showSwap, setShowSwap]           = useState(false)
-  const [swapCourseId, setSwapCourseId]   = useState('')
+  const [showSwap, setShowSwap]             = useState(false)
+  const [swapCourseId, setSwapCourseId]     = useState('')
   const [swapResourceId, setSwapResourceId] = useState('')
 
   const [showFinish, setShowFinish] = useState(false)
@@ -64,15 +63,107 @@ export function TimerProvider({ children }) {
     focus_type: 'deep_focus', energy_level: 'high',
     date: localDateStr(), course_id: '', resource_id: '', duration_minutes: '',
   })
-  const [saving, setSaving] = useState(false)
+  const [saving, setSaving]           = useState(false)
   const [finishError, setFinishError] = useState('')
 
   const [showDiscard, setShowDiscard] = useState(false)
   const [toast, setToast]             = useState(false)
 
+  // ── Pomodoro refs (read-safe inside stale setInterval closures) ───────────
+  const pomodoroModeRef          = useRef(false)
+  const pomodoroPhaseRef         = useRef('work')
+  const pomodoroCycleRef         = useRef(1)
+  const pomodoroSecondsLeftRef   = useRef(0)
+  const pomodoroSettingsRef      = useRef({ workMin: 25, shortBreakMin: 5, longBreakMin: 15, longBreakAfter: 4 })
+  const breakSecondsTotalRef     = useRef(0)
+  const completedWorkCyclesRef   = useRef(0)
+
+  // ── Pomodoro state (reactive for UI) ─────────────────────────────────────
+  const [pomodoroMode,        _setPomodoroMode]        = useState(false)
+  const [pomodoroPhase,       _setPomodoroPhase]       = useState('work')
+  const [pomodoroCycle,       _setPomodoroCycle]       = useState(1)
+  const [pomodoroSecondsLeft, _setPomodoroSecondsLeft] = useState(0)
+  const [breakSecondsTotal,   _setBreakSecondsTotal]   = useState(0)
+  const [pomodoroNotification, setPomodoroNotification] = useState(null)
+
+  // ── Pomodoro public setters ───────────────────────────────────────────────
+
+  function setPomodoroMode(val) {
+    pomodoroModeRef.current = val
+    _setPomodoroMode(val)
+  }
+
+  function setPomodoroSettings(settings) {
+    pomodoroSettingsRef.current = settings
+  }
+
+  // ── Pomodoro internal helpers (only use refs + stable setters — safe in stale closures) ──
+
+  function initPomodoroPhase(ph) {
+    const s   = pomodoroSettingsRef.current
+    const dur = ph === 'work' ? s.workMin * 60
+      : ph === 'short_break'  ? s.shortBreakMin * 60
+      : s.longBreakMin * 60
+    pomodoroPhaseRef.current       = ph
+    pomodoroSecondsLeftRef.current = dur
+    _setPomodoroPhase(ph)
+    _setPomodoroSecondsLeft(dur)
+  }
+
+  function handlePomodoroTransition() {
+    if (navigator.vibrate) navigator.vibrate(300)
+
+    const s            = pomodoroSettingsRef.current
+    const currentPhase = pomodoroPhaseRef.current
+    const currentCycle = pomodoroCycleRef.current
+    let newCycle, notifMessage
+
+    if (currentPhase === 'work') {
+      completedWorkCyclesRef.current += 1
+      const isLongBreak = currentCycle >= s.longBreakAfter
+      const breakMin    = isLongBreak ? s.longBreakMin : s.shortBreakMin
+      notifMessage = `Break time! ${breakMin} minutes`
+      newCycle     = currentCycle  // cycle display stays same during break
+      pomodoroCycleRef.current = newCycle
+      _setPomodoroCycle(newCycle)
+      initPomodoroPhase(isLongBreak ? 'long_break' : 'short_break')
+    } else {
+      notifMessage = 'Back to work!'
+      newCycle     = currentPhase === 'long_break' ? 1 : currentCycle + 1
+      pomodoroCycleRef.current = newCycle
+      _setPomodoroCycle(newCycle)
+      initPomodoroPhase('work')
+    }
+
+    setPomodoroNotification({ message: notifMessage, id: Date.now() })
+  }
+
+  // ── Timer tick — only refs + stable setters, safe in stale setInterval closure ──
+
+  function timerTick() {
+    setTotalSeconds(calcElapsedSeconds())
+
+    if (!pomodoroModeRef.current) return
+
+    const newLeft = pomodoroSecondsLeftRef.current - 1
+
+    if (pomodoroPhaseRef.current !== 'work') {
+      breakSecondsTotalRef.current += 1
+      _setBreakSecondsTotal(breakSecondsTotalRef.current)
+    }
+
+    if (newLeft <= 0) {
+      pomodoroSecondsLeftRef.current = 0
+      _setPomodoroSecondsLeft(0)
+      handlePomodoroTransition()
+    } else {
+      pomodoroSecondsLeftRef.current = newLeft
+      _setPomodoroSecondsLeft(newLeft)
+    }
+  }
+
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  // Always reads from refs — safe to call inside intervals and event handlers.
   function calcElapsedSeconds() {
     if (!sessionStartedAtRef.current) return 0
     const currentPausedMs = pauseStartedAtRef.current
@@ -98,7 +189,7 @@ export function TimerProvider({ children }) {
     Object.values(LS).forEach(k => localStorage.removeItem(k))
   }
 
-  // ── Restore from localStorage on mount (handles page kills & PWA restarts) ─
+  // ── Restore from localStorage on mount ───────────────────────────────────
 
   useEffect(() => {
     const startedAtStr = localStorage.getItem(LS.startedAt)
@@ -111,7 +202,6 @@ export function TimerProvider({ children }) {
     const wasRunning    = localStorage.getItem(LS.running) === 'true'
     const savedSegs     = JSON.parse(localStorage.getItem(LS.segments) || '[]')
 
-    // Guard against corrupt / impossibly old data (> 24 h)
     if (!startedAt || savedSegs.length === 0 || Date.now() - startedAt > 86_400_000) {
       clearPersistedTimer()
       return
@@ -127,19 +217,17 @@ export function TimerProvider({ children }) {
     setTotalSeconds(calcElapsedSeconds())
 
     if (wasRunning) {
-      intervalRef.current = setInterval(() => setTotalSeconds(calcElapsedSeconds()), 1000)
+      // Restored sessions always run as stopwatch (Pomodoro state is not persisted)
+      intervalRef.current = setInterval(timerTick, 1000)
       setRunning(true)
     }
-    // If paused: display the frozen elapsed time, leave interval stopped.
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Keep segmentsRef in sync for closures ─────────────────────────────────
 
   useEffect(() => { segmentsRef.current = segments }, [segments])
 
   useEffect(() => {
     if (session === null) resetAll()
-  }, [session])
+  }, [session]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Load courses + resources ──────────────────────────────────────────────
 
@@ -206,14 +294,12 @@ export function TimerProvider({ children }) {
   // ── Clock controls ────────────────────────────────────────────────────────
 
   function startClock() {
-    // Account for the just-ended pause (works for both fresh start and resume).
-    // On fresh start pauseStartedAtRef is already null so nothing changes.
     if (pauseStartedAtRef.current !== null) {
       totalPausedMsRef.current += Date.now() - pauseStartedAtRef.current
       pauseStartedAtRef.current = null
     }
     clearInterval(intervalRef.current)
-    intervalRef.current = setInterval(() => setTotalSeconds(calcElapsedSeconds()), 1000)
+    intervalRef.current = setInterval(timerTick, 1000)
     setRunning(true)
     persistTimer()
   }
@@ -221,7 +307,7 @@ export function TimerProvider({ children }) {
   function pauseClock() {
     clearInterval(intervalRef.current)
     pauseStartedAtRef.current = Date.now()
-    setTotalSeconds(calcElapsedSeconds()) // snapshot the correct elapsed time
+    setTotalSeconds(calcElapsedSeconds())
     setRunning(false)
     persistTimer()
   }
@@ -245,14 +331,22 @@ export function TimerProvider({ children }) {
     segmentsRef.current = initialSegments
     setSegments(initialSegments)
 
-    // Initialise wall-clock tracking — must happen before startClock()
     sessionStartedAtRef.current = Date.now()
     totalPausedMsRef.current    = 0
     pauseStartedAtRef.current   = null
 
+    if (pomodoroModeRef.current) {
+      breakSecondsTotalRef.current   = 0
+      completedWorkCyclesRef.current = 0
+      pomodoroCycleRef.current       = 1
+      _setBreakSecondsTotal(0)
+      _setPomodoroCycle(1)
+      initPomodoroPhase('work')
+    }
+
     setTotalSeconds(0)
     setPhase('running')
-    startClock() // starts interval + persists
+    startClock()
   }
 
   function openSwap() {
@@ -283,30 +377,37 @@ export function TimerProvider({ children }) {
   function openFinish() {
     if (running) pauseClock()
     setFinishError('')
-    const elapsed = calcElapsedSeconds() // accurate from wall-clock refs
-    const lastSeg = segments[segments.length - 1]
+    const elapsed  = calcElapsedSeconds()
+    const workSecs = pomodoroModeRef.current
+      ? Math.max(0, elapsed - breakSecondsTotalRef.current)
+      : elapsed
+    const lastSeg  = segments[segments.length - 1]
+    const nCycles  = completedWorkCyclesRef.current
+    const pomNote  = pomodoroModeRef.current && nCycles > 0
+      ? `[Pomodoro: ${nCycles} cycle${nCycles !== 1 ? 's' : ''}] `
+      : ''
     setFinishForm({
-      pages_covered: '', notes: '',
+      pages_covered: '', notes: pomNote,
       focus_type: 'deep_focus', energy_level: 'high',
       date: localDateStr(),
-      course_id:  lastSeg?.course_id  ?? '',
-      resource_id: lastSeg?.resource_id ?? '',
-      duration_minutes: String(Math.max(1, Math.round(elapsed / 60))),
+      course_id:        lastSeg?.course_id   ?? '',
+      resource_id:      lastSeg?.resource_id ?? '',
+      duration_minutes: String(Math.max(1, Math.round(workSecs / 60))),
     })
     setShowFinish(true)
   }
 
   async function submitFinish() {
     setFinishError('')
-    const totalElapsed = calcElapsedSeconds()
-    const isSingle = segments.length === 1
+    const totalElapsed     = calcElapsedSeconds()
+    const isSingle         = segments.length === 1
     const explicitDuration = Number(finishForm.duration_minutes)
     if (isSingle && (!Number.isInteger(explicitDuration) || explicitDuration < 1 || explicitDuration > 720)) {
       setFinishError('Duration must be a whole number between 1 and 720 minutes.')
       return
     }
     const rows = segments.map((seg, i) => {
-      const endSec      = i < segments.length - 1 ? segments[i + 1].startSeconds : totalElapsed
+      const endSec        = i < segments.length - 1 ? segments[i + 1].startSeconds : totalElapsed
       const timerDuration = Math.max(1, Math.round((endSec - seg.startSeconds) / 60))
       return {
         user_id:          session.user.id,
@@ -352,6 +453,17 @@ export function TimerProvider({ children }) {
     setFinishError('')
     setShowSwap(false)
     setShowDiscard(false)
+    // Reset Pomodoro session state — keep pomodoroMode (user preference)
+    pomodoroPhaseRef.current       = 'work'
+    pomodoroCycleRef.current       = 1
+    pomodoroSecondsLeftRef.current = 0
+    breakSecondsTotalRef.current   = 0
+    completedWorkCyclesRef.current = 0
+    _setPomodoroPhase('work')
+    _setPomodoroCycle(1)
+    _setPomodoroSecondsLeft(0)
+    _setBreakSecondsTotal(0)
+    setPomodoroNotification(null)
   }
 
   return (
@@ -368,6 +480,14 @@ export function TimerProvider({ children }) {
       toast, setToast,
       startClock, pauseClock,
       startSession, openSwap, confirmSwap, openFinish, submitFinish, resetAll,
+      // Pomodoro
+      pomodoroMode, setPomodoroMode,
+      pomodoroPhase,
+      pomodoroCycle,
+      pomodoroSecondsLeft,
+      breakSecondsTotal,
+      setPomodoroSettings,
+      pomodoroNotification, setPomodoroNotification,
     }}>
       {children}
     </TimerContext.Provider>

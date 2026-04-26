@@ -65,6 +65,21 @@ const DEFAULT_LOG_FORM = {
   energy_level: 'high', date: today(), notes: '',
 }
 
+// ── Pomodoro constants ───────────────────────────────────────────────────────
+
+const DEFAULT_POM_SETTINGS = { workMin: 25, shortBreakMin: 5, longBreakMin: 15, longBreakAfter: 4 }
+
+function loadPomSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem('pomodoro_settings') || 'null')
+    if (s && typeof s.workMin === 'number') return { ...DEFAULT_POM_SETTINGS, ...s }
+  } catch {}
+  return DEFAULT_POM_SETTINGS
+}
+
+const POMO_PHASE_LABEL = { work: 'Work', short_break: 'Short Break', long_break: 'Long Break' }
+const POMO_PHASE_COLOR = { work: '#E63946', short_break: '#2A9D8F', long_break: '#457B9D' }
+
 // ── Main Page ────────────────────────────────────────────────────────────────
 
 export default function Session() {
@@ -144,7 +159,15 @@ function FocusTab() {
     toast, setToast,
     startClock, pauseClock,
     startSession, openSwap, confirmSwap, openFinish, submitFinish, resetAll,
+    pomodoroMode, setPomodoroMode,
+    pomodoroPhase, pomodoroCycle, pomodoroSecondsLeft,
+    setPomodoroSettings,
+    pomodoroNotification,
   } = useTimer()
+
+  const [timerMode, setTimerMode] = useState('stopwatch')
+  const [pomSettings, setPomSettings] = useState(loadPomSettings)
+  const [banner, setBanner] = useState(null)
 
   useEffect(() => {
     if (!toast) return
@@ -163,21 +186,56 @@ function FocusTab() {
     return () => window.removeEventListener('keydown', handleKey)
   }, [zenMode])
 
+  // Sync Pomodoro settings to context on mount
+  useEffect(() => { setPomodoroSettings(pomSettings) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Show banner when Pomodoro phase transitions
+  useEffect(() => {
+    if (!pomodoroNotification) return
+    const age = Date.now() - pomodoroNotification.id
+    if (age > 3000) return
+    setBanner(pomodoroNotification.message)
+    const t = setTimeout(() => setBanner(null), Math.max(100, 3000 - age))
+    return () => clearTimeout(t)
+  }, [pomodoroNotification])
+
+  function handleModeChange(mode) {
+    setTimerMode(mode)
+    setPomodoroMode(mode === 'pomodoro')
+  }
+
+  function handleSettingsChange(key, val) {
+    const n    = Math.max(1, parseInt(val, 10) || 1)
+    const next = { ...pomSettings, [key]: n }
+    setPomSettings(next)
+    localStorage.setItem('pomodoro_settings', JSON.stringify(next))
+    setPomodoroSettings(next)
+  }
+
   const setupResources = allResources.filter(r => r.course_id === courseId)
   const swapResources = allResources.filter(r => r.course_id === swapCourseId)
 
   return (
     <div className="px-4 pt-2 pb-6">
+
+      {banner && <PomoBanner message={banner} />}
+
       {phase === 'setup' && (
-        <SetupView
-          courses={courses}
-          resources={setupResources}
-          courseId={courseId}
-          resourceId={resourceId}
-          onCourseChange={id => { setCourseId(id); setResourceId('') }}
-          onResourceChange={setResourceId}
-          onStart={startSession}
-        />
+        <>
+          <ModeToggle mode={timerMode} onChange={handleModeChange} />
+          {timerMode === 'pomodoro' && (
+            <PomodoroSettings settings={pomSettings} onChangeField={handleSettingsChange} />
+          )}
+          <SetupView
+            courses={courses}
+            resources={setupResources}
+            courseId={courseId}
+            resourceId={resourceId}
+            onCourseChange={id => { setCourseId(id); setResourceId('') }}
+            onResourceChange={setResourceId}
+            onStart={startSession}
+          />
+        </>
       )}
 
       {phase === 'running' && currentSeg && (
@@ -192,6 +250,11 @@ function FocusTab() {
           onFinish={openFinish}
           onDiscard={() => setShowDiscard(true)}
           onFullscreen={() => setZenMode(true)}
+          pomodoroMode={pomodoroMode}
+          pomodoroPhase={pomodoroPhase}
+          pomodoroCycle={pomodoroCycle}
+          pomodoroSecondsLeft={pomodoroSecondsLeft}
+          pomodoroLongBreakAfter={pomSettings.longBreakAfter}
         />
       )}
 
@@ -592,8 +655,10 @@ function SetupView({ courses, resources, courseId, resourceId, onCourseChange, o
   )
 }
 
-function RunningView({ totalSeconds, running, segment, segmentCount, onPause, onResume, onSwap, onFinish, onDiscard, onFullscreen }) {
+function RunningView({ totalSeconds, running, segment, segmentCount, onPause, onResume, onSwap, onFinish, onDiscard, onFullscreen, pomodoroMode = false, pomodoroPhase = 'work', pomodoroCycle = 1, pomodoroSecondsLeft = 0, pomodoroLongBreakAfter = 4 }) {
   const { accentColor } = useTheme()
+  const displaySeconds = pomodoroMode ? pomodoroSecondsLeft : totalSeconds
+  const phaseColor     = pomodoroMode ? POMO_PHASE_COLOR[pomodoroPhase] : accentColor
   return (
     <div className="flex flex-col items-center gap-6">
       <button
@@ -660,26 +725,37 @@ function RunningView({ totalSeconds, running, segment, segmentCount, onPause, on
       )}
 
       <div className="flex flex-col items-center gap-1 py-6">
+        {pomodoroMode && (
+          <span className="text-xs font-semibold tracking-widest uppercase mb-1" style={{ color: phaseColor }}>
+            {POMO_PHASE_LABEL[pomodoroPhase]}
+          </span>
+        )}
         <span
           className="tabular-nums tracking-tight leading-none"
           style={{
             color: 'var(--text-1)',
-            fontSize: totalSeconds >= 3600 ? '4rem' : '5.5rem',
+            fontSize: displaySeconds >= 3600 ? '4rem' : '5.5rem',
             fontFamily: "'JetBrains Mono', monospace",
             fontWeight: 700,
           }}
         >
-          {fmtTime(totalSeconds)}
+          {fmtTime(displaySeconds)}
         </span>
-        <span className="text-xs mt-2" style={{ color: running ? accentColor : 'var(--text-2)' }}>
-          {running ? 'Recording…' : 'Paused'}
-        </span>
+        {pomodoroMode ? (
+          <span className="text-xs mt-2" style={{ color: running ? phaseColor : 'var(--text-2)' }}>
+            {running ? `Cycle ${pomodoroCycle} / ${pomodoroLongBreakAfter}` : 'Paused'}
+          </span>
+        ) : (
+          <span className="text-xs mt-2" style={{ color: running ? accentColor : 'var(--text-2)' }}>
+            {running ? 'Recording…' : 'Paused'}
+          </span>
+        )}
       </div>
 
       {running && (
         <div
           className="w-2 h-2 rounded-full"
-          style={{ backgroundColor: accentColor, boxShadow: `0 0 0 0 ${accentColor}66`, animation: 'pulse 2s ease-in-out infinite' }}
+          style={{ backgroundColor: phaseColor, boxShadow: `0 0 0 0 ${phaseColor}66`, animation: 'pulse 2s ease-in-out infinite' }}
         />
       )}
 
@@ -1129,6 +1205,85 @@ function DeleteConfirmModal({ onConfirm, onCancel }) {
           </button>
         </div>
       </div>
+    </div>
+  )
+}
+
+// ── Pomodoro sub-components ──────────────────────────────────────────────────
+
+function ModeToggle({ mode, onChange }) {
+  return (
+    <div className="flex justify-center mb-5">
+      <div className="flex p-1 rounded-2xl gap-0.5" style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)' }}>
+        {[
+          { value: 'stopwatch', label: '⏱ Stopwatch' },
+          { value: 'pomodoro',  label: '🍅 Pomodoro'  },
+        ].map(({ value, label }) => (
+          <button
+            key={value}
+            onClick={() => onChange(value)}
+            className="px-4 py-1.5 rounded-xl text-xs font-semibold transition-colors"
+            style={mode === value
+              ? { backgroundColor: '#E63946', color: '#fff' }
+              : { backgroundColor: 'transparent', color: 'var(--text-2)' }
+            }
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function PomodoroSettings({ settings, onChangeField }) {
+  const FIELDS = [
+    { key: 'workMin',        label: 'Work (min)'          },
+    { key: 'shortBreakMin',  label: 'Short break (min)'   },
+    { key: 'longBreakMin',   label: 'Long break (min)'    },
+    { key: 'longBreakAfter', label: 'Cycles/long break'   },
+  ]
+  return (
+    <div className="rounded-2xl p-4 mb-4" style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)' }}>
+      <p className="text-[11px] font-medium mb-3" style={{ color: 'var(--text-2)' }}>Pomodoro Settings</p>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+        {FIELDS.map(({ key, label }) => (
+          <div key={key} className="flex flex-col gap-1">
+            <label className="text-[10px]" style={{ color: 'var(--text-2)' }}>{label}</label>
+            <input
+              type="number"
+              value={settings[key]}
+              min="1"
+              onChange={e => onChangeField(key, e.target.value)}
+              className="h-8 px-2 rounded-lg text-sm outline-none text-center"
+              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function PomoBanner({ message }) {
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 90,
+        backgroundColor: '#18181b',
+        borderBottom: '1px solid #27272a',
+        padding: '14px 16px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.55)',
+      }}
+    >
+      <span style={{ color: '#fafafa', fontSize: '0.875rem', fontWeight: 600 }}>{message}</span>
     </div>
   )
 }
