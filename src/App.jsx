@@ -1,9 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { useAuth } from './context/AuthContext.jsx'
-import { useTheme } from './context/ThemeContext.jsx'
-import { TimerProvider, useTimer, fmtTime } from './context/TimerContext.jsx'
+import { TimerProvider, useTimer } from './context/TimerContext.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import BottomNav from './components/BottomNav.jsx'
+import FloatingTimer from './components/FloatingTimer.jsx'
 import Home from './pages/Home.jsx'
 import Session from './pages/Session.jsx'
 import StatsPage from './pages/StatsPage.jsx'
@@ -13,76 +12,6 @@ import Quiz from './pages/Quiz.jsx'
 import Settings from './pages/Settings.jsx'
 import Login from './pages/Login.jsx'
 
-function FloatingTimerPill() {
-  const { phase, totalSeconds, running, resetAll } = useTimer()
-  const { pathname } = useLocation()
-  const navigate = useNavigate()
-
-  if (phase !== 'running' || pathname === '/session') return null
-
-  return (
-    <div
-      onClick={() => navigate('/session')}
-      style={{
-        position: 'fixed',
-        bottom: '72px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 45,
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        padding: '8px 14px 8px 16px',
-        backgroundColor: '#1a1a1d',
-        border: '1px solid #2a2a2d',
-        borderRadius: '999px',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.55)',
-        cursor: 'pointer',
-        userSelect: 'none',
-        whiteSpace: 'nowrap',
-      }}
-    >
-      <span style={{ fontSize: '12px', color: running ? '#E63946' : '#666' }}>⏱</span>
-      <span
-        style={{
-          color: '#fff',
-          fontSize: '13px',
-          fontWeight: 600,
-          fontFamily: "'JetBrains Mono', monospace",
-          letterSpacing: '0.02em',
-        }}
-      >
-        {fmtTime(totalSeconds)}
-      </span>
-      {!running && (
-        <span style={{ color: '#666', fontSize: '11px' }}>paused</span>
-      )}
-      <button
-        onClick={e => { e.stopPropagation(); resetAll() }}
-        aria-label="Stop session"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '22px',
-          height: '22px',
-          borderRadius: '50%',
-          backgroundColor: 'rgba(255,255,255,0.1)',
-          border: 'none',
-          color: 'rgba(255,255,255,0.55)',
-          cursor: 'pointer',
-          flexShrink: 0,
-          marginLeft: '2px',
-          padding: 0,
-        }}
-      >
-        <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: '9px', height: '9px' }}>
-          <rect x="4" y="4" width="16" height="16" rx="2" />
-        </svg>
-      </button>
-    </div>
-  )
-}
 
 const PAGE_TITLES = {
   '/session':  'Session',
@@ -157,17 +86,17 @@ function Layout() {
         </div>
       </main>
       {!isAuth && <BottomNav />}
-      {!isAuth && <FloatingTimerPill />}
+      {!isAuth && <FloatingTimer />}
     </div>
   )
 }
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <TimerProvider>
+    <TimerProvider>
+      <BrowserRouter>
         <Layout />
-      </TimerProvider>
-    </BrowserRouter>
+      </BrowserRouter>
+    </TimerProvider>
   )
 }

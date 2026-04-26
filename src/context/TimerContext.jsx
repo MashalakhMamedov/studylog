@@ -25,7 +25,7 @@ const LS = {
   segments:      'sl_timer_segments',      // JSON array of segment objects
 }
 
-const TimerContext = createContext(null)
+export const TimerContext = createContext(null)
 
 export function useTimer() {
   return useContext(TimerContext)
