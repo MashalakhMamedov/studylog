@@ -20,7 +20,7 @@ export default function Courses() {
   const [courses, setCourses] = useState([])
   const [materialCounts, setMaterialCounts] = useState({})
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState('all')
+  const [filter, setFilter] = useState('active')
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(EMPTY_COURSE_FORM)
