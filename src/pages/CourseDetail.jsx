@@ -140,6 +140,37 @@ const displayText = p => p.replace(/^✓ /, '')
 const toggleKnown = p => isKnown(p) ? displayText(p) : `✓ ${p}`
 
 // ── Main component ───────────────────────────────────────────────────────────
+const EMPTY_QUIZ_FORM = {
+  resource_id: '', total_questions: '', correct_answers: '', topic: '', date: localDateStr(),
+}
+
+function quizFormFromResult(q) {
+  return {
+    resource_id: q.resource_id || '',
+    total_questions: q.total_questions?.toString() || '',
+    correct_answers: q.correct_answers?.toString() || '',
+    topic: q.topic || '',
+    date: q.date || localDateStr(),
+  }
+}
+
+function validateQuizForm(form) {
+  const total = Number(form.total_questions)
+  const correct = Number(form.correct_answers)
+  const error =
+    form.total_questions && (!Number.isInteger(total) || total < 1)
+      ? 'Total questions must be a whole number.'
+      : total > 500
+        ? 'Total questions cannot exceed 500.'
+        : form.correct_answers && (!Number.isInteger(correct) || correct < 0)
+          ? 'Correct answers must be a whole number.'
+          : form.total_questions && form.correct_answers && correct > total
+            ? 'Correct answers cannot exceed total questions.'
+            : ''
+
+  return { total, correct, error }
+}
+
 export default function CourseDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -179,6 +210,12 @@ export default function CourseDetail() {
   const [materialSaveError, setMaterialSaveError] = useState('')
   const [savingMaterial, setSavingMaterial] = useState(false)
   const [deleteMaterialTarget, setDeleteMaterialTarget] = useState(null)
+  const [editingQuiz, setEditingQuiz] = useState(null)
+  const [quizForm, setQuizForm] = useState(EMPTY_QUIZ_FORM)
+  const [quizSaveError, setQuizSaveError] = useState('')
+  const [savingQuiz, setSavingQuiz] = useState(false)
+  const [deleteQuizTarget, setDeleteQuizTarget] = useState(null)
+  const [deletingQuiz, setDeletingQuiz] = useState(false)
 
   // Materials list controls
   const [materialFilter, setMaterialFilter] = useState('all')
@@ -415,6 +452,74 @@ export default function CourseDetail() {
     await supabase.from('resources').delete().eq('id', matId)
     setResources(prev => prev.filter(r => r.id !== matId))
     setDeleteMaterialTarget(null)
+  }
+
+  function openEditQuiz(q) {
+    setEditingQuiz(q)
+    setQuizForm(quizFormFromResult(q))
+    setQuizSaveError('')
+  }
+
+  function closeEditQuiz() {
+    setEditingQuiz(null)
+    setQuizForm(EMPTY_QUIZ_FORM)
+    setQuizSaveError('')
+    setSavingQuiz(false)
+  }
+
+  async function saveQuizResult() {
+    if (!editingQuiz) return
+    const { total, correct, error } = validateQuizForm(quizForm)
+    if (error || !quizForm.total_questions || quizForm.correct_answers === '') {
+      setQuizSaveError(error || 'Enter total questions and correct answers.')
+      return
+    }
+
+    setSavingQuiz(true)
+    setQuizSaveError('')
+    const { data, error: updateError } = await supabase
+      .from('quiz_results')
+      .update({
+        resource_id: quizForm.resource_id || null,
+        total_questions: total,
+        correct_answers: correct,
+        topic: quizForm.topic.trim() || null,
+        date: quizForm.date,
+      })
+      .eq('id', editingQuiz.id)
+      .eq('user_id', userId)
+      .select('id, user_id, course_id, resource_id, total_questions, correct_answers, score_percent, topic, date')
+      .single()
+
+    if (updateError) {
+      setQuizSaveError(updateError.message || 'Could not save quiz result.')
+      setSavingQuiz(false)
+      return
+    }
+
+    setQuizResults(prev => prev.map(q => q.id === data.id ? data : q))
+    setSavingQuiz(false)
+    closeEditQuiz()
+  }
+
+  async function deleteQuizResult() {
+    if (!deleteQuizTarget) return
+    setDeletingQuiz(true)
+    const { error } = await supabase
+      .from('quiz_results')
+      .delete()
+      .eq('id', deleteQuizTarget.id)
+      .eq('user_id', userId)
+
+    if (error) {
+      setQuizResultsError(error.message || 'Could not delete quiz result.')
+      setDeletingQuiz(false)
+      return
+    }
+
+    setQuizResults(prev => prev.filter(q => q.id !== deleteQuizTarget.id))
+    setDeleteQuizTarget(null)
+    setDeletingQuiz(false)
   }
 
   // ── Drag handlers ────────────────────────────────────────────────────────
@@ -824,7 +929,12 @@ export default function CourseDetail() {
           ) : (
             <div className="space-y-2.5">
               {quizResults.map(result => (
-                <QuizResultCard key={result.id} result={result} />
+                <QuizResultCard
+                  key={result.id}
+                  result={result}
+                  onEdit={() => openEditQuiz(result)}
+                  onDelete={() => setDeleteQuizTarget(result)}
+                />
               ))}
             </div>
           )}
@@ -878,6 +988,27 @@ export default function CourseDetail() {
           saving={savingMaterial}
           onSave={saveMaterial}
           onClose={closeMaterialModal}
+        />
+      )}
+
+      {editingQuiz && (
+        <CourseQuizEditModal
+          form={quizForm}
+          setForm={setQuizForm}
+          resources={resources}
+          error={quizSaveError}
+          saving={savingQuiz}
+          onSave={saveQuizResult}
+          onClose={closeEditQuiz}
+        />
+      )}
+
+      {deleteQuizTarget && (
+        <CourseQuizDeleteConfirm
+          quiz={deleteQuizTarget}
+          deleting={deletingQuiz}
+          onConfirm={deleteQuizResult}
+          onCancel={() => setDeleteQuizTarget(null)}
         />
       )}
 
@@ -1360,7 +1491,81 @@ function DeleteMaterialConfirm({ resource, onConfirm, onCancel }) {
 }
 
 // QuizResultCard
-function QuizResultCard({ result }) {
+function CourseQuizEditModal({ form, setForm, resources, error, saving, onSave, onClose }) {
+  const { accentColor } = useTheme()
+  const { error: validationError } = validateQuizForm(form)
+  const canSave = form.total_questions && form.correct_answers !== '' && !validationError && !saving
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ backgroundColor: 'var(--modal-overlay)' }} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="w-full max-w-sm rounded-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)' }}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold" style={{ color: 'var(--text-1)' }}>Edit Quiz Result</h2>
+          <button onClick={onClose} style={{ color: 'var(--text-2)' }} aria-label="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Total Questions">
+            <input type="number" value={form.total_questions} onChange={e => setForm(f => ({ ...f, total_questions: e.target.value }))} min="1" max="500" className="h-10 px-3 rounded-xl text-sm w-full outline-none" style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }} />
+          </Field>
+          <Field label="Correct Answers">
+            <input type="number" value={form.correct_answers} onChange={e => setForm(f => ({ ...f, correct_answers: e.target.value }))} min="0" max={Number(form.total_questions) > 0 ? Math.min(Number(form.total_questions), 500) : 500} className="h-10 px-3 rounded-xl text-sm w-full outline-none" style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }} />
+          </Field>
+        </div>
+
+        <Field label="Resource (optional)">
+          <select value={form.resource_id} onChange={e => setForm(f => ({ ...f, resource_id: e.target.value }))} className="h-10 px-3 rounded-xl text-sm w-full outline-none" style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: form.resource_id ? 'var(--text-1)' : 'var(--text-2)' }}>
+            <option value="">None</option>
+            {resources.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+          </select>
+        </Field>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Topic">
+            <input type="text" value={form.topic} onChange={e => setForm(f => ({ ...f, topic: e.target.value }))} maxLength={120} className="h-10 px-3 rounded-xl text-sm w-full outline-none" style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }} />
+          </Field>
+          <Field label="Date">
+            <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className="h-10 px-3 rounded-xl text-sm w-full outline-none" style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }} />
+          </Field>
+        </div>
+
+        {(validationError || error) && <p className="text-xs" style={{ color: '#ef4444' }}>{validationError || error}</p>}
+
+        <button onClick={onSave} disabled={!canSave} className="w-full py-3 rounded-xl font-semibold text-sm" style={{ backgroundColor: canSave ? accentColor : 'var(--bg-surf)', color: canSave ? '#fff' : 'var(--text-2)', border: canSave ? 'none' : '1px solid var(--border)' }}>
+          {saving ? 'Saving...' : 'Save Changes'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function CourseQuizDeleteConfirm({ quiz, deleting, onConfirm, onCancel }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--modal-overlay)' }} onClick={e => e.target === e.currentTarget && onCancel()}>
+      <div className="w-full max-w-xs rounded-2xl p-5 space-y-4" style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)' }}>
+        <div className="space-y-1.5">
+          <p className="font-bold" style={{ color: 'var(--text-1)' }}>Delete quiz result?</p>
+          <p className="text-sm font-medium" style={{ color: 'var(--text-2)' }}>{quiz.topic || 'Quiz'}</p>
+          <p className="text-xs" style={{ color: 'var(--text-2)' }}>This will permanently remove the result.</p>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={onCancel} disabled={deleting} className="flex-1 py-2.5 rounded-xl text-sm font-medium" style={{ backgroundColor: 'var(--bg-surf)', color: 'var(--text-1)', border: '1px solid var(--border)' }}>
+            Cancel
+          </button>
+          <button onClick={onConfirm} disabled={deleting} className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ backgroundColor: '#ef4444', color: '#fff' }}>
+            {deleting ? 'Deleting...' : 'Delete'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function QuizResultCard({ result, onEdit, onDelete }) {
   const color = quizScoreColor(result.score_percent)
 
   return (
@@ -1385,6 +1590,28 @@ function QuizResultCard({ result }) {
             {result.correct_answers}/{result.total_questions} correct
           </p>
         </div>
+      </div>
+      <div className="flex gap-2 mt-3">
+        <button
+          onClick={onEdit}
+          className="flex-1 py-1.5 rounded-lg text-xs font-medium"
+          style={{ backgroundColor: 'var(--bg-surf)', color: 'var(--text-1)', border: '1px solid var(--border)' }}
+        >
+          Edit
+        </button>
+        <button
+          onClick={onDelete}
+          className="px-3 py-1.5 rounded-lg text-xs"
+          style={{ backgroundColor: 'var(--bg-surf)', color: '#f87171', border: '1px solid var(--border)' }}
+          aria-label="Delete quiz result"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6l-1 14H6L5 6" />
+            <path d="M10 11v6M14 11v6" />
+            <path d="M9 6V4h6v2" />
+          </svg>
+        </button>
       </div>
     </div>
   )
