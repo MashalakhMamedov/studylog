@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { FilePlus, Plus } from 'lucide-react'
+import { FilePlus, Plus, Trash2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useCourses } from '../context/CoursesContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
@@ -442,6 +442,11 @@ export default function CourseDetail() {
     await supabase.from('resources').delete().eq('id', matId)
     setResources(prev => prev.filter(r => r.id !== matId))
     setDeleteMaterialTarget(null)
+  }
+
+  async function deleteSession(sessionId) {
+    setSessions(prev => prev.filter(s => s.id !== sessionId))
+    await supabase.from('sessions').delete().eq('id', sessionId).eq('user_id', userId)
   }
 
   function openEditQuiz(q) {
@@ -921,7 +926,7 @@ export default function CourseDetail() {
               {recentSessions.map((s, i) => (
                 <div key={s.id}>
                   {i > 0 && <div style={{ height: '1px', backgroundColor: 'var(--border)' }} />}
-                  <SessionRow session={s} />
+                  <SessionRow session={s} onDelete={deleteSession} />
                 </div>
               ))}
             </div>
@@ -1542,10 +1547,34 @@ function QuizResultCard({ result, onEdit, onDelete }) {
 }
 
 // SessionRow
-function SessionRow({ session: s }) {
+function SessionRow({ session: s, onDelete }) {
   const { accentColor } = useTheme()
+  const [confirming, setConfirming] = useState(false)
+
+  if (confirming) {
+    return (
+      <div className="px-4 py-3 flex items-center justify-end gap-2 min-h-[54px] text-xs">
+        <span style={{ color: '#f87171' }}>Delete?</span>
+        <button onClick={() => onDelete(s.id)} className="font-semibold" style={{ color: '#ef4444' }}>
+          ✓ Yes
+        </button>
+        <button onClick={() => setConfirming(false)} className="font-semibold" style={{ color: '#9ca3af' }}>
+          ✗ No
+        </button>
+      </div>
+    )
+  }
+
   return (
-    <div className="px-4 py-3">
+    <div className="px-4 py-3 pr-10 relative">
+      <button
+        onClick={() => setConfirming(true)}
+        className="absolute top-3 right-3 p-1"
+        style={{ color: '#6b7280' }}
+        aria-label="Delete session"
+      >
+        <Trash2 className="w-3.5 h-3.5" strokeWidth={2} />
+      </button>
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           {s.focus_type && (

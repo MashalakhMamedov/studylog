@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Clock3 } from 'lucide-react'
+import { Clock3, Trash2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import SwipeableRow from '../components/SwipeableRow.jsx'
@@ -121,7 +121,7 @@ export default function Sessions() {
 
   async function handleDeleteHistory(id) {
     setHistory(prev => prev.filter(s => s.id !== id))
-    await supabase.from('sessions').delete().eq('id', id)
+    await supabase.from('sessions').delete().eq('id', id).eq('user_id', session.user.id)
   }
 
   const canSubmit = form.course_id && form.duration && !saving
@@ -309,6 +309,77 @@ function HistoryCard({ s, onDelete }) {
   const [confirming, setConfirming] = useState(false)
   const course = s.courses
   if (!course) return null
+
+  return (
+    <SwipeableRow onDelete={() => setConfirming(true)}>
+      <div className="px-4 py-3 pr-10 relative" style={{ backgroundColor: 'var(--bg-card)' }}>
+        {confirming ? (
+          <div className="flex items-center justify-end gap-2 min-h-[54px] text-xs">
+            <span style={{ color: '#f87171' }}>Delete?</span>
+            <button onClick={() => { onDelete(s.id); setConfirming(false) }} className="font-semibold" style={{ color: '#ef4444' }}>
+              ✓ Yes
+            </button>
+            <button onClick={() => setConfirming(false)} className="font-semibold" style={{ color: '#9ca3af' }}>
+              ✗ No
+            </button>
+          </div>
+        ) : (
+          <>
+            <button
+              onClick={() => setConfirming(true)}
+              className="absolute top-3 right-3 p-1"
+              style={{ color: '#6b7280' }}
+              aria-label="Delete session"
+            >
+              <Trash2 className="w-3.5 h-3.5" strokeWidth={2} />
+            </button>
+
+            <div className="flex items-center justify-between gap-2">
+              <span
+                className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-semibold truncate"
+                style={{ backgroundColor: course.color + '22', color: course.color, maxWidth: '55%' }}
+              >
+                {course.emoji} {course.name}
+              </span>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className="text-sm font-bold" style={{ color: 'var(--text-1)' }}>{fmtMins(s.duration_minutes)}</span>
+                <span className="text-[11px]" style={{ color: 'var(--text-2)' }}>{fmtRelativeDate(s.date)}</span>
+              </div>
+            </div>
+
+            {(s.resources?.name || s.pages_covered) && (
+              <p className="text-xs mt-1.5 truncate" style={{ color: 'var(--text-2)' }}>
+                {[s.resources?.name, s.pages_covered].filter(Boolean).join(' · ')}
+              </p>
+            )}
+
+            <div className="flex flex-wrap gap-1.5 mt-1.5">
+              {s.focus_type && (
+                <span
+                  className="px-1.5 py-0.5 rounded text-[10px] font-medium"
+                  style={{ backgroundColor: '#E6394622', color: '#E63946' }}
+                >
+                  {FOCUS_LABEL[s.focus_type] ?? s.focus_type}
+                </span>
+              )}
+              {s.energy_level && (
+                <span
+                  className="px-1.5 py-0.5 rounded text-[10px] font-medium"
+                  style={{ backgroundColor: ENERGY_COLOR[s.energy_level] + '22', color: ENERGY_COLOR[s.energy_level] }}
+                >
+                  {ENERGY_LABEL[s.energy_level] ?? s.energy_level}
+                </span>
+              )}
+            </div>
+
+            {s.notes && (
+              <p className="text-xs italic mt-1.5 truncate" style={{ color: 'var(--text-2)' }}>{s.notes}</p>
+            )}
+          </>
+        )}
+      </div>
+    </SwipeableRow>
+  )
 
   return (
     <>

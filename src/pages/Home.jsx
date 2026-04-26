@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { CalendarClock, Clock3, CirclePlay } from 'lucide-react'
+import { CalendarClock, Clock3, CirclePlay, Trash2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
@@ -76,13 +76,29 @@ function fmtMins(m) {
   return `${h}h ${min}m`
 }
 
+function fmtCardDuration(m) {
+  if (!m) return '0 min'
+  const h = Math.floor(m / 60)
+  const min = m % 60
+  if (h === 0) return `${min} min`
+  if (min === 0) return `${h}h`
+  return `${h}h ${min}m`
+}
+
 function fmtRelativeTime(createdAt) {
   if (!createdAt) return ''
   const diff = (Date.now() - new Date(createdAt).getTime()) / 1000
   if (diff < 60) return 'just now'
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+  if (diff < 3600) {
+    const mins = Math.floor(diff / 60)
+    return `${mins} minute${mins === 1 ? '' : 's'} ago`
+  }
+  if (diff < 86400) {
+    const hours = Math.floor(diff / 3600)
+    return `${hours} hour${hours === 1 ? '' : 's'} ago`
+  }
   if (diff < 172800) return 'Yesterday'
+  if (diff < 604800) return new Date(createdAt).toLocaleDateString('en-US', { weekday: 'short' })
   return new Date(createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
@@ -208,7 +224,7 @@ export default function Home() {
   async function handleDeleteSession(id) {
     setRecentSessions(prev => prev?.filter(s => s.id !== id) ?? [])
     setAllSessions(prev => prev?.filter(s => s.id !== id) ?? [])
-    await supabase.from('sessions').delete().eq('id', id)
+    await supabase.from('sessions').delete().eq('id', id).eq('user_id', authSession.user.id)
   }
 
   return (
@@ -581,11 +597,63 @@ function RecentSessionsList({ sessions, loading, onDelete }) {
 }
 
 function SessionCard({ s, onDelete, onTap }) {
-  const { accentColor } = useTheme()
+  const [confirming, setConfirming] = useState(false)
   const course = s.courses
   if (!course) return null
 
-  const energyColor = ENERGY_COLOR[s.energy_level] ?? 'var(--text-3)'
+  const accent = course.color || '#6366f1'
+  const resourceText = [s.resources?.name, s.pages_covered ? `p.${s.pages_covered}` : null].filter(Boolean).join(' · ') || '—'
+
+  return (
+    <SwipeableRow onDelete={() => setConfirming(true)} bg="#111113">
+      <div
+        className="relative w-full rounded-xl p-3 pr-10 text-left transition-colors hover:bg-[#1a1a1d] active:bg-[#1a1a1d]"
+        style={{ backgroundColor: '#111113', borderLeft: `3px solid ${accent}` }}
+      >
+        {confirming ? (
+          <div className="flex items-center justify-end gap-2 min-h-[58px] text-xs">
+            <span style={{ color: '#f87171' }}>Delete?</span>
+            <button onClick={() => onDelete(s.id)} className="font-semibold" style={{ color: '#ef4444' }}>
+              ✓ Yes
+            </button>
+            <button onClick={() => setConfirming(false)} className="font-semibold" style={{ color: '#9ca3af' }}>
+              ✗ No
+            </button>
+          </div>
+        ) : (
+          <>
+            <button onClick={onTap} className="block w-full text-left">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-base leading-none flex-shrink-0">{course.emoji}</span>
+                <p className="text-sm font-bold truncate" style={{ color: '#fff' }}>
+                  {course.name}
+                </p>
+              </div>
+              <p className="mt-1 text-xs truncate" style={{ color: '#9ca3af' }}>
+                {resourceText}
+              </p>
+              <div className="flex items-center justify-between gap-3 mt-1.5 text-xs">
+                <span className="font-medium tabular-nums" style={{ color: '#9ca3af' }}>
+                  {fmtCardDuration(s.duration_minutes)}
+                </span>
+                <span className="truncate text-right" style={{ color: '#9ca3af' }}>
+                  {fmtRelativeTime(s.created_at)}
+                </span>
+              </div>
+            </button>
+            <button
+              onClick={() => setConfirming(true)}
+              className="absolute right-2.5 top-2.5 p-1"
+              style={{ color: '#6b7280' }}
+              aria-label="Delete session"
+            >
+              <Trash2 className="w-3.5 h-3.5" strokeWidth={2} />
+            </button>
+          </>
+        )}
+      </div>
+    </SwipeableRow>
+  )
 
   return (
     <SwipeableRow onDelete={() => onDelete(s.id)}>
