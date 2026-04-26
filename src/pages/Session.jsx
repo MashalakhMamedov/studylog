@@ -180,12 +180,6 @@ function FocusTab() {
 
   useEffect(() => { if (phase !== 'running') setZenMode(false) }, [phase])
 
-  useEffect(() => {
-    const handleKey = (e) => { if (e.key === 'Escape') setZenMode(false) }
-    if (zenMode) window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
-  }, [zenMode])
-
   // Sync Pomodoro settings to context on mount
   useEffect(() => { setPomodoroSettings(pomSettings) }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -296,7 +290,10 @@ function FocusTab() {
       {toast && <Toast />}
 
       {zenMode && (
-        <ZenClock totalSeconds={totalSeconds} onExit={() => setZenMode(false)} />
+        <ZenMode
+          segment={currentSeg}
+          onExit={() => setZenMode(false)}
+        />
       )}
     </div>
   )
@@ -576,32 +573,180 @@ function LogTab() {
 
 // ── Timer sub-components ─────────────────────────────────────────────────────
 
-function ZenClock({ totalSeconds, onExit }) {
+function getFullscreenElement() {
+  return document.fullscreenElement
+    || document.webkitFullscreenElement
+    || document.mozFullScreenElement
+    || document.msFullscreenElement
+}
+
+function requestBrowserFullscreen(element) {
+  const request = element.requestFullscreen
+    || element.webkitRequestFullscreen
+    || element.mozRequestFullScreen
+    || element.msRequestFullscreen
+
+  if (!request) return
+
+  try {
+    const result = request.call(element)
+    result?.catch?.(() => {})
+  } catch {}
+}
+
+function exitBrowserFullscreen() {
+  const exit = document.exitFullscreen
+    || document.webkitExitFullscreen
+    || document.mozCancelFullScreen
+    || document.msExitFullscreen
+
+  if (!exit || !getFullscreenElement()) return
+
+  try {
+    const result = exit.call(document)
+    result?.catch?.(() => {})
+  } catch {}
+}
+
+function ZenMode({ segment, onExit }) {
+  const {
+    totalSeconds,
+    pomodoroMode,
+    pomodoroPhase,
+    pomodoroSecondsLeft,
+  } = useTimer()
+
+  const displaySeconds = pomodoroMode ? pomodoroSecondsLeft : totalSeconds
+  const courseLine = [segment?.courseEmoji, segment?.courseName].filter(Boolean).join(' ')
+  const resourceLine = segment?.resourceName
+
+  function closeZenMode() {
+    exitBrowserFullscreen()
+    onExit()
+  }
+
+  useEffect(() => {
+    requestBrowserFullscreen(document.documentElement)
+
+    function handleKeyDown(e) {
+      if (e.key === 'Escape') closeZenMode()
+    }
+
+    function handleFullscreenChange() {
+      if (!getFullscreenElement()) onExit()
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange)
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange)
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange)
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('fullscreenchange', handleFullscreenChange)
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange)
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange)
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange)
+      exitBrowserFullscreen()
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div
-      onClick={onExit}
       style={{
         position: 'fixed',
         inset: 0,
         zIndex: 9999,
         backgroundColor: '#000000',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        cursor: 'pointer',
+        color: '#ffffff',
+        textAlign: 'center',
+        userSelect: 'none',
       }}
     >
-      <span
+      <button
+        onClick={closeZenMode}
+        aria-label="Exit Zen Mode"
+        title="Exit Zen"
+        className="opacity-40 transition-opacity hover:opacity-90"
         style={{
-          fontFamily: 'monospace',
-          fontSize: 'min(20vw, 7rem)',
+          position: 'absolute',
+          top: '1rem',
+          right: '1rem',
+          width: '2.25rem',
+          height: '2.25rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           color: '#ffffff',
-          letterSpacing: '0.05em',
-          userSelect: 'none',
+          backgroundColor: 'transparent',
+          border: '1px solid rgba(255,255,255,0.16)',
+          borderRadius: '999px',
+          cursor: 'pointer',
         }}
       >
-        {fmtTime(totalSeconds)}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+
+      {pomodoroMode && (
+        <span
+          style={{
+            color: '#ffffff',
+            fontSize: '1rem',
+            fontWeight: 700,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            marginBottom: '1rem',
+          }}
+        >
+          {POMO_PHASE_LABEL[pomodoroPhase]}
+        </span>
+      )}
+
+      <span
+        style={{
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: 'clamp(4rem, 15vw, 8rem)',
+          fontWeight: 700,
+          color: '#ffffff',
+          lineHeight: 1,
+        }}
+      >
+        {fmtTime(displaySeconds)}
       </span>
+
+      <span
+        style={{
+          color: '#9ca3af',
+          fontSize: '1.2rem',
+          marginTop: '1.5rem',
+          lineHeight: 1.35,
+          padding: '0 1.5rem',
+        }}
+      >
+        {courseLine}
+      </span>
+
+      {resourceLine && (
+        <span
+          style={{
+            color: '#6b7280',
+            fontSize: '0.9rem',
+            marginTop: '0.35rem',
+            lineHeight: 1.35,
+            padding: '0 1.5rem',
+          }}
+        >
+          {resourceLine}
+        </span>
+      )}
     </div>
   )
 }
@@ -661,16 +806,19 @@ function RunningView({ totalSeconds, running, segment, segmentCount, onPause, on
   const phaseColor     = pomodoroMode ? POMO_PHASE_COLOR[pomodoroPhase] : accentColor
   return (
     <div className="flex flex-col items-center gap-6">
-      <button
-        onClick={onFullscreen}
-        title="Enter fullscreen"
-        className="self-end flex items-center justify-center w-8 h-8 rounded-xl"
-        style={{ color: 'var(--text-2)', border: '1px solid var(--border)' }}
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-        </svg>
-      </button>
+      {running && (
+        <button
+          onClick={onFullscreen}
+          title="Enter Zen Mode"
+          className="self-end flex items-center gap-1.5 px-3 h-8 rounded-xl text-xs font-semibold"
+          style={{ color: 'var(--text-2)', border: '1px solid var(--border)' }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+          </svg>
+          Zen Mode
+        </button>
+      )}
 
       <div className="w-full flex items-center justify-between gap-2 px-4 py-3 rounded-2xl"
         style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
