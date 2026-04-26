@@ -146,7 +146,7 @@ export function TimerProvider({ children }) {
   useEffect(() => {
     Promise.all([
       supabase.from('courses').select('id, name, emoji, color').order('name'),
-      supabase.from('resources').select('id, course_id, name, type').order('name'),
+      supabase.from('resources').select('id, course_id, name, type, link').order('name'),
     ]).then(([{ data: c }, { data: r }]) => {
       if (c) setCourses(c)
       if (r) setAllResources(r)
@@ -238,7 +238,9 @@ export function TimerProvider({ children }) {
     const initialSegments = [{
       course_id: course.id, resource_id: resource?.id ?? null,
       courseName: course.name, courseEmoji: course.emoji, courseColor: course.color,
-      resourceName: resource?.name ?? null, startSeconds: 0,
+      resourceName: resource?.name ?? null,
+      resourceLink: resource?.link ?? null,
+      startSeconds: 0,
     }]
     segmentsRef.current = initialSegments
     setSegments(initialSegments)
@@ -268,7 +270,9 @@ export function TimerProvider({ children }) {
     const next = [...segmentsRef.current, {
       course_id: course.id, resource_id: resource?.id ?? null,
       courseName: course.name, courseEmoji: course.emoji, courseColor: course.color,
-      resourceName: resource?.name ?? null, startSeconds: snapSecs,
+      resourceName: resource?.name ?? null,
+      resourceLink: resource?.link ?? null,
+      startSeconds: snapSecs,
     }]
     segmentsRef.current = next
     setSegments(next)

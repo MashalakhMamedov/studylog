@@ -13,45 +13,73 @@ import Quiz from './pages/Quiz.jsx'
 import Settings from './pages/Settings.jsx'
 import Login from './pages/Login.jsx'
 
-function FloatingTimerBar() {
-  const { phase, totalSeconds, segments, running } = useTimer()
-  const { accentColor } = useTheme()
+function FloatingTimerPill() {
+  const { phase, totalSeconds, running, resetAll } = useTimer()
   const { pathname } = useLocation()
   const navigate = useNavigate()
 
   if (phase !== 'running' || pathname === '/session') return null
-  const seg = segments[segments.length - 1]
-  if (!seg) return null
 
   return (
     <div
       onClick={() => navigate('/session')}
-      className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 cursor-pointer select-none"
       style={{
-        backgroundColor: 'var(--bg-card)',
-        borderBottom: '1px solid var(--border)',
-        height: '44px',
+        position: 'fixed',
+        bottom: '72px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 45,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '8px 14px 8px 16px',
+        backgroundColor: '#1a1a1d',
+        border: '1px solid #2a2a2d',
+        borderRadius: '999px',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.55)',
+        cursor: 'pointer',
+        userSelect: 'none',
+        whiteSpace: 'nowrap',
       }}
     >
-      <div className="flex items-center gap-2 min-w-0">
-        <span style={{ color: running ? accentColor : 'var(--text-2)', fontSize: '14px' }}>⏱</span>
-        <span className="font-bold tabular-nums text-sm" style={{ color: 'var(--text-1)' }}>
-          {fmtTime(totalSeconds)}
-        </span>
-        <span style={{ color: 'var(--border)' }}>·</span>
-        <span
-          className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-semibold truncate"
-          style={{ backgroundColor: seg.courseColor + '22', color: seg.courseColor, maxWidth: '160px' }}
-        >
-          {seg.courseEmoji} {seg.courseName}
-        </span>
-        {!running && (
-          <span className="text-xs flex-shrink-0" style={{ color: 'var(--text-2)' }}>— Paused</span>
-        )}
-      </div>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-2)' }}>
-        <polyline points="9 18 15 12 9 6" />
-      </svg>
+      <span style={{ fontSize: '12px', color: running ? '#E63946' : '#666' }}>⏱</span>
+      <span
+        style={{
+          color: '#fff',
+          fontSize: '13px',
+          fontWeight: 600,
+          fontFamily: "'JetBrains Mono', monospace",
+          letterSpacing: '0.02em',
+        }}
+      >
+        {fmtTime(totalSeconds)}
+      </span>
+      {!running && (
+        <span style={{ color: '#666', fontSize: '11px' }}>paused</span>
+      )}
+      <button
+        onClick={e => { e.stopPropagation(); resetAll() }}
+        aria-label="Stop session"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '22px',
+          height: '22px',
+          borderRadius: '50%',
+          backgroundColor: 'rgba(255,255,255,0.1)',
+          border: 'none',
+          color: 'rgba(255,255,255,0.55)',
+          cursor: 'pointer',
+          flexShrink: 0,
+          marginLeft: '2px',
+          padding: 0,
+        }}
+      >
+        <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: '9px', height: '9px' }}>
+          <rect x="4" y="4" width="16" height="16" rx="2" />
+        </svg>
+      </button>
     </div>
   )
 }
@@ -100,16 +128,14 @@ function Layout() {
   const { pathname } = useLocation()
   const { phase } = useTimer()
   const isAuth = pathname === '/login'
-  const showTimerBar = phase === 'running' && pathname !== '/session' && !isAuth
+  const showPill = phase === 'running' && pathname !== '/session' && !isAuth
 
   return (
     <div className="flex flex-col min-h-screen" style={{ backgroundColor: 'var(--bg)' }}>
-      <FloatingTimerBar />
       <main
         className="flex-1 overflow-y-auto"
         style={{
-          paddingBottom: isAuth ? '0' : '64px',
-          paddingTop: showTimerBar ? '44px' : '0',
+          paddingBottom: isAuth ? '0' : showPill ? '120px' : '64px',
         }}
       >
         <div className="max-w-lg mx-auto">
@@ -131,6 +157,7 @@ function Layout() {
         </div>
       </main>
       {!isAuth && <BottomNav />}
+      {!isAuth && <FloatingTimerPill />}
     </div>
   )
 }

@@ -630,6 +630,22 @@ function RunningView({ totalSeconds, running, segment, segmentCount, onPause, on
         </button>
       </div>
 
+      {segment.resourceName && (
+        <div className="flex justify-center">
+          {segment.resourceLink ? (
+            <button
+              onClick={() => window.open(segment.resourceLink, '_blank')}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium"
+              style={{ backgroundColor: 'var(--bg-surf)', color: 'var(--text-1)', border: '1px solid var(--border)' }}
+            >
+              Open Material ↗
+            </button>
+          ) : (
+            <span className="text-xs" style={{ color: 'var(--text-2)' }}>[no link saved]</span>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-col items-center gap-1 py-6">
         <span
           className="tabular-nums tracking-tight leading-none"
