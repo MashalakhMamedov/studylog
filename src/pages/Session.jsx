@@ -6,7 +6,6 @@ import { useTimer, fmtTime } from '../context/TimerContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import SwipeableRow from '../components/SwipeableRow.jsx'
-import FullscreenTimer from '../components/FullscreenTimer.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import { SkeletonCard } from '../components/Skeleton.jsx'
 
@@ -154,23 +153,15 @@ function FocusTab() {
   }, [toast])
 
   const currentSeg = segments[segments.length - 1]
-  const [fullscreen, setFullscreen] = useState(false)
+  const [zenMode, setZenMode] = useState(false)
+
+  useEffect(() => { if (phase !== 'running') setZenMode(false) }, [phase])
 
   useEffect(() => {
-    if (fullscreen) {
-      document.documentElement.requestFullscreen?.().catch(() => {})
-    } else if (document.fullscreenElement) {
-      document.exitFullscreen?.().catch(() => {})
-    }
-  }, [fullscreen])
-
-  useEffect(() => {
-    function onFsChange() { if (!document.fullscreenElement) setFullscreen(false) }
-    document.addEventListener('fullscreenchange', onFsChange)
-    return () => document.removeEventListener('fullscreenchange', onFsChange)
-  }, [])
-
-  useEffect(() => { if (phase !== 'running') setFullscreen(false) }, [phase])
+    const handleKey = (e) => { if (e.key === 'Escape') setZenMode(false) }
+    if (zenMode) window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [zenMode])
 
   const setupResources = allResources.filter(r => r.course_id === courseId)
   const swapResources = allResources.filter(r => r.course_id === swapCourseId)
@@ -200,7 +191,7 @@ function FocusTab() {
           onSwap={openSwap}
           onFinish={openFinish}
           onDiscard={() => setShowDiscard(true)}
-          onFullscreen={() => setFullscreen(true)}
+          onFullscreen={() => setZenMode(true)}
         />
       )}
 
@@ -241,16 +232,8 @@ function FocusTab() {
 
       {toast && <Toast />}
 
-      {fullscreen && phase === 'running' && currentSeg && (
-        <FullscreenTimer
-          totalSeconds={totalSeconds}
-          running={running}
-          segment={currentSeg}
-          onPause={pauseClock}
-          onResume={startClock}
-          onFinish={openFinish}
-          onExit={() => setFullscreen(false)}
-        />
+      {zenMode && (
+        <ZenClock totalSeconds={totalSeconds} onExit={() => setZenMode(false)} />
       )}
     </div>
   )
@@ -529,6 +512,36 @@ function LogTab() {
 }
 
 // ── Timer sub-components ─────────────────────────────────────────────────────
+
+function ZenClock({ totalSeconds, onExit }) {
+  return (
+    <div
+      onClick={onExit}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        backgroundColor: '#000000',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+      }}
+    >
+      <span
+        style={{
+          fontFamily: 'monospace',
+          fontSize: 'min(20vw, 7rem)',
+          color: '#ffffff',
+          letterSpacing: '0.05em',
+          userSelect: 'none',
+        }}
+      >
+        {fmtTime(totalSeconds)}
+      </span>
+    </div>
+  )
+}
 
 function SetupView({ courses, resources, courseId, resourceId, onCourseChange, onResourceChange, onStart }) {
   const { accentColor } = useTheme()
