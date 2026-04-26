@@ -1,13 +1,13 @@
-const CACHE_NAME = 'studylog-v6';
+const CACHE_NAME = 'studylog-v7';
 
 const PRECACHE_ASSETS = [
   '/manifest.json',
-  '/apple-touch-icon-v2.png',
-  '/favicon-v2.png',
-  '/favicon-32x32-v2.png',
-  '/favicon-16x16-v2.png',
-  '/app-icon-192-v2.png',
-  '/app-icon-512-v2.png',
+  '/apple-touch-icon-v3.png',
+  '/favicon-v3.png',
+  '/favicon-32x32-v3.png',
+  '/favicon-16x16-v3.png',
+  '/app-icon-192-v3.png',
+  '/app-icon-512-v3.png',
   '/splash/splash-640x1136.png',
   '/splash/splash-750x1334.png',
   '/splash/splash-1242x2208.png',
