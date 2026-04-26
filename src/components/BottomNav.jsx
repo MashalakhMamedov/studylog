@@ -34,6 +34,23 @@ const tabs = [
     ),
   },
   {
+    to: '/stats',
+    label: 'Stats',
+    icon: (active) => active ? (
+      <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+        <rect x="4" y="11" width="4" height="9" rx="1" />
+        <rect x="10" y="5" width="4" height="15" rx="1" />
+        <rect x="16" y="8" width="4" height="12" rx="1" />
+      </svg>
+    ) : (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+        <rect x="4" y="11" width="4" height="9" rx="1" />
+        <rect x="10" y="5" width="4" height="15" rx="1" />
+        <rect x="16" y="8" width="4" height="12" rx="1" />
+      </svg>
+    ),
+  },
+  {
     to: '/courses',
     label: 'Courses',
     icon: (active) => active ? (
@@ -62,7 +79,7 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around px-2 pb-safe"
+      className="fixed bottom-0 left-0 right-0 z-50 flex items-center px-2 pb-safe"
       style={{ backgroundColor: 'var(--bg-card)', borderTop: '1px solid var(--border)', height: '64px' }}
     >
       {tabs.map(({ to, label, icon }) => (
@@ -70,7 +87,7 @@ export default function BottomNav() {
           key={to}
           to={to}
           end={to === '/'}
-          className="relative flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors"
+          className="relative flex flex-1 flex-col items-center gap-1 px-2 py-2 rounded-xl transition-colors"
           style={({ isActive }) => ({ color: isActive ? 'var(--accent)' : 'var(--text-2)' })}
         >
           {({ isActive }) => (
