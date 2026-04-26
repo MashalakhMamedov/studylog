@@ -19,7 +19,7 @@ export default function ProtectedRoute({ children }) {
         aria-live="polite"
         aria-busy="true"
       >
-        <Logo variant="splash" size={56} />
+        <Logo variant="splash" size={70} />
       </div>
     )
   }

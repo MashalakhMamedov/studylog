@@ -1,15 +1,13 @@
 import React from 'react';
-import { useTheme } from '../context/ThemeContext.jsx';
 
-export default function Logo({ variant = 'full', size = 32 }) {
-  const { accentColor } = useTheme()
+export default function Logo({ variant = 'full', size = 40 }) {
   if (variant === 'icon') {
     return (
       <img
         src="/logo.png"
         alt="StudyLog"
         style={{ height: size, width: size }}
-        className="rounded-md object-contain"
+        className="block object-contain"
       />
     );
   }
@@ -17,16 +15,12 @@ export default function Logo({ variant = 'full', size = 32 }) {
   if (variant === 'splash') {
     return (
       <div className="flex flex-col items-center gap-4">
-        <div className="relative">
-          <div
-            className="absolute inset-0 rounded-full blur-2xl opacity-15"
-            style={{ backgroundColor: accentColor }}
-          />
+        <div>
           <img
             src="/logo.png"
             alt="StudyLog"
             style={{ height: size, width: size }}
-            className="relative rounded-md object-contain"
+            className="block object-contain"
           />
         </div>
         <span
@@ -46,7 +40,7 @@ export default function Logo({ variant = 'full', size = 32 }) {
         src="/logo.png"
         alt="StudyLog"
         style={{ height: size, width: size }}
-        className="rounded-md object-contain"
+        className="block object-contain"
       />
       <span
         className="font-semibold"
