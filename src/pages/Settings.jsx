@@ -56,6 +56,38 @@ function Row({ children, noBorder, style }) {
   )
 }
 
+function AccordionSection({ title, open, onToggle, isLast, children }) {
+  return (
+    <section style={{ borderBottom: isLast ? 'none' : '1px solid #2a2a2d' }}>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-center justify-between text-left"
+        style={{
+          backgroundColor: '#1a1a1d',
+          color: '#fff',
+          padding: '15px 16px',
+        }}
+      >
+        <span className="text-sm font-bold">{title}</span>
+        <span aria-hidden="true" className="text-sm">{open ? '▲' : '▼'}</span>
+      </button>
+      <div
+        style={{
+          maxHeight: open ? '2200px' : '0',
+          opacity: open ? 1 : 0,
+          overflow: 'hidden',
+          transition: 'max-height 260ms ease, opacity 180ms ease',
+        }}
+      >
+        <div style={{ padding: '16px' }}>
+          {children}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 // ── Delete modal ──────────────────────────────────────────────────────────────
 
 function DeleteModal({ onClose, userId }) {
@@ -161,6 +193,11 @@ export default function Settings() {
   const [passwordSaving, setPasswordSaving] = useState(false)
   const [passwordMessage, setPasswordMessage] = useState('')
   const [passwordError, setPasswordError] = useState('')
+  const [openSections, setOpenSections] = useState({
+    account: true,
+    preferences: false,
+    about: false,
+  })
 
   async function saveName() {
     const trimmed = nameValue.trim()
@@ -214,8 +251,21 @@ export default function Settings() {
     localStorage.setItem('studylog-focus-duration', String(mins))
   }
 
+  function toggleSection(section) {
+    setOpenSections(current => ({
+      ...current,
+      [section]: !current[section],
+    }))
+  }
+
   return (
     <div className="page-enter px-4 pt-5 pb-12 space-y-7">
+      <div style={{ border: '1px solid #2a2a2d', borderRadius: '12px', overflow: 'hidden' }}>
+        <AccordionSection
+          title="Account"
+          open={openSections.account}
+          onToggle={() => toggleSection('account')}
+        >
 
       {/* ── PROFILE ───────────────────────────────────────────────────────── */}
       <div>
@@ -379,6 +429,13 @@ export default function Settings() {
         </Card>
       </div>
 
+        </AccordionSection>
+        <AccordionSection
+          title="Preferences"
+          open={openSections.preferences}
+          onToggle={() => toggleSection('preferences')}
+        >
+
       {/* ── APPEARANCE ────────────────────────────────────────────────────── */}
       <div>
         <SectionLabel>Appearance</SectionLabel>
@@ -453,6 +510,14 @@ export default function Settings() {
         </Card>
       </div>
 
+        </AccordionSection>
+        <AccordionSection
+          title="About"
+          open={openSections.about}
+          onToggle={() => toggleSection('about')}
+          isLast
+        >
+
       {/* ── ABOUT ─────────────────────────────────────────────────────────── */}
       <div>
         <SectionLabel>About StudyLog</SectionLabel>
@@ -496,6 +561,9 @@ export default function Settings() {
             </ul>
           </Row>
         </Card>
+      </div>
+
+        </AccordionSection>
       </div>
 
       {/* ── DANGER ZONE ───────────────────────────────────────────────────── */}
