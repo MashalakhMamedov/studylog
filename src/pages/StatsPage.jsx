@@ -43,14 +43,13 @@ function monthStartStr() {
 
 function calcStreak(sessions) {
   const dates = new Set(sessions.map(s => s.date))
-  const cursor = new Date()
   let streak = 0
-
+  const cursor = new Date()
+  if (!dates.has(localDateStr(cursor))) cursor.setDate(cursor.getDate() - 1)
   while (dates.has(localDateStr(cursor))) {
-    streak += 1
+    streak++
     cursor.setDate(cursor.getDate() - 1)
   }
-
   return streak
 }
 

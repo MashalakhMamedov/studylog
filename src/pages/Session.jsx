@@ -33,7 +33,7 @@ function fmtRelativeDate(dateStr) {
   return y === new Date().getFullYear() ? `${day} ${months[mo - 1]}` : `${day} ${months[mo - 1]} ${y}`
 }
 
-const today = () => new Date().toISOString().split('T')[0]
+const today = () => localDateStr()
 
 const TIME_BASED_TYPES = new Set(['video', 'lecture_recording', 'podcast', 'online_course'])
 
@@ -1320,112 +1320,6 @@ function HistoryCard({ s, onDelete }) {
     </SwipeableRow>
   )
 
-  return (
-    <>
-      <SwipeableRow onDelete={() => setConfirming(true)}>
-        <div className="px-4 py-3 pr-10 relative" style={{ backgroundColor: 'var(--bg-card)' }}>
-          <button
-            onClick={() => setConfirming(true)}
-            className="absolute top-3 right-3 p-1"
-            style={{ color: 'var(--text-2)' }}
-            aria-label="Delete session"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
-              <polyline points="3 6 5 6 21 6" />
-              <path d="M19 6l-1 14H6L5 6" />
-              <path d="M10 11v6M14 11v6M9 6V4h6v2" />
-            </svg>
-          </button>
-
-          <div className="flex items-center justify-between gap-2">
-            <span
-              className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-semibold truncate"
-              style={{ backgroundColor: course.color + '22', color: course.color, maxWidth: '55%' }}
-            >
-              {course.emoji} {course.name}
-            </span>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--text-1)' }}>{fmtMins(s.duration_minutes)}</span>
-              <span className="text-[11px]" style={{ color: 'var(--text-2)' }}>{fmtRelativeDate(s.date)}</span>
-            </div>
-          </div>
-
-          {(s.resources?.name || s.pages_covered) && (
-            <p className="text-xs mt-1.5 truncate" style={{ color: 'var(--text-2)' }}>
-              {[s.resources?.name, s.pages_covered].filter(Boolean).join(' · ')}
-            </p>
-          )}
-
-          <div className="flex flex-wrap gap-1.5 mt-1.5">
-            {s.focus_type && (
-              <span
-                className="px-1.5 py-0.5 rounded text-[10px] font-medium"
-                style={{ backgroundColor: `${accentColor}22`, color: accentColor }}
-              >
-                {FOCUS_LABEL[s.focus_type] ?? s.focus_type}
-              </span>
-            )}
-            {s.energy_level && (
-              <span
-                className="px-1.5 py-0.5 rounded text-[10px] font-medium"
-                style={{ backgroundColor: ENERGY_COLOR[s.energy_level] + '22', color: ENERGY_COLOR[s.energy_level] }}
-              >
-                {ENERGY_LABEL[s.energy_level] ?? s.energy_level}
-              </span>
-            )}
-          </div>
-
-          {s.notes && (
-            <p className="text-xs italic mt-1.5 truncate" style={{ color: 'var(--text-2)' }}>{s.notes}</p>
-          )}
-        </div>
-      </SwipeableRow>
-
-      {confirming && (
-        <DeleteConfirmModal
-          onConfirm={() => { onDelete(s.id); setConfirming(false) }}
-          onCancel={() => setConfirming(false)}
-        />
-      )}
-    </>
-  )
-}
-
-function DeleteConfirmModal({ onConfirm, onCancel }) {
-  const { accentColor } = useTheme()
-  return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-      style={{ backgroundColor: 'var(--modal-overlay)' }}
-      onClick={e => e.target === e.currentTarget && onCancel()}
-    >
-      <div
-        className="w-full max-w-xs rounded-2xl p-5 space-y-4"
-        style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)' }}
-      >
-        <div className="space-y-1">
-          <p className="font-bold" style={{ color: 'var(--text-1)' }}>Delete this session?</p>
-          <p className="text-sm" style={{ color: 'var(--text-2)' }}>This can't be undone.</p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={onCancel}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-            style={{ backgroundColor: 'var(--bg-surf)', color: 'var(--text-1)', border: '1px solid var(--border)' }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-            style={{ backgroundColor: accentColor, color: '#fff' }}
-          >
-            Delete
-          </button>
-        </div>
-      </div>
-    </div>
-  )
 }
 
 // ── Pomodoro sub-components ──────────────────────────────────────────────────
@@ -1493,7 +1387,7 @@ function PomoBanner({ message }) {
         left: 0,
         right: 0,
         zIndex: 90,
-        backgroundColor: '#18181b',
+        backgroundColor: 'var(--bg-card)',
         borderBottom: '1px solid #27272a',
         padding: '14px 16px',
         display: 'flex',

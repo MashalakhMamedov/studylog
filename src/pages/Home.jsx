@@ -655,44 +655,6 @@ function SessionCard({ s, onDelete, onTap }) {
     </SwipeableRow>
   )
 
-  return (
-    <SwipeableRow onDelete={() => onDelete(s.id)}>
-      <button
-        onClick={onTap}
-        className="w-full rounded-xl p-3 text-left"
-        style={{ backgroundColor: 'var(--bg-card)' }}
-      >
-        {/* Course + duration */}
-        <div className="flex items-center gap-2">
-          <span className="text-base leading-none flex-shrink-0">{course.emoji}</span>
-          <p className="text-sm font-semibold truncate flex-1" style={{ color: 'var(--text-1)' }}>
-            {course.name}
-          </p>
-          <span className="text-sm font-semibold tabular-nums flex-shrink-0" style={{ color: accentColor }}>
-            {fmtMins(s.duration_minutes)}
-          </span>
-        </div>
-
-        {/* Resource + energy dot + time */}
-        <div className="flex items-center gap-2 mt-1.5">
-          <p className="text-xs truncate flex-1" style={{ color: 'var(--text-2)' }}>
-            {[s.resources?.name, s.pages_covered ? `p.${s.pages_covered}` : null].filter(Boolean).join(' · ') || '—'}
-          </p>
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            {s.energy_level && (
-              <span
-                className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{ backgroundColor: energyColor }}
-              />
-            )}
-            <span className="text-xs" style={{ color: 'var(--text-3)' }}>
-              {fmtRelativeTime(s.created_at)}
-            </span>
-          </div>
-        </div>
-      </button>
-    </SwipeableRow>
-  )
 }
 
 function SessionDetailSheet({ session: s, open, onClose, onDelete }) {

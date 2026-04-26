@@ -328,7 +328,7 @@ function DeleteConfirm({ course, onConfirm, onCancel }) {
           <button
             onClick={onConfirm}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-            style={{ backgroundColor: accentColor, color: '#fff' }}
+            style={{ backgroundColor: '#ef4444', color: '#fff' }}
           >
             Delete
           </button>

@@ -73,9 +73,9 @@ export function CourseModal({ form, setForm, editing, saving, error, onSave, onC
         <div className="flex flex-col gap-2">
           <label className="text-xs font-medium" style={{ color: 'var(--text-2)' }}>Color</label>
           <div className="flex flex-wrap gap-2">
-            {COLOR_SWATCHES.map((c, i) => (
+            {COLOR_SWATCHES.map((c) => (
               <button
-                key={i}
+                key={c}
                 onClick={() => setForm(f => ({ ...f, color: c }))}
                 className="w-7 h-7 rounded-full transition-transform"
                 style={{

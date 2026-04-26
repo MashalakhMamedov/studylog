@@ -41,7 +41,6 @@ export function ThemeProvider({ children }) {
   function setAccentColor(color) {
     setAccentColorState(color)
     localStorage.setItem('studylog-accent', color)
-    document.documentElement.style.setProperty('--accent', color)
   }
 
   return (
