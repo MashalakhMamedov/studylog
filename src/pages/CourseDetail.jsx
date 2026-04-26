@@ -74,6 +74,19 @@ function fmtRelativeDate(dateStr) {
   return new Date(y, mo - 1, day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+function fmtScorePercent(value) {
+  const pct = Number(value)
+  if (!Number.isFinite(pct)) return '0%'
+  return `${pct.toFixed(1).replace(/\.0$/, '')}%`
+}
+
+function quizScoreColor(value) {
+  const pct = Number(value)
+  if (pct >= 80) return '#22c55e'
+  if (pct >= 60) return '#eab308'
+  return '#ef4444'
+}
+
 function daysUntil(dateStr) {
   if (!dateStr) return null
   const [y, m, d] = dateStr.split('-').map(Number)
@@ -137,6 +150,8 @@ export default function CourseDetail() {
   const [course, setCourse] = useState(null)
   const [sessions, setSessions] = useState([])
   const [resources, setResources] = useState([])
+  const [quizResults, setQuizResults] = useState([])
+  const [quizResultsError, setQuizResultsError] = useState('')
   const [minutesByResource, setMinutesByResource] = useState({})
   const [loading, setLoading] = useState(true)
 
@@ -171,15 +186,21 @@ export default function CourseDetail() {
   const [showSortMenu, setShowSortMenu] = useState(false)
   const [activeDragId, setActiveDragId] = useState(null)
 
-  useEffect(() => { fetchAll() }, [id])
+  const userId = session?.user?.id
+
+  useEffect(() => {
+    if (userId) fetchAll()
+  }, [id, userId])
 
   async function fetchAll() {
     setLoading(true)
+    setQuizResultsError('')
     const [
       { data: courseData },
       { data: sessionData },
       { data: resourceData },
       { data: sessionMinData },
+      { data: quizResultData, error: quizResultError },
     ] = await Promise.all([
       supabase.from('courses').select('*').eq('id', id).single(),
       supabase.from('sessions')
@@ -193,6 +214,12 @@ export default function CourseDetail() {
         .select('resource_id, duration_minutes')
         .eq('course_id', id)
         .not('resource_id', 'is', null),
+      supabase.from('quiz_results')
+        .select('id, user_id, course_id, resource_id, total_questions, correct_answers, score_percent, topic, date')
+        .eq('user_id', userId)
+        .eq('course_id', id)
+        .order('date', { ascending: false })
+        .limit(10),
     ])
 
     if (courseData) {
@@ -204,6 +231,12 @@ export default function CourseDetail() {
     }
     if (sessionData) setSessions(sessionData)
     if (resourceData) setResources(resourceData)
+    if (quizResultError) {
+      setQuizResults([])
+      setQuizResultsError(quizResultError.message || 'Could not load quiz results.')
+    } else {
+      setQuizResults(quizResultData ?? [])
+    }
     if (sessionMinData) {
       const map = {}
       sessionMinData.forEach(s => { map[s.resource_id] = (map[s.resource_id] || 0) + s.duration_minutes })
@@ -772,6 +805,31 @@ export default function CourseDetail() {
           )}
         </section>
 
+        {/* Quiz Results */}
+        <section className="space-y-3">
+          <h2 className="text-sm font-bold" style={{ color: 'var(--text-1)' }}>
+            Quiz Results
+            {quizResults.length > 0 && (
+              <span className="ml-1.5 font-normal" style={{ color: 'var(--text-2)' }}>
+                ({quizResults.length}{quizResults.length === 10 ? '+' : ''})
+              </span>
+            )}
+          </h2>
+          {quizResultsError ? (
+            <p className="text-xs rounded-xl px-3 py-2" style={{ color: '#f87171', backgroundColor: '#ef444422', border: '1px solid #ef444444' }}>
+              {quizResultsError}
+            </p>
+          ) : quizResults.length === 0 ? (
+            <p className="text-xs" style={{ color: 'var(--text-2)' }}>No quiz results logged yet.</p>
+          ) : (
+            <div className="space-y-2.5">
+              {quizResults.map(result => (
+                <QuizResultCard key={result.id} result={result} />
+              ))}
+            </div>
+          )}
+        </section>
+
         {/* Recent Sessions */}
         <section className="space-y-3">
           <h2 className="text-sm font-bold" style={{ color: 'var(--text-1)' }}>
@@ -1301,7 +1359,38 @@ function DeleteMaterialConfirm({ resource, onConfirm, onCancel }) {
   )
 }
 
-// ── SessionRow ────────────────────────────────────────────────────────────────
+// QuizResultCard
+function QuizResultCard({ result }) {
+  const color = quizScoreColor(result.score_percent)
+
+  return (
+    <div
+      className="rounded-xl p-4"
+      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 space-y-1">
+          <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-1)' }}>
+            {result.topic || 'Quiz'}
+          </p>
+          <p className="text-xs" style={{ color: 'var(--text-2)' }}>
+            {fmtRelativeDate(result.date)}
+          </p>
+        </div>
+        <div className="text-right flex-shrink-0">
+          <p className="text-lg font-black tabular-nums leading-none" style={{ color }}>
+            {fmtScorePercent(result.score_percent)}
+          </p>
+          <p className="text-xs mt-1" style={{ color: 'var(--text-2)' }}>
+            {result.correct_answers}/{result.total_questions} correct
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// SessionRow
 function SessionRow({ session: s }) {
   const { accentColor } = useTheme()
   return (

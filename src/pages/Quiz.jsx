@@ -32,6 +32,7 @@ export default function Quiz() {
   const [courses, setCourses] = useState([])
   const [allResources, setAllResources] = useState([])
   const [history, setHistory] = useState(null) // null = not yet fetched
+  const [historyError, setHistoryError] = useState('')
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(false)
@@ -50,7 +51,13 @@ export default function Quiz() {
 
   useEffect(() => {
     if (tab === 'history' && history === null) fetchHistory()
-  }, [tab])
+  }, [tab, history, session?.user?.id])
+
+  useEffect(() => {
+    setHistory(null)
+    setHistoryError('')
+    setCourseFilter('all')
+  }, [session?.user?.id])
 
   useEffect(() => {
     if (!toast) return
@@ -59,13 +66,28 @@ export default function Quiz() {
   }, [toast])
 
   async function fetchHistory() {
-    const { data } = await supabase
-      .from('quiz_results')
-      .select('*, courses(name, emoji, color), resources(name)')
-      .order('date', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(100)
-    setHistory(data ?? [])
+    setHistoryError('')
+    const userId = session?.user?.id
+    if (!userId) {
+      setHistory([])
+      setHistoryError('Sign in again to load quiz history.')
+      return
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('quiz_results')
+        .select('id, user_id, course_id, resource_id, total_questions, correct_answers, score_percent, topic, date, courses(name, emoji, color), resources(name)')
+        .eq('user_id', userId)
+        .order('date', { ascending: false })
+        .limit(100)
+
+      if (error) throw error
+      setHistory(data ?? [])
+    } catch (error) {
+      setHistory([])
+      setHistoryError(error.message || 'Could not load quiz history.')
+    }
   }
 
   function set(key, val) {
@@ -101,22 +123,31 @@ export default function Quiz() {
       return
     }
     setSaving(true)
-    const { error } = await supabase.from('quiz_results').insert({
-      user_id: session.user.id,
-      course_id: form.course_id,
-      resource_id: form.resource_id || null,
-      total_questions: total,
-      correct_answers: correct,
-      topic: form.topic.trim() || null,
-      date: form.date,
-    })
-    setSaving(false)
-    if (error) {
-      setFormError(error.message || 'Could not save quiz. Please try again.')
-    } else {
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError || !user) {
+        throw new Error(userError?.message || 'Sign in again before logging a quiz.')
+      }
+
+      const { error } = await supabase.from('quiz_results').insert({
+        user_id: user.id,
+        course_id: form.course_id,
+        resource_id: form.resource_id || null,
+        total_questions: total,
+        correct_answers: correct,
+        topic: form.topic.trim() || null,
+        date: form.date,
+      })
+
+      if (error) throw error
+
       setForm({ ...EMPTY_FORM, course_id: form.course_id, date: todayStr() })
       setHistory(null) // invalidate cache so history refreshes next visit
       setToast(true)
+    } catch (error) {
+      setFormError(error.message || 'Could not save quiz. Please try again.')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -167,6 +198,7 @@ export default function Quiz() {
       ) : (
         <HistoryTab
           history={history}
+          historyError={historyError}
           courses={historyCourses}
           courseFilter={courseFilter}
           setCourseFilter={setCourseFilter}
@@ -318,7 +350,7 @@ function LogTab({ courses, resources, form, set, liveScore, canSubmit, saving, v
 
 // ── History tab ──────────────────────────────────────────────────────────────
 
-function HistoryTab({ history, courses, courseFilter, setCourseFilter, filteredHistory }) {
+function HistoryTab({ history, historyError, courses, courseFilter, setCourseFilter, filteredHistory }) {
   const { accentColor } = useTheme()
   if (history === null) {
     return (
@@ -332,6 +364,12 @@ function HistoryTab({ history, courses, courseFilter, setCourseFilter, filteredH
 
   return (
     <div className="space-y-4">
+      {historyError && (
+        <p className="text-xs rounded-xl px-3 py-2" style={{ color: '#f87171', backgroundColor: '#ef444422', border: '1px solid #ef444444' }}>
+          {historyError}
+        </p>
+      )}
+
       {/* Course filter pills */}
       {courses.length > 0 && (
         <div className="flex gap-2 flex-wrap">
