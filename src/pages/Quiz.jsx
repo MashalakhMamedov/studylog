@@ -3,8 +3,8 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import { SkeletonCard } from '../components/Skeleton.jsx'
-
-const todayStr = () => new Date().toISOString().split('T')[0]
+import { localDateStr } from '../lib/utils.js'
+import Field from '../components/ui/Field.jsx'
 
 function scoreColor(pct) {
   if (pct >= 80) return '#22c55e'
@@ -22,7 +22,7 @@ function scoreLabel(pct) {
 
 const EMPTY_FORM = {
   course_id: '', resource_id: '', total_questions: '',
-  correct_answers: '', topic: '', date: todayStr(),
+  correct_answers: '', topic: '', date: localDateStr(),
 }
 
 function quizValidation(form) {
@@ -52,7 +52,7 @@ function formFromQuiz(q) {
     total_questions: q.total_questions?.toString() || '',
     correct_answers: q.correct_answers?.toString() || '',
     topic: q.topic || '',
-    date: q.date || todayStr(),
+    date: q.date || localDateStr(),
   }
 }
 
@@ -164,7 +164,7 @@ export default function Quiz() {
 
       if (error) throw error
 
-      setForm({ ...EMPTY_FORM, course_id: form.course_id, date: todayStr() })
+      setForm({ ...EMPTY_FORM, course_id: form.course_id, date: localDateStr() })
       setHistory(null) // invalidate cache so history refreshes next visit
       setToast(true)
     } catch (error) {
@@ -721,11 +721,3 @@ function Pill({ active, onClick, children }) {
   )
 }
 
-function Field({ label, children }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-medium" style={{ color: 'var(--text-2)' }}>{label}</label>
-      {children}
-    </div>
-  )
-}

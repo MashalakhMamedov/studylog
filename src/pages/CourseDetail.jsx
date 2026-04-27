@@ -5,6 +5,9 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useCourses } from '../context/CoursesContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
+import { localDateStr, fmtMins } from '../lib/utils.js'
+import { FOCUS_LABEL, ENERGY_COLOR, ENERGY_LABEL } from '../lib/constants.js'
+import Field from '../components/ui/Field.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import { SkeletonBlock } from '../components/Skeleton.jsx'
 import {
@@ -34,28 +37,9 @@ const EMPTY_MATERIAL_FORM = { name: '', type: 'pdf', total_pages: '', link: '', 
 const MATERIAL_LINK_ERROR = 'Enter a valid http:// or https:// link, or leave it blank.'
 
 // ── Session constants ─────────────────────────────────────────────────────────
-const FOCUS_LABEL = {
-  deep_focus: 'Deep Focus', light_review: 'Light Review',
-  practice: 'Practice', video: 'Video Lecture', project: 'Project Work',
-}
-const ENERGY_COLOR = { high: '#22c55e', medium: '#eab308', low: '#ef4444', post_night_shift: '#8b5cf6' }
-const ENERGY_LABEL = { high: 'High', medium: 'Medium', low: 'Low', post_night_shift: 'Post-Night' }
 const ENERGY_SCORE = { high: 3, medium: 2, low: 1, post_night_shift: 0 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-function fmtMins(m) {
-  if (!m) return '0m'
-  const h = Math.floor(m / 60)
-  const min = m % 60
-  if (h === 0) return `${min}m`
-  if (min === 0) return `${h}h`
-  return `${h}h ${min}m`
-}
-
-function localDateStr(d = new Date()) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
 function fmtRelativeDate(dateStr) {
   const todayStr = localDateStr()
   if (dateStr === todayStr) return 'Today'
@@ -1364,15 +1348,6 @@ function MaterialModal({ form, setForm, linkError, setLinkError, saveError, edit
           {saving ? 'Saving…' : editing ? 'Save Changes' : 'Add Material'}
         </button>
       </div>
-    </div>
-  )
-}
-
-function Field({ label, children }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <label className="text-xs font-medium" style={{ color: 'var(--text-2)' }}>{label}</label>
-      {children}
     </div>
   )
 }

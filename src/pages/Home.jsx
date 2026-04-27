@@ -8,6 +8,9 @@ import SwipeableRow from '../components/SwipeableRow.jsx'
 import BottomSheet from '../components/BottomSheet.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import { SkeletonCard } from '../components/Skeleton.jsx'
+import { localDateStr, fmtMins, calcStreak } from '../lib/utils.js'
+import { FOCUS_LABEL, ENERGY_COLOR, ENERGY_LABEL } from '../lib/constants.js'
+import Toast from '../components/ui/Toast.jsx'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -17,10 +20,6 @@ function greeting() {
   if (h >= 12 && h < 17) return 'Good afternoon'
   if (h >= 17 && h < 21) return 'Good evening'
   return 'Good night'
-}
-
-function localDateStr(d = new Date()) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 function formatHeaderDate() {
@@ -53,27 +52,6 @@ function currentWeekDays() {
       isFuture: dateStr > todayStr,
     }
   })
-}
-
-function calcStreak(sessions) {
-  const dates = new Set(sessions.map(s => s.date))
-  let streak = 0
-  const cursor = new Date()
-  if (!dates.has(localDateStr(cursor))) cursor.setDate(cursor.getDate() - 1)
-  while (dates.has(localDateStr(cursor))) {
-    streak++
-    cursor.setDate(cursor.getDate() - 1)
-  }
-  return streak
-}
-
-function fmtMins(m) {
-  if (!m) return '0m'
-  const h = Math.floor(m / 60)
-  const min = m % 60
-  if (h === 0) return `${min}m`
-  if (min === 0) return `${h}h`
-  return `${h}h ${min}m`
 }
 
 function fmtCardDuration(m) {
@@ -124,20 +102,6 @@ function useCountUp(target, duration = 600) {
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
   }, [target, duration])
   return count
-}
-
-const ENERGY_COLOR = {
-  high: '#22c55e',
-  medium: '#eab308',
-  low: '#ef4444',
-  post_night_shift: '#8b5cf6',
-}
-
-const ENERGY_LABEL = { high: 'High', medium: 'Medium', low: 'Low', post_night_shift: 'Post-Night-Shift' }
-
-const FOCUS_LABEL = {
-  deep_focus: 'Deep Focus', light_review: 'Light Review',
-  practice: 'Practice', video: 'Video Lecture', project: 'Project Work',
 }
 
 // ── Stats computation ─────────────────────────────────────────────────────────
@@ -341,7 +305,7 @@ export default function Home() {
         </>
       )}
 
-      {deleteError && <Toast message="Could not delete session. Try again." />}
+      {deleteError && <Toast message="Could not delete session. Try again." error />}
 
     </div>
   )
@@ -821,27 +785,3 @@ function Skel({ h }) {
   return <SkeletonCard height={h} radius={12} />
 }
 
-// ── Toast ─────────────────────────────────────────────────────────────────────
-
-function Toast({ message }) {
-  return (
-    <div className="fixed top-16 left-0 right-0 flex justify-center z-[70] pointer-events-none px-4">
-      <div
-        className="flex items-center gap-2 px-4 py-3 rounded-2xl pointer-events-auto"
-        style={{
-          backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border)',
-          boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
-          animation: 'toastSlideDown 250ms ease both',
-        }}
-      >
-        <span className="flex items-center justify-center w-5 h-5 rounded-full flex-shrink-0" style={{ backgroundColor: '#ef4444' }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" className="w-3 h-3">
-            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </span>
-        <span className="text-sm font-medium whitespace-nowrap" style={{ color: 'var(--text-1)' }}>{message}</span>
-      </div>
-    </div>
-  )
-}

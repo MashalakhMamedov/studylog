@@ -2,27 +2,16 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { Clock3, Trash2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
-import { useTimer, fmtTime, DEFAULT_POM_SETTINGS } from '../context/TimerContext.jsx'
+import { useTimer, fmtTime } from '../context/TimerContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
+import { localDateStr, fmtMins } from '../lib/utils.js'
+import { FOCUS_TYPES, ENERGY_LEVELS, FOCUS_LABEL, ENERGY_COLOR, ENERGY_LABEL, MAX_DURATION_MINUTES, DEFAULT_POM_SETTINGS } from '../lib/constants.js'
+import Field from '../components/ui/Field.jsx'
+import Toast from '../components/ui/Toast.jsx'
 import SwipeableRow from '../components/SwipeableRow.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import { SkeletonCard } from '../components/Skeleton.jsx'
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtMins(m) {
-  if (!m) return '0m'
-  const h = Math.floor(m / 60)
-  const min = m % 60
-  if (h === 0) return `${min}m`
-  if (min === 0) return `${h}h`
-  return `${h}h ${min}m`
-}
-
-function localDateStr(d = new Date()) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
 
 function fmtRelativeDate(dateStr) {
   if (dateStr === localDateStr()) return 'Today'
@@ -36,28 +25,6 @@ function fmtRelativeDate(dateStr) {
 const today = () => localDateStr()
 
 const TIME_BASED_TYPES = new Set(['video', 'lecture_recording', 'podcast', 'online_course'])
-
-const FOCUS_TYPES = [
-  { value: 'deep_focus',   label: 'Deep Focus' },
-  { value: 'light_review', label: 'Light Review' },
-  { value: 'practice',     label: 'Practice' },
-  { value: 'video',        label: 'Video Lecture' },
-  { value: 'project',      label: 'Project Work' },
-]
-
-const ENERGY_LEVELS = [
-  { value: 'high',             label: 'High' },
-  { value: 'medium',           label: 'Medium' },
-  { value: 'low',              label: 'Low' },
-  { value: 'post_night_shift', label: 'Post-Night-Shift' },
-]
-
-const ENERGY_COLOR = { high: '#22c55e', medium: '#eab308', low: '#ef4444', post_night_shift: '#8b5cf6' }
-const ENERGY_LABEL = { high: 'High', medium: 'Medium', low: 'Low', post_night_shift: 'Post-Night-Shift' }
-const FOCUS_LABEL = {
-  deep_focus: 'Deep Focus', light_review: 'Light Review',
-  practice: 'Practice', video: 'Video Lecture', project: 'Project Work',
-}
 
 const DEFAULT_LOG_FORM = {
   course_id: '', resource_id: '', duration: '',
@@ -391,7 +358,7 @@ function LogTab() {
   const durationError = form.duration && (
     !Number.isInteger(durationValue) || durationValue < 1
       ? 'Duration must be a whole number of minutes.'
-      : durationValue > 720
+      : durationValue > MAX_DURATION_MINUTES
         ? 'Duration cannot exceed 720 minutes.'
         : ''
   )
@@ -449,7 +416,7 @@ function LogTab() {
             onChange={e => set('duration', e.target.value)}
             placeholder="e.g. 45"
             min="1"
-            max="720"
+            max={MAX_DURATION_MINUTES}
             className="h-11 px-3 rounded-xl text-sm w-full outline-none"
             style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
           />
@@ -1030,7 +997,7 @@ function FinishModal({ totalSeconds, segments, form, setForm, courses, allResour
   const durationError = !multiSegment && form.duration_minutes && (
     !Number.isInteger(durationValue) || durationValue < 1
       ? 'Duration must be a whole number of minutes.'
-      : durationValue > 720
+      : durationValue > MAX_DURATION_MINUTES
         ? 'Duration cannot exceed 720 minutes.'
         : ''
   )
@@ -1120,7 +1087,7 @@ function FinishModal({ totalSeconds, segments, form, setForm, courses, allResour
                 value={form.duration_minutes}
                 onChange={e => set('duration_minutes', e.target.value)}
                 min="1"
-                max="720"
+                max={MAX_DURATION_MINUTES}
                 className="h-11 px-3 rounded-xl text-sm w-full outline-none"
                 style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
               />
@@ -1448,35 +1415,3 @@ function CloseBtn({ onClose }) {
   )
 }
 
-function Field({ label, children }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-medium" style={{ color: 'var(--text-2)' }}>{label}</label>
-      {children}
-    </div>
-  )
-}
-
-function Toast({ message = 'Session logged', error = false }) {
-  return (
-    <div className="fixed top-16 left-0 right-0 flex justify-center z-[70] pointer-events-none px-4">
-      <div
-        className="flex items-center gap-2 px-4 py-3 rounded-2xl pointer-events-auto"
-        style={{
-          backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border)',
-          boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
-          animation: 'toastSlideDown 250ms ease both',
-        }}
-      >
-        <span className="flex items-center justify-center w-5 h-5 rounded-full flex-shrink-0" style={{ backgroundColor: error ? '#ef4444' : '#22c55e' }}>
-          {error
-            ? <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" className="w-3 h-3"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-            : <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" className="w-3 h-3"><polyline points="20 6 9 17 4 12" /></svg>
-          }
-        </span>
-        <span className="text-sm font-medium whitespace-nowrap" style={{ color: 'var(--text-1)' }}>{message}</span>
-      </div>
-    </div>
-  )
-}

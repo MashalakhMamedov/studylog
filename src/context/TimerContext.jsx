@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useRef, useEffect } from 'react'
 import { useAuth } from './AuthContext.jsx'
 import { supabase } from '../lib/supabase.js'
+import { localDateStr } from '../lib/utils.js'
+import { DEFAULT_POM_SETTINGS } from '../lib/constants.js'
 
 export function fmtTime(s) {
   const h = Math.floor(s / 3600)
@@ -8,11 +10,6 @@ export function fmtTime(s) {
   const sec = s % 60
   if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
   return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
-}
-
-function localDateStr() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 // ── localStorage keys ─────────────────────────────────────────────────────────
@@ -24,12 +21,6 @@ const LS = {
   running:       'sl_timer_running',
   segments:      'sl_timer_segments',
 }
-
-export const DEFAULT_POM_SETTINGS = (() => {
-  const n = parseInt(localStorage.getItem('studylog-focus-duration') || '', 10)
-  const workMin = Number.isFinite(n) && n > 0 ? n : 25
-  return { workMin, shortBreakMin: 5, longBreakMin: 15, longBreakAfter: 4 }
-})()
 
 export const TimerContext = createContext(null)
 

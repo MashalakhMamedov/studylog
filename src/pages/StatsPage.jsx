@@ -2,24 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTheme } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import { SkeletonCard } from '../components/Skeleton.jsx'
-
-function localDateStr(d = new Date()) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
+import { localDateStr, fmtMins, calcStreak } from '../lib/utils.js'
 
 function addDays(date, days) {
   const next = new Date(date)
   next.setDate(next.getDate() + days)
   return next
-}
-
-function fmtMins(minutes = 0) {
-  const total = Math.max(0, Math.round(minutes || 0))
-  const hours = Math.floor(total / 60)
-  const mins = total % 60
-  if (hours === 0) return `${mins}m`
-  if (mins === 0) return `${hours}h`
-  return `${hours}h ${mins}m`
 }
 
 function lastSevenDays() {
@@ -39,18 +27,6 @@ function lastSevenDays() {
 function monthStartStr() {
   const now = new Date()
   return localDateStr(new Date(now.getFullYear(), now.getMonth(), 1))
-}
-
-function calcStreak(sessions) {
-  const dates = new Set(sessions.map(s => s.date))
-  let streak = 0
-  const cursor = new Date()
-  if (!dates.has(localDateStr(cursor))) cursor.setDate(cursor.getDate() - 1)
-  while (dates.has(localDateStr(cursor))) {
-    streak++
-    cursor.setDate(cursor.getDate() - 1)
-  }
-  return streak
 }
 
 function buildStats(weekSessions, monthSessions, streakSessions) {
