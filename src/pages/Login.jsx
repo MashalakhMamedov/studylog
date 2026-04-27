@@ -12,6 +12,14 @@ export default function Login() {
   const [firstName, setFirstName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showResend, setShowResend] = useState(false)
+  const [resendStatus, setResendStatus] = useState('') // '' | 'loading' | 'sent' | 'error'
+
+  async function handleResend() {
+    setResendStatus('loading')
+    const { error } = await supabase.auth.resend({ type: 'signup', email: email.trim() })
+    setResendStatus(error ? 'error' : 'sent')
+  }
 
   async function handleForgotPassword() {
     const trimmedEmail = email.trim()
@@ -49,12 +57,20 @@ export default function Login() {
     setLoading(false)
 
     if (error) {
-      setError(error.message)
+      if (error.message.includes('Email not confirmed')) {
+        setError('Please confirm your email before logging in. Check your inbox.')
+        setShowResend(true)
+      } else {
+        setError(error.message)
+        setShowResend(false)
+      }
     } else if (mode === 'signup') {
       setError('')
       setMode('login')
       setPassword('')
-      setError('Account created — you can now log in.')
+      setShowResend(false)
+      setResendStatus('')
+      setError('Account created — check your email and click the confirmation link before logging in.')
     } else {
       navigate('/', { replace: true })
     }
@@ -78,7 +94,7 @@ export default function Login() {
             <button
               key={m}
               type="button"
-              onClick={() => { setMode(m); setError('') }}
+              onClick={() => { setMode(m); setError(''); setShowResend(false); setResendStatus('') }}
               className="flex-1 py-2.5 text-sm font-medium transition-colors"
               style={{
                 backgroundColor: mode === m ? accentColor : 'var(--bg-card)',
@@ -141,12 +157,29 @@ export default function Login() {
           </div>
 
           {error && (
-            <p
-              className="text-sm text-center"
-              style={{ color: successMessage ? accentColor : '#f87171' }}
-            >
-              {error}
-            </p>
+            <div className="space-y-2 text-center">
+              <p
+                className="text-sm"
+                style={{ color: successMessage ? accentColor : '#f87171' }}
+              >
+                {error}
+              </p>
+              {showResend && (
+                resendStatus === 'sent' ? (
+                  <p className="text-xs" style={{ color: accentColor }}>Confirmation email sent — check your inbox.</p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={resendStatus === 'loading'}
+                    className="text-xs font-medium underline underline-offset-2 disabled:opacity-60"
+                    style={{ color: '#f87171' }}
+                  >
+                    {resendStatus === 'loading' ? 'Sending…' : resendStatus === 'error' ? 'Failed — try again' : 'Resend confirmation email'}
+                  </button>
+                )
+              )}
+            </div>
           )}
 
           <button
