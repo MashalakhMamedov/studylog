@@ -188,7 +188,7 @@ export default function Home() {
         .select('id, date')
         .order('date', { ascending: false })
         .limit(400),
-      supabase.from('courses').select('id, name, emoji, color').eq('status', 'active').order('name'),
+      supabase.from('courses').select('id, name, emoji, color, exam_date').eq('status', 'active').order('name'),
       supabase.from('sessions')
         .select('id, date, duration_minutes, pages_covered, focus_type, energy_level, notes, created_at, course_id, resource_id, courses(name, emoji, color), resources(name)')
         .order('created_at', { ascending: false })
@@ -299,6 +299,13 @@ export default function Home() {
           <div style={{ animation: 'sectionFadeIn 400ms ease both', animationDelay: '160ms' }}>
             <WeeklyDots chartData={stats?.chartData} loading={loading} />
           </div>
+
+          {/* 3b — Upcoming Exams */}
+          {!loading && (
+            <div style={{ animation: 'sectionFadeIn 400ms ease both', animationDelay: '200ms' }}>
+              <UpcomingExams courses={activeCourses} />
+            </div>
+          )}
         </>
       )}
 
@@ -520,6 +527,55 @@ function QuickActions() {
           <span className="max-w-full truncate text-[11px]" style={{ fontWeight: 600, lineHeight: 1 }}>{label}</span>
         </button>
       ))}
+    </div>
+  )
+}
+
+function UpcomingExams({ courses }) {
+  const todayStr = localDateStr()
+
+  function daysUntil(dateStr) {
+    const [ty, tm, td] = todayStr.split('-').map(Number)
+    const [ey, em, ed] = dateStr.split('-').map(Number)
+    return Math.round((new Date(ey, em - 1, ed) - new Date(ty, tm - 1, td)) / 86400000)
+  }
+
+  const upcoming = (courses ?? [])
+    .filter(c => c.exam_date && c.exam_date >= todayStr)
+    .sort((a, b) => (a.exam_date < b.exam_date ? -1 : 1))
+    .slice(0, 3)
+
+  if (!upcoming.length) return null
+
+  return (
+    <div>
+      <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text-1)' }}>Upcoming Exams</p>
+      <div
+        className="rounded-xl overflow-hidden divide-y"
+        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', divideColor: 'var(--border)' }}
+      >
+        {upcoming.map(c => {
+          const days = daysUntil(c.exam_date)
+          const urgent = days <= 3
+          return (
+            <div key={c.id} className="flex items-center justify-between px-4 py-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-base leading-none flex-shrink-0">{c.emoji}</span>
+                <p className="text-sm font-medium truncate" style={{ color: 'var(--text-1)' }}>{c.name}</p>
+              </div>
+              <span
+                className="text-xs font-semibold flex-shrink-0 ml-3 px-2 py-0.5 rounded-full"
+                style={{
+                  backgroundColor: urgent ? '#ef444422' : 'var(--bg-surf)',
+                  color: urgent ? '#ef4444' : 'var(--text-2)',
+                }}
+              >
+                {days === 0 ? 'Today' : days === 1 ? '1 day' : `${days} days`}
+              </span>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
