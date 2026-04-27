@@ -597,10 +597,10 @@ function SessionCard({ s, onDelete, onTap }) {
   const resourceText = [s.resources?.name, s.pages_covered ? `p.${s.pages_covered}` : null].filter(Boolean).join(' · ') || '—'
 
   return (
-    <SwipeableRow onDelete={() => setConfirming(true)} bg="#111113">
+    <SwipeableRow onDelete={() => setConfirming(true)} bg="var(--bg-card)">
       <div
-        className="relative w-full rounded-xl p-3 pr-10 text-left transition-colors hover:bg-[#1a1a1d] active:bg-[#1a1a1d]"
-        style={{ backgroundColor: '#111113', borderLeft: `3px solid ${accent}` }}
+        className="relative w-full rounded-xl p-3 pr-10 text-left transition-colors hover:bg-[var(--bg-hover)] active:bg-[var(--bg-hover)]"
+        style={{ backgroundColor: 'var(--bg-card)', borderLeft: `3px solid ${accent}` }}
       >
         {confirming ? (
           <div className="flex items-center justify-end gap-2 min-h-[58px] text-xs">

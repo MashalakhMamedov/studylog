@@ -7,6 +7,7 @@
   --bg:              #0a0a0b;
   --bg-card:         #111113;
   --bg-card-hover:   #1c1c20;
+  --bg-hover:        color-mix(in srgb, var(--bg-card) 85%, white);
   --bg-surf:         #18181b;
   --border:          #27272a;
   --text-1:          #fafafa;
