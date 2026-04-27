@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { Clock3, Trash2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
-import { useTimer, fmtTime } from '../context/TimerContext.jsx'
+import { useTimer, fmtTime, DEFAULT_POM_SETTINGS } from '../context/TimerContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import SwipeableRow from '../components/SwipeableRow.jsx'
@@ -66,8 +66,6 @@ const DEFAULT_LOG_FORM = {
 }
 
 // ── Pomodoro constants ───────────────────────────────────────────────────────
-
-const DEFAULT_POM_SETTINGS = { workMin: 25, shortBreakMin: 5, longBreakMin: 15, longBreakAfter: 4 }
 
 function loadPomSettings() {
   try {
@@ -311,6 +309,7 @@ function LogTab() {
   const [form, setForm] = useState(DEFAULT_LOG_FORM)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(false)
+  const [deleteError, setDeleteError] = useState(false)
   const [history, setHistory] = useState(null)
   const [formError, setFormError] = useState('')
 
@@ -338,6 +337,12 @@ function LogTab() {
     const t = setTimeout(() => { setToast(false); navigate('/') }, 1800)
     return () => clearTimeout(t)
   }, [toast])
+
+  useEffect(() => {
+    if (!deleteError) return
+    const t = setTimeout(() => setDeleteError(false), 3000)
+    return () => clearTimeout(t)
+  }, [deleteError])
 
   function set(key, val) {
     setForm(f => ({ ...f, [key]: val }))
@@ -377,8 +382,9 @@ function LogTab() {
   }
 
   async function handleDeleteHistory(id) {
+    const { error } = await supabase.from('sessions').delete().eq('id', id).eq('user_id', session.user.id)
+    if (error) { setDeleteError(true); return }
     setHistory(prev => prev.filter(s => s.id !== id))
-    await supabase.from('sessions').delete().eq('id', id).eq('user_id', session.user.id)
   }
 
   const durationValue = Number(form.duration)
@@ -568,6 +574,7 @@ function LogTab() {
       </div>
 
       {toast && <Toast />}
+      {deleteError && <Toast message="Could not delete session. Try again." error />}
     </div>
   )
 }
@@ -1445,7 +1452,7 @@ function Field({ label, children }) {
   )
 }
 
-function Toast() {
+function Toast({ message = 'Session logged', error = false }) {
   return (
     <div className="fixed top-16 left-0 right-0 flex justify-center z-[70] pointer-events-none px-4">
       <div
@@ -1457,12 +1464,13 @@ function Toast() {
           animation: 'toastSlideDown 250ms ease both',
         }}
       >
-        <span className="flex items-center justify-center w-5 h-5 rounded-full flex-shrink-0" style={{ backgroundColor: '#22c55e' }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" className="w-3 h-3">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
+        <span className="flex items-center justify-center w-5 h-5 rounded-full flex-shrink-0" style={{ backgroundColor: error ? '#ef4444' : '#22c55e' }}>
+          {error
+            ? <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" className="w-3 h-3"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            : <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" className="w-3 h-3"><polyline points="20 6 9 17 4 12" /></svg>
+          }
         </span>
-        <span className="text-sm font-medium whitespace-nowrap" style={{ color: 'var(--text-1)' }}>Session logged</span>
+        <span className="text-sm font-medium whitespace-nowrap" style={{ color: 'var(--text-1)' }}>{message}</span>
       </div>
     </div>
   )

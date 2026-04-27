@@ -25,6 +25,12 @@ const LS = {
   segments:      'sl_timer_segments',
 }
 
+export const DEFAULT_POM_SETTINGS = (() => {
+  const n = parseInt(localStorage.getItem('studylog-focus-duration') || '', 10)
+  const workMin = Number.isFinite(n) && n > 0 ? n : 25
+  return { workMin, shortBreakMin: 5, longBreakMin: 15, longBreakAfter: 4 }
+})()
+
 export const TimerContext = createContext(null)
 
 export function useTimer() {
@@ -75,7 +81,7 @@ export function TimerProvider({ children }) {
   const pomodoroPhaseRef         = useRef('work')
   const pomodoroCycleRef         = useRef(1)
   const pomodoroSecondsLeftRef   = useRef(0)
-  const pomodoroSettingsRef      = useRef({ workMin: 25, shortBreakMin: 5, longBreakMin: 15, longBreakAfter: 4 })
+  const pomodoroSettingsRef      = useRef({ ...DEFAULT_POM_SETTINGS })
   const breakSecondsTotalRef     = useRef(0)
   const completedWorkCyclesRef   = useRef(0)
 
@@ -237,9 +243,11 @@ export function TimerProvider({ children }) {
     Promise.all([
       supabase.from('courses').select('id, name, emoji, color').order('name'),
       supabase.from('resources').select('id, course_id, name, type, link').order('name'),
-    ]).then(([{ data: c }, { data: r }]) => {
-      if (c) setCourses(c)
-      if (r) setAllResources(r)
+    ]).then(([{ data: c, error: ce }, { data: r, error: re }]) => {
+      if (ce) { console.error('Failed to load courses:', ce); setCourses([]) }
+      else if (c) setCourses(c)
+      if (re) { console.error('Failed to load resources:', re); setAllResources([]) }
+      else if (r) setAllResources(r)
       setCoursesLoading(false)
     }).catch(() => {
       setCoursesLoading(false)

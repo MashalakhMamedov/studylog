@@ -195,6 +195,8 @@ export default function Home() {
   const [allSessions, setAllSessions] = useState(null)
   const [activeCourses, setActiveCourses] = useState(null)
   const [recentSessions, setRecentSessions] = useState(null)
+  const [deleteError, setDeleteError] = useState(false)
+  const [hasError, setHasError] = useState(false)
 
   const stats = useMemo(
     () => allSessions && activeCourses ? computeStats(allSessions, activeCourses) : null,
@@ -218,13 +220,25 @@ export default function Home() {
       setAllSessions(s ?? [])
       setActiveCourses(c ?? [])
       setRecentSessions(r ?? [])
+    }).catch(() => {
+      setAllSessions([])
+      setActiveCourses([])
+      setRecentSessions([])
+      setHasError(true)
     })
   }, [])
 
+  useEffect(() => {
+    if (!deleteError) return
+    const t = setTimeout(() => setDeleteError(false), 3000)
+    return () => clearTimeout(t)
+  }, [deleteError])
+
   async function handleDeleteSession(id) {
+    const { error } = await supabase.from('sessions').delete().eq('id', id).eq('user_id', authSession.user.id)
+    if (error) { setDeleteError(true); return }
     setRecentSessions(prev => prev?.filter(s => s.id !== id) ?? [])
     setAllSessions(prev => prev?.filter(s => s.id !== id) ?? [])
-    await supabase.from('sessions').delete().eq('id', id).eq('user_id', authSession.user.id)
   }
 
   return (
@@ -286,34 +300,48 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 2 — Today's Summary */}
-      <div style={{ animation: 'sectionFadeIn 400ms ease both', animationDelay: '80ms' }}>
-        <TodaySummaryCard stats={stats} loading={loading} />
-      </div>
+      {hasError ? (
+        <p className="text-sm text-center py-8" style={{ color: 'var(--text-2)' }}>
+          Could not load data. Try refreshing.
+        </p>
+      ) : (
+        <>
+          {/* 2 — Today's Summary */}
+          <div style={{ animation: 'sectionFadeIn 400ms ease both', animationDelay: '80ms' }}>
+            <TodaySummaryCard stats={stats} loading={loading} />
+          </div>
 
-      {/* 3 — Weekly Dots */}
-      <div style={{ animation: 'sectionFadeIn 400ms ease both', animationDelay: '160ms' }}>
-        <WeeklyDots chartData={stats?.chartData} loading={loading} />
-      </div>
+          {/* 3 — Weekly Dots */}
+          <div style={{ animation: 'sectionFadeIn 400ms ease both', animationDelay: '160ms' }}>
+            <WeeklyDots chartData={stats?.chartData} loading={loading} />
+          </div>
+        </>
+      )}
 
       {/* 4 — Quick Actions */}
       <div style={{ animation: 'sectionFadeIn 400ms ease both', animationDelay: '240ms' }}>
         <QuickActions />
       </div>
 
-      {/* 5 — Active Courses */}
-      {!loading && activeCourses?.length > 0 && (
-        <div style={{ animation: 'sectionFadeIn 400ms ease both', animationDelay: '320ms' }}>
-          <CoursesRow courses={activeCourses} weekSessionsMap={stats?.weekSessionsMap ?? {}} />
-        </div>
+      {!hasError && (
+        <>
+          {/* 5 — Active Courses */}
+          {!loading && activeCourses?.length > 0 && (
+            <div style={{ animation: 'sectionFadeIn 400ms ease both', animationDelay: '320ms' }}>
+              <CoursesRow courses={activeCourses} weekSessionsMap={stats?.weekSessionsMap ?? {}} />
+            </div>
+          )}
+
+          {/* 6 — Recent Sessions */}
+          {(loading || recentSessions !== null) && (
+            <div style={{ animation: 'sectionFadeIn 400ms ease both', animationDelay: '400ms' }}>
+              <RecentSessionsList sessions={recentSessions} loading={loading} onDelete={handleDeleteSession} />
+            </div>
+          )}
+        </>
       )}
 
-      {/* 6 — Recent Sessions */}
-      {(loading || recentSessions !== null) && (
-        <div style={{ animation: 'sectionFadeIn 400ms ease both', animationDelay: '400ms' }}>
-          <RecentSessionsList sessions={recentSessions} loading={loading} onDelete={handleDeleteSession} />
-        </div>
-      )}
+      {deleteError && <Toast message="Could not delete session. Try again." />}
 
     </div>
   )
@@ -791,4 +819,29 @@ function DetailRow({ label, children }) {
 
 function Skel({ h }) {
   return <SkeletonCard height={h} radius={12} />
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+
+function Toast({ message }) {
+  return (
+    <div className="fixed top-16 left-0 right-0 flex justify-center z-[70] pointer-events-none px-4">
+      <div
+        className="flex items-center gap-2 px-4 py-3 rounded-2xl pointer-events-auto"
+        style={{
+          backgroundColor: 'var(--bg-card)',
+          border: '1px solid var(--border)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
+          animation: 'toastSlideDown 250ms ease both',
+        }}
+      >
+        <span className="flex items-center justify-center w-5 h-5 rounded-full flex-shrink-0" style={{ backgroundColor: '#ef4444' }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" className="w-3 h-3">
+            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </span>
+        <span className="text-sm font-medium whitespace-nowrap" style={{ color: 'var(--text-1)' }}>{message}</span>
+      </div>
+    </div>
+  )
 }
