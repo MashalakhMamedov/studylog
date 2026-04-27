@@ -141,6 +141,7 @@ function computeStats(chartSessions, streakSessions, courses = []) {
   return {
     todayMins,
     todaySessionCount: todaySessions.length,
+    totalSessionCount: streakSessions.length,
     todayPages,
     chartData,
     weekSessionsMap,
@@ -241,7 +242,9 @@ export default function Home() {
                 ? <span style={{ color: 'var(--text-3)' }}>·  ·  ·</span>
                 : stats.streak > 0
                   ? `${stats.streak}-day streak 🔥`
-                  : 'Start a streak today'}
+                  : stats.totalSessionCount === 0
+                    ? 'No sessions yet. Start by adding a course.'
+                    : 'Start a streak today'}
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0 ml-4">
@@ -355,6 +358,8 @@ function TodaySummaryCard({ stats, loading }) {
   }
 
   if (stats.todaySessionCount === 0) {
+    const isFirstSession = stats.totalSessionCount === 0
+
     return (
       <div
         className="rounded-xl px-4 py-3 flex items-center gap-4"
@@ -362,15 +367,17 @@ function TodaySummaryCard({ stats, loading }) {
       >
         <CalendarClock size={22} strokeWidth={1.7} className="flex-shrink-0" style={{ color: 'var(--text-3)' }} />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold" style={{ color: 'var(--text-1)' }}>No study sessions today yet</p>
+          <p className="text-sm font-semibold" style={{ color: 'var(--text-1)' }}>
+            {isFirstSession ? 'No sessions yet. Start by adding a course.' : 'No study sessions today yet'}
+          </p>
         </div>
         <button
-          onClick={() => navigate('/session?mode=focus')}
+          onClick={() => navigate(isFirstSession ? '/courses' : '/session?mode=focus')}
           className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap"
           style={{ backgroundColor: accentColor, color: '#fff' }}
         >
-          <CirclePlay size={14} strokeWidth={2.4} />
-          Start a session
+          {!isFirstSession && <CirclePlay size={14} strokeWidth={2.4} />}
+          {isFirstSession ? 'Add a course' : 'Start a session'}
         </button>
       </div>
     )

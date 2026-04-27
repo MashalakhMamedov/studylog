@@ -798,6 +798,20 @@ function ZenMode({ segment, onExit }) {
 
 function SetupView({ courses, resources, courseId, resourceId, onCourseChange, onResourceChange, onStart, coursesLoading }) {
   const { accentColor } = useTheme()
+
+  if (!coursesLoading && courses.length === 0) {
+    return (
+      <div className="space-y-2">
+        <p className="text-sm font-semibold" style={{ color: 'var(--text-1)' }}>
+          You need a course first.
+        </p>
+        <Link to="/courses" className="text-sm font-medium" style={{ color: accentColor }}>
+          Add a course
+        </Link>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
       <Field label="Course *">
@@ -834,6 +848,9 @@ function SetupView({ courses, resources, courseId, resourceId, onCourseChange, o
           }
           {resources.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
         </select>
+        <p className="text-xs leading-relaxed" style={{ color: 'var(--text-3)' }}>
+          Tip: you can switch courses mid-session without stopping the timer.
+        </p>
       </Field>
 
       <button
