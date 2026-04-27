@@ -339,7 +339,7 @@ function TodaySummaryCard({ stats, loading }) {
         </div>
         <button
           onClick={() => navigate('/session?mode=focus')}
-          className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap"
+          className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap"
           style={{ backgroundColor: accentColor, color: '#fff' }}
         >
           <CirclePlay size={14} strokeWidth={2.4} />
@@ -489,7 +489,7 @@ function QuickActions() {
         <button
           key={label}
           onClick={() => navigate(href)}
-          className="flex-1 flex flex-col items-center gap-2 py-3.5 rounded-xl"
+          className="flex-1 min-w-0 flex flex-col items-center gap-2 py-3 rounded-xl"
           style={{
             backgroundColor: 'var(--bg-card)',
             border: primary ? `1px solid ${accentColor}44` : '1px solid var(--border)',
@@ -497,7 +497,7 @@ function QuickActions() {
           }}
         >
           {icon}
-          <span style={{ fontSize: 11, fontWeight: 600, lineHeight: 1 }}>{label}</span>
+          <span className="max-w-full truncate text-[11px]" style={{ fontWeight: 600, lineHeight: 1 }}>{label}</span>
         </button>
       ))}
     </div>
@@ -784,4 +784,3 @@ function DetailRow({ label, children }) {
 function Skel({ h }) {
   return <SkeletonCard height={h} radius={12} />
 }
-

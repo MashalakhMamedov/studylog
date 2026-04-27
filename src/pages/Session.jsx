@@ -76,7 +76,7 @@ export default function Session() {
         <div className="flex p-1 rounded-full" style={{ backgroundColor: 'var(--bg-surf)' }}>
           <button
             onClick={() => handleModeSwitch('focus')}
-            className="flex-1 py-2 rounded-full text-sm font-semibold transition-colors"
+            className="flex-1 py-2 rounded-full text-xs font-semibold transition-colors"
             style={mode === 'focus'
               ? { backgroundColor: accentColor, color: '#fff' }
               : { backgroundColor: 'transparent', color: 'var(--text-3)' }
@@ -86,7 +86,7 @@ export default function Session() {
           </button>
           <button
             onClick={() => handleModeSwitch('log')}
-            className="flex-1 py-2 rounded-full text-sm font-semibold transition-colors"
+            className="flex-1 py-2 rounded-full text-xs font-semibold transition-colors"
             style={mode === 'log'
               ? { backgroundColor: accentColor, color: '#fff' }
               : { backgroundColor: 'transparent', color: 'var(--text-3)' }
@@ -469,7 +469,7 @@ function LogTab() {
               <button
                 key={value}
                 onClick={() => set('energy_level', value)}
-                className="flex-1 py-2 rounded-xl text-xs font-medium"
+                className="flex-[1_1_calc(50%-0.25rem)] py-2 rounded-xl text-xs font-medium"
                 style={active
                   ? { backgroundColor: ENERGY_COLOR[value] + '33', color: ENERGY_COLOR[value], border: `1px solid ${ENERGY_COLOR[value]}55` }
                   : { backgroundColor: 'var(--bg-surf)', color: 'var(--text-2)', border: '1px solid var(--border)' }
@@ -1151,7 +1151,7 @@ function FinishModal({ totalSeconds, segments, form, setForm, courses, allResour
                 <button
                   key={value}
                   onClick={() => set('energy_level', value)}
-                  className="flex-1 py-2 rounded-xl text-xs font-medium"
+                  className="flex-[1_1_calc(50%-0.25rem)] py-2 rounded-xl text-xs font-medium"
                   style={active
                     ? { backgroundColor: ENERGY_COLOR[value] + '33', color: ENERGY_COLOR[value], border: `1px solid ${ENERGY_COLOR[value]}55` }
                     : { backgroundColor: 'var(--bg-surf)', color: 'var(--text-2)', border: '1px solid var(--border)' }
@@ -1414,4 +1414,3 @@ function CloseBtn({ onClose }) {
     </button>
   )
 }
-
