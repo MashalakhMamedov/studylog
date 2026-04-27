@@ -147,6 +147,7 @@ export default function CourseDetail() {
   const [course, setCourse] = useState(null)
   const [sessions, setSessions] = useState([])
   const [resources, setResources] = useState([])
+  const [resourcesError, setResourcesError] = useState('')
   const [quizResults, setQuizResults] = useState([])
   const [quizResultsError, setQuizResultsError] = useState('')
   const [minutesByResource, setMinutesByResource] = useState({})
@@ -195,11 +196,12 @@ export default function CourseDetail() {
 
   async function fetchAll() {
     setLoading(true)
+    setResourcesError('')
     setQuizResultsError('')
     const [
       { data: courseData },
       { data: sessionData },
-      { data: resourceData },
+      { data: resourceData, error: resourceError },
       { data: sessionMinData },
       { data: quizResultData, error: quizResultError },
     ] = await Promise.all([
@@ -231,7 +233,12 @@ export default function CourseDetail() {
       navigate('/courses')
     }
     if (sessionData) setSessions(sessionData)
-    if (resourceData) setResources(resourceData)
+    if (resourceError) {
+      setResources([])
+      setResourcesError(resourceError.message || 'Could not load materials.')
+    } else {
+      setResources(resourceData ?? [])
+    }
     if (quizResultError) {
       setQuizResults([])
       setQuizResultsError(quizResultError.message || 'Could not load quiz results.')
@@ -817,14 +824,20 @@ export default function CourseDetail() {
           )}
 
           {resources.length === 0 ? (
-            <EmptyState
-              icon={FilePlus}
-              title="No materials added yet. Add your lecture slides, textbooks, or videos."
-              actionLabel="Add Material"
-              actionIcon={Plus}
-              onAction={openAddMaterial}
-              compact
-            />
+            resourcesError ? (
+              <p className="text-xs py-4 text-center" style={{ color: '#ef4444' }}>
+                {resourcesError}
+              </p>
+            ) : (
+              <EmptyState
+                icon={FilePlus}
+                title="No materials added yet. Add your lecture slides, textbooks, or videos."
+                actionLabel="Add Material"
+                actionIcon={Plus}
+                onAction={openAddMaterial}
+                compact
+              />
+            )
           ) : displayResources.length === 0 ? (
             <p className="text-xs py-4 text-center" style={{ color: 'var(--text-2)' }}>
               No materials match this filter.
