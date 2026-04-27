@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useRef, useEffect } from 'react'
+import { createContext, useContext, useState, useRef, useEffect, useMemo } from 'react'
 import { useAuth } from './AuthContext.jsx'
 import { supabase } from '../lib/supabase.js'
 import { localDateStr } from '../lib/utils.js'
@@ -474,29 +474,51 @@ export function TimerProvider({ children }) {
     setPomodoroNotification(null)
   }
 
+  const contextValue = useMemo(() => ({
+    courses, allResources, coursesLoading,
+    phase,
+    courseId, setCourseId,
+    resourceId, setResourceId,
+    totalSeconds, running,
+    segments,
+    showSwap, setShowSwap, swapCourseId, setSwapCourseId, swapResourceId, setSwapResourceId,
+    showFinish, setShowFinish, finishForm, setFinishForm, saving, finishError,
+    showDiscard, setShowDiscard,
+    toast, setToast,
+    startClock, pauseClock,
+    startSession, openSwap, confirmSwap, openFinish, submitFinish, resetAll,
+    // Pomodoro
+    pomodoroMode, setPomodoroMode,
+    pomodoroPhase,
+    pomodoroCycle,
+    pomodoroSecondsLeft,
+    breakSecondsTotal,
+    setPomodoroSettings,
+    pomodoroNotification, setPomodoroNotification,
+  }), [
+    courses, allResources, coursesLoading,
+    phase,
+    courseId, setCourseId,
+    resourceId, setResourceId,
+    totalSeconds, running,
+    segments,
+    showSwap, setShowSwap, swapCourseId, setSwapCourseId, swapResourceId, setSwapResourceId,
+    showFinish, setShowFinish, finishForm, setFinishForm, saving, finishError,
+    showDiscard, setShowDiscard,
+    toast, setToast,
+    startClock, pauseClock,
+    startSession, openSwap, confirmSwap, openFinish, submitFinish, resetAll,
+    pomodoroMode, setPomodoroMode,
+    pomodoroPhase,
+    pomodoroCycle,
+    pomodoroSecondsLeft,
+    breakSecondsTotal,
+    setPomodoroSettings,
+    pomodoroNotification, setPomodoroNotification,
+  ])
+
   return (
-    <TimerContext.Provider value={{
-      courses, allResources, coursesLoading,
-      phase,
-      courseId, setCourseId,
-      resourceId, setResourceId,
-      totalSeconds, running,
-      segments,
-      showSwap, setShowSwap, swapCourseId, setSwapCourseId, swapResourceId, setSwapResourceId,
-      showFinish, setShowFinish, finishForm, setFinishForm, saving, finishError,
-      showDiscard, setShowDiscard,
-      toast, setToast,
-      startClock, pauseClock,
-      startSession, openSwap, confirmSwap, openFinish, submitFinish, resetAll,
-      // Pomodoro
-      pomodoroMode, setPomodoroMode,
-      pomodoroPhase,
-      pomodoroCycle,
-      pomodoroSecondsLeft,
-      breakSecondsTotal,
-      setPomodoroSettings,
-      pomodoroNotification, setPomodoroNotification,
-    }}>
+    <TimerContext.Provider value={contextValue}>
       {children}
     </TimerContext.Provider>
   )
