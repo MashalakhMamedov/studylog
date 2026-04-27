@@ -619,7 +619,7 @@ export default function CourseDetail() {
 
       <div className="px-4 pt-5 space-y-7">
         {/* Stats */}
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {[
             { label: 'Study Time', value: fmtMins(totalMins), color: null },
             { label: 'Sessions', value: sessions.length, color: null },
@@ -996,7 +996,7 @@ function CourseDetailSkeleton() {
       </div>
 
       <div className="px-4 pt-5 space-y-7">
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {[0, 1, 2, 3].map(i => (
             <SkeletonBlock key={i} className="h-[58px] rounded-xl" />
           ))}
