@@ -574,7 +574,6 @@ export default function CourseDetail() {
     <div className="page-enter pb-10">
       {/* Header */}
       <div style={{ borderBottom: '1px solid var(--border)' }}>
-        <div className="h-1.5" style={{ backgroundColor: course.color }} />
         <div className="px-4 pt-3 pb-4 space-y-3">
           <div className="flex items-center justify-between">
             <button

@@ -133,7 +133,6 @@ export function CourseModal({ form, setForm, editing, saving, error, onSave, onC
 
         {/* Live preview */}
         <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-          <div className="h-1" style={{ backgroundColor: form.color }} />
           <div className="px-3 py-2.5 flex items-center gap-3" style={{ backgroundColor: 'var(--bg-surf)' }}>
             <span className="text-2xl leading-none">{form.emoji}</span>
             <div>
