@@ -79,7 +79,7 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 flex items-center px-2 pb-safe"
+      className="fixed bottom-0 left-0 right-0 z-40 flex items-center px-2 pb-safe"
       style={{ backgroundColor: 'var(--bg-card)', borderTop: '1px solid var(--border)', height: '64px' }}
     >
       {tabs.map(({ to, label, icon }) => (
