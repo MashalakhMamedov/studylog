@@ -38,8 +38,6 @@ export const ENERGY_LABEL = {
 
 export const MAX_DURATION_MINUTES = 720
 
-// Note: TimerContext.jsx has a dynamic version that reads studylog-focus-duration from
-// localStorage to override workMin. This static version is the baseline default only.
 export const DEFAULT_POM_SETTINGS = {
   workMin:        25,
   shortBreakMin:  5,
