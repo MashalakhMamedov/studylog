@@ -875,7 +875,12 @@ function RunningView({ totalSeconds, running, segment, segmentCount, onPause, on
         <div className="flex justify-center">
           {segment.resourceLink ? (
             <button
-              onClick={() => window.open(segment.resourceLink, '_blank')}
+              onClick={() => {
+                const url = segment.resourceLink;
+                if (url && (url.startsWith('https://') || url.startsWith('http://'))) {
+                  window.open(url, '_blank');
+                }
+              }}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium"
               style={{ backgroundColor: 'var(--bg-surf)', color: 'var(--text-1)', border: '1px solid var(--border)' }}
             >
@@ -1029,7 +1034,7 @@ function FinishModal({ totalSeconds, segments, form, setForm, courses, allResour
         ? 'Duration cannot exceed 720 minutes.'
         : ''
   )
-  const canSubmit = !saving && !durationError
+  const canSubmit = !saving && !durationError && (!multiSegment ? !!form.course_id : true)
 
   function set(key, val) { setForm(f => ({ ...f, [key]: val })) }
 
