@@ -253,7 +253,7 @@ function FocusTab() {
         />
       )}
 
-      {toast && <Toast />}
+      {toast && <Toast message={toast} />}
 
       {zenMode && (
         <ZenMode
@@ -1063,7 +1063,11 @@ function FinishModal({ totalSeconds, segments, form, setForm, courses, allResour
             <Field label="Resource (optional)">
               <select
                 value={form.resource_id}
-                onChange={e => set('resource_id', e.target.value)}
+                onChange={e => {
+                  const rid = e.target.value
+                  const res = allResources.find(r => r.id === rid)
+                  setForm(f => ({ ...f, resource_id: rid, leftOffAt: res?.current_position ?? '' }))
+                }}
                 disabled={!form.course_id}
                 className="h-11 px-3 rounded-xl text-sm w-full outline-none"
                 style={{
@@ -1076,6 +1080,18 @@ function FinishModal({ totalSeconds, segments, form, setForm, courses, allResour
                 {resources.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
               </select>
             </Field>
+            {form.resource_id && (
+              <Field label="Left off at (updates your bookmark)">
+                <input
+                  type="text"
+                  value={form.leftOffAt}
+                  onChange={e => set('leftOffAt', e.target.value)}
+                  placeholder="e.g. page 42, Chapter 5, 1:23:00"
+                  className="h-11 px-3 rounded-xl text-sm w-full outline-none"
+                  style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
+                />
+              </Field>
+            )}
           </>
         )}
 

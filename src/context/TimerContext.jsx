@@ -60,6 +60,7 @@ export function TimerProvider({ children }) {
     pages_covered: '', notes: '',
     focus_type: 'deep_focus', energy_level: 'high',
     date: localDateStr(), course_id: '', resource_id: '', duration_minutes: '',
+    leftOffAt: '',
   })
   const [saving, setSaving]           = useState(false)
   const [finishError, setFinishError] = useState('')
@@ -233,7 +234,7 @@ export function TimerProvider({ children }) {
     if (!session) return
     Promise.all([
       supabase.from('courses').select('id, name, emoji, color').order('name'),
-      supabase.from('resources').select('id, course_id, name, type, link').order('name'),
+      supabase.from('resources').select('id, course_id, name, type, link, current_position').order('name'),
     ]).then(([{ data: c, error: ce }, { data: r, error: re }]) => {
       if (ce) { console.error('Failed to load courses:', ce); setCourses([]) }
       else if (c) setCourses(c)
@@ -394,13 +395,16 @@ export function TimerProvider({ children }) {
     const pomNote  = pomodoroModeRef.current && nCycles > 0
       ? `[Pomodoro: ${nCycles} cycle${nCycles !== 1 ? 's' : ''}] `
       : ''
+    const lastResourceId = lastSeg?.resource_id ?? ''
+    const lastResource = allResources.find(r => r.id === lastResourceId)
     setFinishForm({
       pages_covered: '', notes: pomNote,
       focus_type: 'deep_focus', energy_level: 'high',
       date: localDateStr(),
       course_id:        lastSeg?.course_id   ?? '',
-      resource_id:      lastSeg?.resource_id ?? '',
+      resource_id:      lastResourceId,
       duration_minutes: String(Math.max(1, Math.round(workSecs / 60))),
+      leftOffAt:        lastResource?.current_position ?? '',
     })
     setShowFinish(true)
   }
@@ -440,10 +444,27 @@ export function TimerProvider({ children }) {
     setSaving(false)
     if (error) {
       setFinishError(error.message || 'Could not save session. Please try again.')
-    } else {
-      resetAll()
-      setToast(true)
+      return
     }
+
+    const resourceId = isSingle ? (finishForm.resource_id || null) : null
+    const leftOffAt  = finishForm.leftOffAt.trim()
+    let posError = null
+    if (resourceId && leftOffAt) {
+      const { error: pe } = await supabase
+        .from('resources')
+        .update({ current_position: leftOffAt })
+        .eq('id', resourceId)
+      posError = pe
+      if (!pe) {
+        setAllResources(prev => prev.map(r =>
+          r.id === resourceId ? { ...r, current_position: leftOffAt } : r
+        ))
+      }
+    }
+
+    resetAll()
+    setToast(posError ? 'Session logged · bookmark not updated' : 'Session logged')
   }
 
   function resetAll() {
