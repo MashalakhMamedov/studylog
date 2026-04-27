@@ -100,11 +100,17 @@ function DeleteModal({ onClose, userId }) {
     setBusy(true)
     setErr('')
     try {
+      const { error } = await supabase.rpc('delete_user')
+      if (error) {
+        setErr('Account deletion failed. Please contact support.')
+        setBusy(false)
+        return
+      }
+
       await supabase.from('quiz_results').delete().eq('user_id', userId)
       await supabase.from('sessions').delete().eq('user_id', userId)
       await supabase.from('resources').delete().eq('user_id', userId)
       await supabase.from('courses').delete().eq('user_id', userId)
-      await supabase.rpc('delete_user').catch(() => {})
       await supabase.auth.signOut()
     } catch {
       setErr('Something went wrong. Please try again.')
@@ -187,6 +193,7 @@ export default function Settings() {
   const [nameEditing, setNameEditing] = useState(false)
   const [nameValue, setNameValue] = useState(savedFirstName)
   const [nameSaving, setNameSaving] = useState(false)
+  const [nameError, setNameError] = useState('')
   const nameInputRef = useRef(null)
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -201,10 +208,15 @@ export default function Settings() {
 
   async function saveName() {
     const trimmed = nameValue.trim()
-    if (trimmed === savedFirstName) { setNameEditing(false); return }
+    if (trimmed === savedFirstName) { setNameError(''); setNameEditing(false); return }
+    setNameError('')
     setNameSaving(true)
-    await supabase.auth.updateUser({ data: { first_name: trimmed } })
+    const { error } = await supabase.auth.updateUser({ data: { first_name: trimmed } })
     setNameSaving(false)
+    if (error) {
+      setNameError(error.message || 'Could not update first name. Please try again.')
+      return
+    }
     setNameEditing(false)
   }
 
@@ -277,16 +289,19 @@ export default function Settings() {
               <div className="min-w-0 flex-1">
                 <p className="text-xs mb-1" style={{ color: 'var(--text-3)' }}>First name</p>
                 {nameEditing ? (
-                  <input
-                    ref={nameInputRef}
-                    value={nameValue}
-                    onChange={e => setNameValue(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') { setNameValue(savedFirstName); setNameEditing(false) } }}
-                    autoFocus
-                    placeholder="Your first name"
-                    className="w-full text-sm outline-none rounded-lg px-2 py-1"
-                    style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
-                  />
+                  <>
+                    <input
+                      ref={nameInputRef}
+                      value={nameValue}
+                      onChange={e => { setNameValue(e.target.value); setNameError('') }}
+                      onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') { setNameValue(savedFirstName); setNameError(''); setNameEditing(false) } }}
+                      autoFocus
+                      placeholder="Your first name"
+                      className="w-full text-sm outline-none rounded-lg px-2 py-1"
+                      style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: 'var(--text-1)' }}
+                    />
+                    {nameError && <p className="text-xs mt-1" style={{ color: '#ef4444' }}>{nameError}</p>}
+                  </>
                 ) : (
                   <p className="text-sm font-semibold" style={{ color: savedFirstName ? 'var(--text-1)' : 'var(--text-3)' }}>
                     {savedFirstName || 'Not set'}
@@ -296,7 +311,7 @@ export default function Settings() {
               {nameEditing ? (
                 <div className="flex gap-2 flex-shrink-0">
                   <button
-                    onClick={() => { setNameValue(savedFirstName); setNameEditing(false) }}
+                    onClick={() => { setNameValue(savedFirstName); setNameError(''); setNameEditing(false) }}
                     className="text-xs px-3 py-1.5 rounded-lg"
                     style={{ color: 'var(--text-2)', backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)' }}
                   >
@@ -313,7 +328,7 @@ export default function Settings() {
                 </div>
               ) : (
                 <button
-                  onClick={() => { setNameEditing(true); setTimeout(() => nameInputRef.current?.focus(), 0) }}
+                  onClick={() => { setNameError(''); setNameEditing(true); setTimeout(() => nameInputRef.current?.focus(), 0) }}
                   className="flex-shrink-0 text-xs px-3 py-1.5 rounded-lg"
                   style={{ color: accentColor, backgroundColor: `${accentColor}18`, border: `1px solid ${accentColor}30` }}
                 >
