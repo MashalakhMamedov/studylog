@@ -36,6 +36,7 @@ export function TimerProvider({ children }) {
 
   const [courses, setCourses]           = useState([])
   const [allResources, setAllResources] = useState([])
+  const [coursesLoading, setCoursesLoading] = useState(true)
 
   const [phase, setPhase]           = useState('setup')
   const [courseId, setCourseId]     = useState('')
@@ -232,15 +233,19 @@ export function TimerProvider({ children }) {
   // ── Load courses + resources ──────────────────────────────────────────────
 
   useEffect(() => {
+    if (!session) return
     Promise.all([
       supabase.from('courses').select('id, name, emoji, color').order('name'),
       supabase.from('resources').select('id, course_id, name, type, link').order('name'),
     ]).then(([{ data: c }, { data: r }]) => {
       if (c) setCourses(c)
       if (r) setAllResources(r)
+      setCoursesLoading(false)
+    }).catch(() => {
+      setCoursesLoading(false)
     })
     return () => clearInterval(intervalRef.current)
-  }, [])
+  }, [session])
 
   // ── Browser tab title ─────────────────────────────────────────────────────
 
@@ -468,7 +473,7 @@ export function TimerProvider({ children }) {
 
   return (
     <TimerContext.Provider value={{
-      courses, allResources,
+      courses, allResources, coursesLoading,
       phase,
       courseId, setCourseId,
       resourceId, setResourceId,

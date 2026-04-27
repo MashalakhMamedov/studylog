@@ -149,7 +149,7 @@ export default function Session() {
 function FocusTab() {
   const navigate = useNavigate()
   const {
-    courses, allResources,
+    courses, allResources, coursesLoading,
     phase, courseId, setCourseId, resourceId, setResourceId,
     totalSeconds, running,
     segments,
@@ -228,6 +228,7 @@ function FocusTab() {
             onCourseChange={id => { setCourseId(id); setResourceId('') }}
             onResourceChange={setResourceId}
             onStart={startSession}
+            coursesLoading={coursesLoading}
           />
         </>
       )}
@@ -751,7 +752,7 @@ function ZenMode({ segment, onExit }) {
   )
 }
 
-function SetupView({ courses, resources, courseId, resourceId, onCourseChange, onResourceChange, onStart }) {
+function SetupView({ courses, resources, courseId, resourceId, onCourseChange, onResourceChange, onStart, coursesLoading }) {
   const { accentColor } = useTheme()
   return (
     <div className="space-y-4">
@@ -759,10 +760,14 @@ function SetupView({ courses, resources, courseId, resourceId, onCourseChange, o
         <select
           value={courseId}
           onChange={e => onCourseChange(e.target.value)}
+          disabled={coursesLoading}
           className="h-11 px-3 rounded-xl text-sm w-full outline-none"
-          style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: courseId ? 'var(--text-1)' : 'var(--text-2)' }}
+          style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: courseId ? 'var(--text-1)' : 'var(--text-2)', opacity: coursesLoading ? 0.5 : 1 }}
         >
-          <option value="" disabled>Select a course</option>
+          {coursesLoading
+            ? <option value="" disabled>Loading...</option>
+            : <option value="" disabled>Select a course</option>
+          }
           {courses.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
         </select>
       </Field>
@@ -771,15 +776,18 @@ function SetupView({ courses, resources, courseId, resourceId, onCourseChange, o
         <select
           value={resourceId}
           onChange={e => onResourceChange(e.target.value)}
-          disabled={!courseId}
+          disabled={coursesLoading || !courseId}
           className="h-11 px-3 rounded-xl text-sm w-full outline-none"
           style={{
             backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)',
             color: resourceId ? 'var(--text-1)' : 'var(--text-2)',
-            opacity: courseId ? 1 : 0.45,
+            opacity: coursesLoading || !courseId ? 0.45 : 1,
           }}
         >
-          <option value="">None</option>
+          {coursesLoading
+            ? <option value="" disabled>Loading...</option>
+            : <option value="">None</option>
+          }
           {resources.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
         </select>
       </Field>
