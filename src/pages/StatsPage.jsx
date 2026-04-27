@@ -95,7 +95,8 @@ export default function StatsPage() {
       supabase
         .from('sessions')
         .select('id, date')
-        .order('date', { ascending: false }),
+        .order('date', { ascending: false })
+        .limit(400),
     ]).then(([weekResult, monthResult, streakResult]) => {
       const firstError = weekResult.error || monthResult.error || streakResult.error
       if (firstError) {

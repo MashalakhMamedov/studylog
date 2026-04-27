@@ -106,12 +106,12 @@ function useCountUp(target, duration = 600) {
 
 // ── Stats computation ─────────────────────────────────────────────────────────
 
-function computeStats(allSessions, courses = []) {
+function computeStats(chartSessions, streakSessions, courses = []) {
   const todayStr = localDateStr()
   const wStart = weekStartStr()
   const weekDays = currentWeekDays()
 
-  const todaySessions = allSessions.filter(s => s.date === todayStr)
+  const todaySessions = chartSessions.filter(s => s.date === todayStr)
   const todayMins = todaySessions.reduce((sum, s) => sum + (s.duration_minutes || 0), 0)
   const todayPages = todaySessions.reduce((sum, s) => {
     const p = parseInt(s.pages_covered)
@@ -119,13 +119,13 @@ function computeStats(allSessions, courses = []) {
   }, 0)
 
   const dayMap = Object.fromEntries(weekDays.map(d => [d.date, 0]))
-  allSessions.forEach(s => {
+  chartSessions.forEach(s => {
     if (s.date in dayMap) dayMap[s.date] += (s.duration_minutes || 0)
   })
   const chartData = weekDays.map(d => ({ ...d, minutes: dayMap[d.date] }))
 
   const weekSessionsMap = {}
-  allSessions.forEach(s => {
+  chartSessions.forEach(s => {
     if (s.date >= wStart && s.course_id) {
       weekSessionsMap[s.course_id] = (weekSessionsMap[s.course_id] || 0) + 1
     }
@@ -144,7 +144,7 @@ function computeStats(allSessions, courses = []) {
     todayPages,
     chartData,
     weekSessionsMap,
-    streak: calcStreak(allSessions),
+    streak: calcStreak(streakSessions),
     topCourseToday,
   }
 }
@@ -156,36 +156,51 @@ export default function Home() {
   const { session: authSession } = useAuth()
   const { theme, toggleTheme, accentColor } = useTheme()
 
-  const [allSessions, setAllSessions] = useState(null)
+  const [chartSessions, setChartSessions] = useState(null)
+  const [streakSessions, setStreakSessions] = useState(null)
   const [activeCourses, setActiveCourses] = useState(null)
   const [recentSessions, setRecentSessions] = useState(null)
   const [deleteError, setDeleteError] = useState(false)
   const [hasError, setHasError] = useState(false)
 
   const stats = useMemo(
-    () => allSessions && activeCourses ? computeStats(allSessions, activeCourses) : null,
-    [allSessions, activeCourses]
+    () => chartSessions && streakSessions && activeCourses ? computeStats(chartSessions, streakSessions, activeCourses) : null,
+    [chartSessions, streakSessions, activeCourses]
   )
-  const loading = allSessions === null || activeCourses === null
+  const loading = chartSessions === null || streakSessions === null || activeCourses === null
 
   const meta = authSession?.user?.user_metadata ?? {}
   const firstName = meta.first_name || meta.full_name?.split(' ')[0] || ''
   const greetingText = firstName ? `${greeting()}, ${firstName}` : greeting()
 
   useEffect(() => {
+    const d = new Date()
+    d.setDate(d.getDate() - 7)
+    const sevenDaysAgo = d.toLocaleDateString('en-CA')
+
     Promise.all([
-      supabase.from('sessions').select('id, date, duration_minutes, pages_covered, course_id'),
+      supabase
+        .from('sessions')
+        .select('id, date, duration_minutes, pages_covered, course_id')
+        .gte('date', sevenDaysAgo),
+      supabase
+        .from('sessions')
+        .select('id, date')
+        .order('date', { ascending: false })
+        .limit(400),
       supabase.from('courses').select('id, name, emoji, color').eq('status', 'active').order('name'),
       supabase.from('sessions')
         .select('id, date, duration_minutes, pages_covered, focus_type, energy_level, notes, created_at, course_id, courses(name, emoji, color), resources(name)')
         .order('created_at', { ascending: false })
         .limit(7),
-    ]).then(([{ data: s }, { data: c }, { data: r }]) => {
-      setAllSessions(s ?? [])
+    ]).then(([{ data: chartData }, { data: streakData }, { data: c }, { data: r }]) => {
+      setChartSessions(chartData ?? [])
+      setStreakSessions(streakData ?? [])
       setActiveCourses(c ?? [])
       setRecentSessions(r ?? [])
     }).catch(() => {
-      setAllSessions([])
+      setChartSessions([])
+      setStreakSessions([])
       setActiveCourses([])
       setRecentSessions([])
       setHasError(true)
@@ -202,7 +217,8 @@ export default function Home() {
     const { error } = await supabase.from('sessions').delete().eq('id', id).eq('user_id', authSession.user.id)
     if (error) { setDeleteError(true); return }
     setRecentSessions(prev => prev?.filter(s => s.id !== id) ?? [])
-    setAllSessions(prev => prev?.filter(s => s.id !== id) ?? [])
+    setChartSessions(prev => prev?.filter(s => s.id !== id) ?? [])
+    setStreakSessions(prev => prev?.filter(s => s.id !== id) ?? [])
   }
 
   return (

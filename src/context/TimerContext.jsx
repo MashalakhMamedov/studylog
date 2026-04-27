@@ -279,7 +279,9 @@ export function TimerProvider({ children }) {
     function onVisibility() {
       if (document.hidden) {
         notify()
-        tickId = setInterval(notify, 60_000)
+        if (Notification.permission === 'granted') {
+          tickId = setInterval(notify, 60_000)
+        }
       } else {
         clearInterval(tickId)
         tickId = null
