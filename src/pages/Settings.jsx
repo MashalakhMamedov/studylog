@@ -544,7 +544,7 @@ export default function Settings() {
                 className="text-xs px-2 py-0.5 rounded-full"
                 style={{ backgroundColor: `${accentColor}22`, color: accentColor, fontWeight: 600 }}
               >
-                {version}
+                v{version}
               </span>
             </div>
           </Row>
