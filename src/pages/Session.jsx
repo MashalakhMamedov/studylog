@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams, Link } from 'react-router-dom'
-import { Clock3, Trash2 } from 'lucide-react'
+import { useNavigate, useSearchParams, useLocation, Link } from 'react-router-dom'
+import { Clock3, Trash2, Pencil } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTimer, fmtTime } from '../context/TimerContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
@@ -271,28 +271,37 @@ function LogTab() {
   const { session } = useAuth()
   const { accentColor } = useTheme()
   const navigate = useNavigate()
+  const location = useLocation()
   const [courses, setCourses] = useState([])
   const [resources, setResources] = useState([])
   const [form, setForm] = useState(DEFAULT_LOG_FORM)
   const [saving, setSaving] = useState(false)
-  const [toast, setToast] = useState(false)
+  const [toast, setToast] = useState('')
   const [deleteError, setDeleteError] = useState(false)
   const [history, setHistory] = useState(null)
   const [formError, setFormError] = useState('')
+  const [editingSession, setEditingSession] = useState(null)
 
   useEffect(() => {
     supabase.from('courses').select('id, name, emoji').order('name')
       .then(({ data }) => { if (data) setCourses(data) })
     supabase.from('sessions')
-      .select('id, date, duration_minutes, pages_covered, focus_type, energy_level, notes, courses(name, emoji, color), resources(name)')
+      .select('id, course_id, resource_id, date, duration_minutes, pages_covered, focus_type, energy_level, notes, courses(name, emoji, color), resources(name)')
       .order('date', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(50)
       .then(({ data }) => setHistory(data ?? []))
   }, [])
 
+  // Pre-fill form when navigated from Home with an edit target
   useEffect(() => {
-    setForm(f => ({ ...f, resource_id: '' }))
+    if (location.state?.editSession) {
+      handleEditSession(location.state.editSession)
+      window.history.replaceState({}, '')
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
     if (!form.course_id) { setResources([]); return }
     supabase.from('resources').select('id, name, type')
       .eq('course_id', form.course_id).order('name')
@@ -301,7 +310,11 @@ function LogTab() {
 
   useEffect(() => {
     if (!toast) return
-    const t = setTimeout(() => { setToast(false); navigate('/') }, 1800)
+    const t = setTimeout(() => {
+      const wasNew = toast === 'Session logged'
+      setToast('')
+      if (wasNew) navigate('/')
+    }, 1800)
     return () => clearTimeout(t)
   }, [toast])
 
@@ -316,6 +329,27 @@ function LogTab() {
     setFormError('')
   }
 
+  function handleEditSession(s) {
+    setEditingSession(s)
+    setFormError('')
+    setForm({
+      course_id:     s.course_id,
+      resource_id:   s.resource_id || '',
+      duration:      String(s.duration_minutes),
+      pages_covered: s.pages_covered || '',
+      focus_type:    s.focus_type || 'deep_focus',
+      energy_level:  s.energy_level || 'high',
+      date:          s.date,
+      notes:         s.notes || '',
+    })
+  }
+
+  function cancelEdit() {
+    setEditingSession(null)
+    setForm({ ...DEFAULT_LOG_FORM, date: today() })
+    setFormError('')
+  }
+
   async function submit() {
     setFormError('')
     if (!form.course_id || !form.duration) {
@@ -327,24 +361,46 @@ function LogTab() {
       return
     }
     setSaving(true)
-    const { data: inserted, error } = await supabase.from('sessions').insert({
-      user_id: session.user.id,
-      course_id: form.course_id,
-      resource_id: form.resource_id || null,
+
+    const fields = {
+      course_id:        form.course_id,
+      resource_id:      form.resource_id || null,
       duration_minutes: durationValue,
-      pages_covered: form.pages_covered.trim() || null,
-      focus_type: form.focus_type,
-      energy_level: form.energy_level,
-      date: form.date,
-      notes: form.notes.trim() || null,
-    }).select('id, date, duration_minutes, pages_covered, focus_type, energy_level, notes, courses(name, emoji, color), resources(name)').single()
-    setSaving(false)
-    if (error) {
-      setFormError(error.message || 'Could not save session. Please try again.')
+      pages_covered:    form.pages_covered.trim() || null,
+      focus_type:       form.focus_type,
+      energy_level:     form.energy_level,
+      date:             form.date,
+      notes:            form.notes.trim() || null,
+    }
+
+    const SELECT = 'id, course_id, resource_id, date, duration_minutes, pages_covered, focus_type, energy_level, notes, courses(name, emoji, color), resources(name)'
+
+    if (editingSession) {
+      const { data: updated, error } = await supabase
+        .from('sessions').update(fields)
+        .eq('id', editingSession.id)
+        .select(SELECT).single()
+      setSaving(false)
+      if (error) {
+        setFormError(error.message || 'Could not update session. Please try again.')
+      } else {
+        if (updated) setHistory(prev => prev?.map(s => s.id === editingSession.id ? updated : s) ?? [])
+        setEditingSession(null)
+        setForm({ ...DEFAULT_LOG_FORM, date: today() })
+        setToast('Session updated')
+      }
     } else {
-      if (inserted) setHistory(prev => [inserted, ...(prev ?? [])])
-      setForm({ ...DEFAULT_LOG_FORM, date: today() })
-      setToast(true)
+      const { data: inserted, error } = await supabase
+        .from('sessions').insert({ user_id: session.user.id, ...fields })
+        .select(SELECT).single()
+      setSaving(false)
+      if (error) {
+        setFormError(error.message || 'Could not save session. Please try again.')
+      } else {
+        if (inserted) setHistory(prev => [inserted, ...(prev ?? [])])
+        setForm({ ...DEFAULT_LOG_FORM, date: today() })
+        setToast('Session logged')
+      }
     }
   }
 
@@ -381,7 +437,7 @@ function LogTab() {
       <Field label="Course *">
         <select
           value={form.course_id}
-          onChange={e => set('course_id', e.target.value)}
+          onChange={e => setForm(f => ({ ...f, course_id: e.target.value, resource_id: '' }))}
           className="h-11 px-3 rounded-xl text-sm w-full outline-none"
           style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)', color: form.course_id ? 'var(--text-1)' : 'var(--text-2)' }}
         >
@@ -498,6 +554,11 @@ function LogTab() {
         <p className="text-xs" style={{ color: '#f87171' }}>{durationError || formError}</p>
       )}
 
+      {editingSession && (
+        <p className="text-xs font-medium -mb-2" style={{ color: 'var(--text-3)' }}>
+          Editing session from {fmtRelativeDate(editingSession.date)}
+        </p>
+      )}
       <button
         onClick={submit}
         disabled={!canSubmit}
@@ -508,8 +569,17 @@ function LogTab() {
           border: canSubmit ? 'none' : '1px solid var(--border)',
         }}
       >
-        {saving ? 'Saving…' : 'Log Session'}
+        {saving ? 'Saving…' : editingSession ? 'Save Changes' : 'Log Session'}
       </button>
+      {editingSession && !saving && (
+        <button
+          onClick={cancelEdit}
+          className="w-full py-3 rounded-xl text-sm font-semibold"
+          style={{ backgroundColor: 'var(--bg-surf)', color: 'var(--text-2)', border: '1px solid var(--border)' }}
+        >
+          Cancel
+        </button>
+      )}
 
       <div className="pt-2">
         <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text-1)' }}>Session History</p>
@@ -533,14 +603,14 @@ function LogTab() {
           >
             {history.map((s, i) => (
               <div key={s.id} className="stagger-in" style={{ animationDelay: `${Math.min(i, 7) * 40}ms` }}>
-                <HistoryCard s={s} onDelete={handleDeleteHistory} />
+                <HistoryCard s={s} onDelete={handleDeleteHistory} onEdit={handleEditSession} />
               </div>
             ))}
           </div>
         )}
       </div>
 
-      {toast && <Toast />}
+      {toast && <Toast message={toast} />}
       {deleteError && <Toast message="Could not delete session. Try again." error />}
     </div>
   )
@@ -1246,7 +1316,7 @@ function DiscardModal({ onConfirm, onCancel }) {
 
 // ── Log sub-components ───────────────────────────────────────────────────────
 
-function HistoryCard({ s, onDelete }) {
+function HistoryCard({ s, onDelete, onEdit }) {
   const { accentColor } = useTheme()
   const [confirming, setConfirming] = useState(false)
   const course = s.courses
@@ -1254,7 +1324,7 @@ function HistoryCard({ s, onDelete }) {
 
   return (
     <SwipeableRow onDelete={() => setConfirming(true)}>
-      <div className="px-4 py-3 pr-10 relative" style={{ backgroundColor: 'var(--bg-card)' }}>
+      <div className="px-4 py-3 pr-16 relative" style={{ backgroundColor: 'var(--bg-card)' }}>
         {confirming ? (
           <div className="flex items-center justify-end gap-2 min-h-[54px] text-xs">
             <span style={{ color: '#f87171' }}>Delete?</span>
@@ -1267,14 +1337,24 @@ function HistoryCard({ s, onDelete }) {
           </div>
         ) : (
           <>
-            <button
-              onClick={() => setConfirming(true)}
-              className="absolute top-3 right-3 p-1"
-              style={{ color: '#6b7280' }}
-              aria-label="Delete session"
-            >
-              <Trash2 className="w-3.5 h-3.5" strokeWidth={2} />
-            </button>
+            <div className="absolute top-3 right-3 flex items-center gap-0.5">
+              <button
+                onClick={() => onEdit(s)}
+                className="p-1"
+                style={{ color: '#6b7280' }}
+                aria-label="Edit session"
+              >
+                <Pencil className="w-3.5 h-3.5" strokeWidth={2} />
+              </button>
+              <button
+                onClick={() => setConfirming(true)}
+                className="p-1"
+                style={{ color: '#6b7280' }}
+                aria-label="Delete session"
+              >
+                <Trash2 className="w-3.5 h-3.5" strokeWidth={2} />
+              </button>
+            </div>
 
             <div className="flex items-center justify-between gap-2">
               <span

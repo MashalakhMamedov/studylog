@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { CalendarClock, Clock3, CirclePlay, Trash2 } from 'lucide-react'
+import { CalendarClock, Clock3, CirclePlay, Trash2, Pencil } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
@@ -190,7 +190,7 @@ export default function Home() {
         .limit(400),
       supabase.from('courses').select('id, name, emoji, color').eq('status', 'active').order('name'),
       supabase.from('sessions')
-        .select('id, date, duration_minutes, pages_covered, focus_type, energy_level, notes, created_at, course_id, courses(name, emoji, color), resources(name)')
+        .select('id, date, duration_minutes, pages_covered, focus_type, energy_level, notes, created_at, course_id, resource_id, courses(name, emoji, color), resources(name)')
         .order('created_at', { ascending: false })
         .limit(7),
     ]).then(([{ data: chartData }, { data: streakData }, { data: c }, { data: r }]) => {
@@ -219,6 +219,10 @@ export default function Home() {
     setRecentSessions(prev => prev?.filter(s => s.id !== id) ?? [])
     setChartSessions(prev => prev?.filter(s => s.id !== id) ?? [])
     setStreakSessions(prev => prev?.filter(s => s.id !== id) ?? [])
+  }
+
+  function handleEditSession(s) {
+    navigate('/session?mode=log', { state: { editSession: s } })
   }
 
   return (
@@ -315,7 +319,7 @@ export default function Home() {
           {/* 6 — Recent Sessions */}
           {(loading || recentSessions !== null) && (
             <div style={{ animation: 'sectionFadeIn 400ms ease both', animationDelay: '400ms' }}>
-              <RecentSessionsList sessions={recentSessions} loading={loading} onDelete={handleDeleteSession} />
+              <RecentSessionsList sessions={recentSessions} loading={loading} onDelete={handleDeleteSession} onEdit={handleEditSession} />
             </div>
           )}
         </>
@@ -564,7 +568,7 @@ function CoursesRow({ courses, weekSessionsMap }) {
   )
 }
 
-function RecentSessionsList({ sessions, loading, onDelete }) {
+function RecentSessionsList({ sessions, loading, onDelete, onEdit }) {
   const { accentColor } = useTheme()
   const [selected, setSelected] = useState(null)
 
@@ -590,7 +594,7 @@ function RecentSessionsList({ sessions, loading, onDelete }) {
           />
         ) : <div className="space-y-2">{sessions.map((s, i) => (
             <div key={s.id} className="stagger-in" style={{ animationDelay: `${Math.min(i, 5) * 50}ms` }}>
-              <SessionCard s={s} onDelete={onDelete} onTap={() => setSelected(s)} />
+              <SessionCard s={s} onDelete={onDelete} onEdit={onEdit} onTap={() => setSelected(s)} />
             </div>
           ))}</div>
       }
@@ -599,12 +603,13 @@ function RecentSessionsList({ sessions, loading, onDelete }) {
         open={!!selected}
         onClose={() => setSelected(null)}
         onDelete={handleDelete}
+        onEdit={onEdit}
       />
     </div>
   )
 }
 
-function SessionCard({ s, onDelete, onTap }) {
+function SessionCard({ s, onDelete, onEdit, onTap }) {
   const [confirming, setConfirming] = useState(false)
   const course = s.courses
   if (!course) return null
@@ -615,7 +620,7 @@ function SessionCard({ s, onDelete, onTap }) {
   return (
     <SwipeableRow onDelete={() => setConfirming(true)} bg="var(--bg-card)">
       <div
-        className="relative w-full rounded-xl p-3 pr-10 text-left transition-colors hover:bg-[var(--bg-hover)] active:bg-[var(--bg-hover)]"
+        className="relative w-full rounded-xl p-3 pr-16 text-left transition-colors hover:bg-[var(--bg-hover)] active:bg-[var(--bg-hover)]"
         style={{ backgroundColor: 'var(--bg-card)', borderLeft: `3px solid ${accent}` }}
       >
         {confirming ? (
@@ -649,14 +654,24 @@ function SessionCard({ s, onDelete, onTap }) {
                 </span>
               </div>
             </button>
-            <button
-              onClick={() => setConfirming(true)}
-              className="absolute right-2.5 top-2.5 p-1"
-              style={{ color: '#6b7280' }}
-              aria-label="Delete session"
-            >
-              <Trash2 className="w-3.5 h-3.5" strokeWidth={2} />
-            </button>
+            <div className="absolute right-2.5 top-2.5 flex items-center gap-0.5">
+              <button
+                onClick={() => onEdit(s)}
+                className="p-1"
+                style={{ color: '#6b7280' }}
+                aria-label="Edit session"
+              >
+                <Pencil className="w-3.5 h-3.5" strokeWidth={2} />
+              </button>
+              <button
+                onClick={() => setConfirming(true)}
+                className="p-1"
+                style={{ color: '#6b7280' }}
+                aria-label="Delete session"
+              >
+                <Trash2 className="w-3.5 h-3.5" strokeWidth={2} />
+              </button>
+            </div>
           </>
         )}
       </div>
@@ -665,7 +680,7 @@ function SessionCard({ s, onDelete, onTap }) {
 
 }
 
-function SessionDetailSheet({ session: s, open, onClose, onDelete }) {
+function SessionDetailSheet({ session: s, open, onClose, onDelete, onEdit }) {
   const { accentColor } = useTheme()
   const [confirming, setConfirming] = useState(false)
 
@@ -747,8 +762,17 @@ function SessionDetailSheet({ session: s, open, onClose, onDelete }) {
           </div>
         )}
 
-        {/* Delete */}
-        <div className="pt-5">
+        {/* Actions */}
+        <div className="pt-5 space-y-2">
+          {!confirming && (
+            <button
+              onClick={() => { onClose(); onEdit(s) }}
+              className="w-full py-3 rounded-xl text-sm font-semibold"
+              style={{ backgroundColor: 'var(--bg-surf)', color: 'var(--text-1)', border: '1px solid var(--border)' }}
+            >
+              Edit Session
+            </button>
+          )}
           {confirming ? (
             <div className="space-y-3">
               <p className="text-sm text-center" style={{ color: 'var(--text-2)' }}>
