@@ -2,9 +2,9 @@ import { useState, useRef } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme, COLORS } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
+import { version } from '../../package.json'
 
 const FOCUS_DURATIONS = [25, 45, 60]
-const APP_VERSION = 'v1.4.0'
 
 const CHANGELOG = [
   'Safer resource link validation',
@@ -544,7 +544,7 @@ export default function Settings() {
                 className="text-xs px-2 py-0.5 rounded-full"
                 style={{ backgroundColor: `${accentColor}22`, color: accentColor, fontWeight: 600 }}
               >
-                {APP_VERSION}
+                {version}
               </span>
             </div>
           </Row>

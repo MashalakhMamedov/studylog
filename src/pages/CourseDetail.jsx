@@ -85,19 +85,9 @@ function isSafeMaterialLink(link) {
   }
 }
 
-function isMissingColumn(error, column) {
-  const text = `${error?.message || ''} ${error?.details || ''} ${error?.hint || ''}`.toLowerCase()
-  return error?.code === '42703' || (text.includes('column') && text.includes(column.toLowerCase()))
-}
-
 async function fetchResourcesForCourse(courseId) {
-  const ordered = await supabase.from('resources').select('*').eq('course_id', courseId)
-    .order('order_index', { ascending: true, nullsFirst: false })
-    .order('created_at', { ascending: true })
-
-  if (!isMissingColumn(ordered.error, 'order_index')) return ordered
-
   return supabase.from('resources').select('*').eq('course_id', courseId)
+    .order('sort_order', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: true })
 }
 
@@ -399,16 +389,12 @@ export default function CourseDetail() {
       }
       if (!error) setResources(prev => prev.map(r => r.id === editingMaterial.id ? data : r))
     } else {
-      const nextOrderIndex = resources.reduce((max, r, idx) => {
-        const order = r.order_index === null || r.order_index === undefined ? idx : Number(r.order_index)
+      const nextSortOrder = resources.reduce((max, r, idx) => {
+        const order = r.sort_order === null || r.sort_order === undefined ? idx : Number(r.sort_order)
         return Math.max(max, Number.isFinite(order) ? order : idx)
       }, -1) + 1
-      let { data, error } = await supabase
-        .from('resources').insert({ ...payload, user_id: session.user.id, order_index: nextOrderIndex }).select().single()
-      if (isMissingColumn(error, 'order_index')) {
-        ;({ data, error } = await supabase
-          .from('resources').insert({ ...payload, user_id: session.user.id }).select().single())
-      }
+      const { data, error } = await supabase
+        .from('resources').insert({ ...payload, user_id: session.user.id, sort_order: nextSortOrder }).select().single()
       if (error) {
         setMaterialSaveError(error.message || 'Could not save material. Please try again.')
         setSavingMaterial(false)
@@ -508,17 +494,17 @@ export default function CourseDetail() {
     if (swapIdx < 0 || swapIdx >= resources.length) return
     const a = resources[idx]
     const b = resources[swapIdx]
-    const aOrder = a.order_index ?? idx
-    const bOrder = b.order_index ?? swapIdx
-    await supabase.from('resources').update({ order_index: bOrder }).eq('id', a.id)
-    await supabase.from('resources').update({ order_index: aOrder }).eq('id', b.id)
+    const aOrder = a.sort_order ?? idx
+    const bOrder = b.sort_order ?? swapIdx
+    await supabase.from('resources').update({ sort_order: bOrder }).eq('id', a.id)
+    await supabase.from('resources').update({ sort_order: aOrder }).eq('id', b.id)
     setResources(prev => {
       const next = prev.map(r => {
-        if (r.id === a.id) return { ...r, order_index: bOrder }
-        if (r.id === b.id) return { ...r, order_index: aOrder }
+        if (r.id === a.id) return { ...r, sort_order: bOrder }
+        if (r.id === b.id) return { ...r, sort_order: aOrder }
         return r
       })
-      return next.sort((x, y) => (x.order_index ?? 9999) - (y.order_index ?? 9999))
+      return next.sort((x, y) => (x.sort_order ?? 9999) - (y.sort_order ?? 9999))
     })
   }
 

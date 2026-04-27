@@ -244,8 +244,11 @@ export function TimerProvider({ children }) {
     }).catch(() => {
       setCoursesLoading(false)
     })
-    return () => clearInterval(intervalRef.current)
   }, [session])
+
+  useEffect(() => {
+    return () => clearInterval(intervalRef.current)
+  }, [])
 
   // ── Browser tab title ─────────────────────────────────────────────────────
 

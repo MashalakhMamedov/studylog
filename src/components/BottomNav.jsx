@@ -1,7 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { useCourses } from '../context/CoursesContext.jsx'
 import { useTimer } from '../context/TimerContext.jsx'
-import { useTheme } from '../context/ThemeContext.jsx'
 
 const tabs = [
   {
@@ -74,7 +73,6 @@ const tabs = [
 export default function BottomNav() {
   const { phase } = useTimer()
   const { activeCourseCount } = useCourses()
-  const { accentColor } = useTheme()
   const timerRunning = phase === 'running'
 
   return (
@@ -104,7 +102,7 @@ export default function BottomNav() {
                       width: '7px',
                       height: '7px',
                       borderRadius: '50%',
-                      backgroundColor: accentColor,
+                      backgroundColor: 'var(--accent)',
                       animation: 'timerPulse 1.4s ease-in-out infinite',
                     }}
                   />
@@ -119,7 +117,7 @@ export default function BottomNav() {
                       minWidth: '14px',
                       height: '14px',
                       borderRadius: '7px',
-                      backgroundColor: accentColor,
+                      backgroundColor: 'var(--accent)',
                       color: '#fff',
                       fontSize: '9px',
                       fontWeight: 700,
