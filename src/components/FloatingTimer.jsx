@@ -6,7 +6,7 @@ const POMO_PHASE_EMOJI = { work: '🍅', short_break: '☕', long_break: '☕' }
 const POMO_PHASE_LABEL = { work: 'Work', short_break: 'Break', long_break: 'Break' }
 
 export default function FloatingTimer() {
-  const { phase, totalSeconds, running, resetAll, pomodoroMode, pomodoroPhase, pomodoroSecondsLeft } = useContext(TimerContext)
+  const { phase, totalSeconds, running, pomodoroMode, pomodoroPhase, pomodoroSecondsLeft } = useContext(TimerContext)
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -58,7 +58,7 @@ export default function FloatingTimer() {
         )}
       </span>
       <button
-        onClick={e => { e.stopPropagation(); resetAll() }}
+        onClick={e => { e.stopPropagation(); navigate('/session') }}
         style={{
           background: 'none',
           border: 'none',
