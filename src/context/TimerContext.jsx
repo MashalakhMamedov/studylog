@@ -324,6 +324,7 @@ export function TimerProvider({ children }) {
       Notification.requestPermission()
     }
     const course   = courses.find(c => c.id === courseId)
+    if (!course) return
     const resource = allResources.find(r => r.id === resourceId)
 
     const initialSegments = [{
@@ -363,6 +364,7 @@ export function TimerProvider({ children }) {
 
   function confirmSwap() {
     const course   = courses.find(c => c.id === swapCourseId)
+    if (!course) { setShowSwap(false); return }
     const resource = allResources.find(r => r.id === swapResourceId)
     const snapSecs = calcElapsedSeconds()
 
