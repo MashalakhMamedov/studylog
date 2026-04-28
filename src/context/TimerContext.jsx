@@ -34,6 +34,7 @@ export function TimerProvider({ children }) {
   const [courses, setCourses]           = useState([])
   const [allResources, setAllResources] = useState([])
   const [coursesLoading, setCoursesLoading] = useState(true)
+  const [coursesError, setCoursesError] = useState(false)
 
   const [phase, setPhase]           = useState('setup')
   const [courseId, setCourseId]     = useState('')
@@ -232,18 +233,30 @@ export function TimerProvider({ children }) {
 
   useEffect(() => {
     if (!session) return
-    Promise.all([
-      supabase.from('courses').select('id, name, emoji, color').order('name'),
-      supabase.from('resources').select('id, course_id, name, type, link, current_position').order('name'),
-    ]).then(([{ data: c, error: ce }, { data: r, error: re }]) => {
-      if (ce) { console.error('Failed to load courses:', ce); setCourses([]) }
-      else if (c) setCourses(c)
+    let cancelled = false
+
+    async function load(attempt = 0) {
+      const [{ data: c, error: ce }, { data: r, error: re }] = await Promise.all([
+        supabase.from('courses').select('id, name, emoji, color').eq('status', 'active').order('name'),
+        supabase.from('resources').select('id, course_id, name, type, link, current_position').order('name'),
+      ])
+      if (cancelled) return
+      if (ce) {
+        if (attempt === 0) return load(1)
+        console.error('Failed to load courses:', ce)
+        setCoursesError(true)
+        setCoursesLoading(false)
+        return
+      }
+      setCourses(c ?? [])
+      setCoursesError(false)
       if (re) { console.error('Failed to load resources:', re); setAllResources([]) }
       else if (r) setAllResources(r)
       setCoursesLoading(false)
-    }).catch(() => {
-      setCoursesLoading(false)
-    })
+    }
+
+    load().catch(() => { if (!cancelled) setCoursesLoading(false) })
+    return () => { cancelled = true }
   }, [session])
 
   useEffect(() => {
@@ -499,7 +512,7 @@ export function TimerProvider({ children }) {
   }
 
   const contextValue = useMemo(() => ({
-    courses, allResources, coursesLoading,
+    courses, allResources, coursesLoading, coursesError,
     phase,
     courseId, setCourseId,
     resourceId, setResourceId,
@@ -520,7 +533,7 @@ export function TimerProvider({ children }) {
     setPomodoroSettings,
     pomodoroNotification, setPomodoroNotification,
   }), [
-    courses, allResources, coursesLoading,
+    courses, allResources, coursesLoading, coursesError,
     phase,
     courseId, setCourseId,
     resourceId, setResourceId,

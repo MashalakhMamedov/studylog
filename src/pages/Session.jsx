@@ -114,7 +114,7 @@ export default function Session() {
 function FocusTab() {
   const navigate = useNavigate()
   const {
-    courses, allResources, coursesLoading,
+    courses, allResources, coursesLoading, coursesError,
     phase, courseId, setCourseId, resourceId, setResourceId,
     totalSeconds, running,
     segments,
@@ -194,6 +194,7 @@ function FocusTab() {
             onResourceChange={setResourceId}
             onStart={startSession}
             coursesLoading={coursesLoading}
+            coursesError={coursesError}
           />
         </>
       )}
@@ -796,8 +797,12 @@ function ZenMode({ segment, onExit }) {
   )
 }
 
-function SetupView({ courses, resources, courseId, resourceId, onCourseChange, onResourceChange, onStart, coursesLoading }) {
+function SetupView({ courses, resources, courseId, resourceId, onCourseChange, onResourceChange, onStart, coursesLoading, coursesError }) {
   const { accentColor } = useTheme()
+
+  if (coursesError) {
+    return <p className="text-sm" style={{ color: 'var(--text-2)' }}>Loading courses…</p>
+  }
 
   if (!coursesLoading && courses.length === 0) {
     return (

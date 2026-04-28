@@ -77,6 +77,8 @@ function Layout() {
             <Route path="/sessions" element={<Navigate to="/session" replace />} />
             <Route path="/focus" element={<Navigate to="/session" replace />} />
             <Route path="/log" element={<Navigate to="/session?mode=log" replace />} />
+            <Route path="/material" element={<Navigate to="/courses" replace />} />
+            <Route path="/materials" element={<Navigate to="/courses" replace />} />
             <Route path="/stats" element={<ProtectedRoute><StatsPage /></ProtectedRoute>} />
             <Route path="/courses" element={<ProtectedRoute><Courses /></ProtectedRoute>} />
             <Route path="/course/:id" element={<ProtectedRoute><CourseDetail /></ProtectedRoute>} />

@@ -242,9 +242,7 @@ export default function Home() {
                 ? <span style={{ color: 'var(--text-3)' }}>·  ·  ·</span>
                 : stats.streak > 0
                   ? `${stats.streak}-day streak 🔥`
-                  : stats.totalSessionCount === 0
-                    ? 'No sessions yet. Start by adding a course.'
-                    : 'Start a streak today'}
+                  : 'Start a streak today'}
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0 ml-4">
@@ -713,7 +711,7 @@ function SessionCard({ s, onDelete, onEdit, onTap }) {
                   {fmtCardDuration(s.duration_minutes)}
                 </span>
                 <span className="truncate text-right" style={{ color: '#9ca3af' }}>
-                  {fmtRelativeTime(s.created_at)}
+                  {fmtRelativeTime(new Date(s.date + 'T00:00:00'))}
                 </span>
               </div>
             </button>
