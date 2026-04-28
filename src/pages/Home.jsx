@@ -386,7 +386,7 @@ function TodaySummaryCard({ stats, loading }) {
       <div className="flex items-center">
         <div className="flex-1 text-center">
           <p className="text-xl font-semibold tabular-nums leading-none" style={{ color: accentColor }}>
-            {fmtMins(animatedMins)}
+            {stats?.todayMins != null ? fmtMins(animatedMins) : '—'}
           </p>
           <p className="text-xs mt-1.5" style={{ color: 'var(--text-3)' }}>studied</p>
         </div>
@@ -395,7 +395,7 @@ function TodaySummaryCard({ stats, loading }) {
 
         <div className="flex-1 text-center">
           <p className="text-xl font-semibold tabular-nums leading-none" style={{ color: 'var(--text-1)' }}>
-            {animatedCount}
+            {stats?.todaySessionCount != null ? animatedCount : '—'}
           </p>
           <p className="text-xs mt-1.5" style={{ color: 'var(--text-3)' }}>sessions</p>
         </div>

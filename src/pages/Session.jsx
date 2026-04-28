@@ -133,6 +133,7 @@ function FocusTab() {
   const [timerMode, setTimerMode] = useState('stopwatch')
   const [pomSettings, setPomSettings] = useState(loadPomSettings)
   const [banner, setBanner] = useState(null)
+  const [isFinished, setIsFinished] = useState(false)
 
   useEffect(() => {
     if (!toast) return
@@ -144,6 +145,7 @@ function FocusTab() {
   const [zenMode, setZenMode] = useState(false)
 
   useEffect(() => { if (phase !== 'running') setZenMode(false) }, [phase])
+  useEffect(() => { if (phase === 'setup') setIsFinished(false) }, [phase])
 
   // Sync Pomodoro settings to context on mount
   useEffect(() => { setPomodoroSettings(pomSettings) }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -199,7 +201,7 @@ function FocusTab() {
         </>
       )}
 
-      {phase === 'running' && currentSeg && (
+      {phase === 'running' && currentSeg && !isFinished && (
         <RunningView
           totalSeconds={totalSeconds}
           running={running}
@@ -208,7 +210,7 @@ function FocusTab() {
           onPause={pauseClock}
           onResume={startClock}
           onSwap={openSwap}
-          onFinish={openFinish}
+          onFinish={() => { openFinish(); setIsFinished(true) }}
           onDiscard={() => setShowDiscard(true)}
           onFullscreen={() => setZenMode(true)}
           pomodoroMode={pomodoroMode}
@@ -243,7 +245,7 @@ function FocusTab() {
           saving={saving}
           finishError={finishError}
           onSubmit={submitFinish}
-          onClose={() => { setShowFinish(false); if (!running) startClock() }}
+          onClose={() => { setShowFinish(false); setIsFinished(false); if (!running) startClock() }}
         />
       )}
 
@@ -799,6 +801,10 @@ function ZenMode({ segment, onExit }) {
 
 function SetupView({ courses, resources, courseId, resourceId, onCourseChange, onResourceChange, onStart, coursesLoading, coursesError }) {
   const { accentColor } = useTheme()
+
+  useEffect(() => {
+    if (courses.length === 1 && !courseId) onCourseChange(courses[0].id)
+  }, [courses]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (coursesError) {
     return <p className="text-sm" style={{ color: 'var(--text-2)' }}>Loading courses…</p>

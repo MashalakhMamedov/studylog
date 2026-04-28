@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { useCourses } from '../context/CoursesContext.jsx'
 import { useTimer } from '../context/TimerContext.jsx'
 
@@ -73,26 +73,35 @@ const tabs = [
 export default function BottomNav() {
   const { phase } = useTimer()
   const { activeCourseCount } = useCourses()
+  const { pathname } = useLocation()
   const timerRunning = phase === 'running'
+
+  function isTabActive(tabTo) {
+    if (tabTo === '/') return pathname === '/' || pathname.startsWith('/settings')
+    if (tabTo === '/session') return pathname.startsWith('/session') || pathname.startsWith('/log')
+    if (tabTo === '/courses') return pathname.startsWith('/courses') || pathname.startsWith('/material') || pathname.startsWith('/course/')
+    return pathname.startsWith(tabTo)
+  }
 
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-40 flex items-center px-2 pb-safe"
       style={{ backgroundColor: 'var(--bg-card)', borderTop: '1px solid var(--border)', height: '64px' }}
     >
-      {tabs.map(({ to, label, icon }) => (
-        <NavLink
-          key={to}
-          to={to}
-          end={to === '/'}
-          className="relative flex flex-1 flex-col items-center gap-1 px-2 py-2 rounded-xl transition-colors"
-          style={({ isActive }) => ({ color: isActive ? 'var(--accent)' : 'var(--text-2)' })}
-        >
-          {({ isActive }) => (
+      {tabs.map(({ to, label, icon }) => {
+        const active = isTabActive(to)
+        return (
+          <NavLink
+            key={to}
+            to={to}
+            end={to === '/'}
+            className="relative flex flex-1 flex-col items-center gap-1 px-2 py-2 rounded-xl transition-colors"
+            style={{ color: active ? 'var(--accent)' : 'var(--text-2)' }}
+          >
             <>
               {/* Icon wrapper — with pulsing dot for Focus tab when timer running */}
               <span className="relative">
-                {icon(isActive)}
+                {icon(active)}
                 {to === '/session' && timerRunning && (
                   <span
                     style={{
@@ -133,11 +142,11 @@ export default function BottomNav() {
                 )}
               </span>
 
-              <span style={{ fontSize: '11px', fontWeight: isActive ? 600 : 500 }}>{label}</span>
+              <span style={{ fontSize: '11px', fontWeight: active ? 600 : 500 }}>{label}</span>
             </>
-          )}
-        </NavLink>
-      ))}
+          </NavLink>
+        )
+      })}
     </nav>
   )
 }
