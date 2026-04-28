@@ -11,6 +11,7 @@ import CourseDetail from './pages/CourseDetail.jsx'
 import Quiz from './pages/Quiz.jsx'
 import Settings from './pages/Settings.jsx'
 import Login from './pages/Login.jsx'
+import ResetPassword from './pages/ResetPassword.jsx'
 
 
 const PAGE_TITLES = {
@@ -56,7 +57,7 @@ function PageTitleBar() {
 function Layout() {
   const { pathname } = useLocation()
   const { phase } = useTimer()
-  const isAuth = pathname === '/login'
+  const isAuth = pathname === '/login' || pathname === '/reset-password'
   const showPill = phase === 'running' && pathname !== '/session' && !isAuth
 
   return (
@@ -71,6 +72,7 @@ function Layout() {
           {!isAuth && <PageTitleBar />}
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
             <Route path="/session" element={<ProtectedRoute><Session /></ProtectedRoute>} />
             <Route path="/timer" element={<Navigate to="/session" replace />} />

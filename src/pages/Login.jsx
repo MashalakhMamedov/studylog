@@ -22,7 +22,7 @@ export default function Login() {
       setResendStatus('error')
     } else {
       setResendStatus('sent')
-      setTimeout(() => setResendStatus(''), 3000)
+      setTimeout(() => { setResendStatus(''); setShowResend(false) }, 3000)
     }
   }
 
@@ -35,7 +35,11 @@ export default function Login() {
 
     setLoading(true)
     setError('')
-    const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail)
+    // Supabase dashboard → Authentication → URL Configuration must include
+    // https://studylog-pink.vercel.app/reset-password as an allowed redirect URL
+    const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
+      redirectTo: 'https://studylog-pink.vercel.app/reset-password',
+    })
     setLoading(false)
 
     if (error) {
@@ -170,24 +174,20 @@ export default function Login() {
                 {error}
               </p>
               {showResend && (
-                resendStatus === 'sent' ? (
-                  <p className="text-xs" style={{ color: '#22c55e' }}>Email sent!</p>
-                ) : (
-                  <div>
-                    <button
-                      type="button"
-                      onClick={handleResend}
-                      disabled={resendStatus === 'loading'}
-                      className="text-xs font-medium underline underline-offset-2 disabled:opacity-60"
-                      style={{ color: '#f87171' }}
-                    >
-                      {resendStatus === 'loading' ? 'Sending…' : 'Resend confirmation email'}
-                    </button>
-                    {resendStatus === 'error' && (
-                      <p className="text-xs mt-1" style={{ color: '#ef4444' }}>Failed to send. Try again.</p>
-                    )}
-                  </div>
-                )
+                <div>
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={resendStatus === 'loading' || resendStatus === 'sent'}
+                    className="text-xs font-medium underline underline-offset-2 disabled:opacity-60"
+                    style={{ color: resendStatus === 'sent' ? '#22c55e' : '#f87171' }}
+                  >
+                    {resendStatus === 'loading' ? 'Sending…' : resendStatus === 'sent' ? 'Email sent!' : 'Resend confirmation email'}
+                  </button>
+                  {resendStatus === 'error' && (
+                    <p className="text-xs mt-1" style={{ color: '#ef4444' }}>Failed to send. Try again.</p>
+                  )}
+                </div>
               )}
             </div>
           )}
