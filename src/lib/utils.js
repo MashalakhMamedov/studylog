@@ -1,3 +1,6 @@
+import { useState } from 'react'
+import Toast from '../components/ui/Toast.jsx'
+
 export function localDateStr(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
@@ -42,4 +45,12 @@ export function formatDate(dateStr) {
 
 export function cn(...classes) {
   return classes.filter(Boolean).join(' ')
+}
+
+export function useToast() {
+  const [toast, setToast] = useState(null)
+  const showToast = (message, type = 'success') => setToast({ message, type })
+  const dismissToast = () => setToast(null)
+  const ToastComponent = toast ? <Toast message={toast.message} type={toast.type} onDismiss={dismissToast} /> : null
+  return { showToast, ToastComponent }
 }

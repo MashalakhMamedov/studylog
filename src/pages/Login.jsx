@@ -18,7 +18,12 @@ export default function Login() {
   async function handleResend() {
     setResendStatus('loading')
     const { error } = await supabase.auth.resend({ type: 'signup', email: email.trim() })
-    setResendStatus(error ? 'error' : 'sent')
+    if (error) {
+      setResendStatus('error')
+    } else {
+      setResendStatus('sent')
+      setTimeout(() => setResendStatus(''), 3000)
+    }
   }
 
   async function handleForgotPassword() {
@@ -166,17 +171,22 @@ export default function Login() {
               </p>
               {showResend && (
                 resendStatus === 'sent' ? (
-                  <p className="text-xs" style={{ color: accentColor }}>Confirmation email sent — check your inbox.</p>
+                  <p className="text-xs" style={{ color: '#22c55e' }}>Email sent!</p>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={handleResend}
-                    disabled={resendStatus === 'loading'}
-                    className="text-xs font-medium underline underline-offset-2 disabled:opacity-60"
-                    style={{ color: '#f87171' }}
-                  >
-                    {resendStatus === 'loading' ? 'Sending…' : resendStatus === 'error' ? 'Failed — try again' : 'Resend confirmation email'}
-                  </button>
+                  <div>
+                    <button
+                      type="button"
+                      onClick={handleResend}
+                      disabled={resendStatus === 'loading'}
+                      className="text-xs font-medium underline underline-offset-2 disabled:opacity-60"
+                      style={{ color: '#f87171' }}
+                    >
+                      {resendStatus === 'loading' ? 'Sending…' : 'Resend confirmation email'}
+                    </button>
+                    {resendStatus === 'error' && (
+                      <p className="text-xs mt-1" style={{ color: '#ef4444' }}>Failed to send. Try again.</p>
+                    )}
+                  </div>
                 )
               )}
             </div>

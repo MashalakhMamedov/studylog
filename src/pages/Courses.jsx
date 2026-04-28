@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useCourses } from '../context/CoursesContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
+import { useToast } from '../lib/utils.js'
 import EmptyState from '../components/EmptyState.jsx'
 import { SkeletonBlock } from '../components/Skeleton.jsx'
 import {
@@ -27,6 +28,7 @@ export default function Courses() {
   const [saving, setSaving] = useState(false)
   const [courseSaveError, setCourseSaveError] = useState('')
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const { showToast, ToastComponent } = useToast()
 
   useEffect(() => { fetchCourses() }, [])
 
@@ -64,6 +66,7 @@ export default function Courses() {
         .from('courses').update(payload).eq('id', editing.id).select().single()
       if (error) {
         setCourseSaveError(error.message || 'Could not save course. Please try again.')
+        showToast('Failed to save course', 'error')
         setSaving(false)
         return
       }
@@ -76,6 +79,7 @@ export default function Courses() {
         .from('courses').insert({ ...payload, user_id: session.user.id }).select().single()
       if (error) {
         setCourseSaveError(error.message || 'Could not save course. Please try again.')
+        showToast('Failed to save course', 'error')
         setSaving(false)
         return
       }
@@ -88,6 +92,7 @@ export default function Courses() {
     setSaving(false)
     setCourseSaveError('')
     closeModal()
+    showToast('Course saved')
   }
 
   async function deleteCourse(id) {
@@ -203,6 +208,7 @@ export default function Courses() {
           onCancel={() => setDeleteTarget(null)}
         />
       )}
+      {ToastComponent}
     </div>
   )
 }

@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme, COLORS } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
+import { useToast } from '../lib/utils.js'
 import { version } from '../../package.json'
 
 const FOCUS_DURATIONS = [25, 45, 60]
@@ -215,9 +216,11 @@ export default function Settings() {
     setNameSaving(false)
     if (error) {
       setNameError(error.message || 'Could not update first name. Please try again.')
+      showToast('Failed to save name', 'error')
       return
     }
     setNameEditing(false)
+    showToast('Name updated')
   }
 
   function clearPasswordStatus() {
@@ -250,6 +253,7 @@ export default function Settings() {
     }
   }
 
+  const { showToast, ToastComponent } = useToast()
   const [focusDuration, setFocusDurationState] = useState(
     () => parseInt(localStorage.getItem('studylog-focus-duration') || '25', 10)
   )
@@ -585,6 +589,7 @@ export default function Settings() {
       {showDeleteModal && (
         <DeleteModal userId={userId} onClose={() => setShowDeleteModal(false)} />
       )}
+      {ToastComponent}
     </div>
   )
 }

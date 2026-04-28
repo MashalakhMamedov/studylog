@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useCourses } from '../context/CoursesContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 import { supabase } from '../lib/supabase.js'
-import { localDateStr, fmtMins } from '../lib/utils.js'
+import { localDateStr, fmtMins, useToast } from '../lib/utils.js'
 import { FOCUS_LABEL, ENERGY_COLOR, ENERGY_LABEL } from '../lib/constants.js'
 import Field from '../components/ui/Field.jsx'
 import EmptyState from '../components/EmptyState.jsx'
@@ -187,6 +187,7 @@ export default function CourseDetail() {
   // Materials list controls
   const [materialFilter, setMaterialFilter] = useState('all')
   const [materialSort, setMaterialSort] = useState('custom')
+  const { showToast, ToastComponent } = useToast()
   const [showSortMenu, setShowSortMenu] = useState(false)
   const userId = session?.user?.id
 
@@ -286,6 +287,7 @@ export default function CourseDetail() {
     const { data, error } = await supabase.from('courses').update(payload).eq('id', id).select().single()
     if (error) {
       setCourseSaveError(error.message || 'Could not save course. Please try again.')
+      showToast('Failed to save course', 'error')
       setSaving(false)
       return
     }
@@ -296,6 +298,7 @@ export default function CourseDetail() {
     setSaving(false)
     setCourseSaveError('')
     closeEditModal()
+    showToast('Course saved')
   }
 
   // ── Syllabus ─────────────────────────────────────────────────────────────
@@ -391,6 +394,7 @@ export default function CourseDetail() {
         .from('resources').update(payload).eq('id', editingMaterial.id).select().single()
       if (error) {
         setMaterialSaveError(error.message || 'Could not save material. Please try again.')
+        showToast('Failed to save material', 'error')
         setSavingMaterial(false)
         return
       }
@@ -404,6 +408,7 @@ export default function CourseDetail() {
         .from('resources').insert({ ...payload, user_id: session.user.id, sort_order: nextSortOrder }).select().single()
       if (error) {
         setMaterialSaveError(error.message || 'Could not save material. Please try again.')
+        showToast('Failed to save material', 'error')
         setSavingMaterial(false)
         return
       }
@@ -413,6 +418,7 @@ export default function CourseDetail() {
     setSavingMaterial(false)
     setMaterialSaveError('')
     closeMaterialModal()
+    showToast('Material saved')
   }
 
   async function deleteMaterial(matId) {
@@ -970,6 +976,7 @@ export default function CourseDetail() {
           onCancel={() => setDeleteMaterialTarget(null)}
         />
       )}
+      {ToastComponent}
     </div>
   )
 }
