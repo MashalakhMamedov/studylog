@@ -28,7 +28,10 @@
       "Bash(curl -s http://localhost:5173)",
       "Bash(xargs grep *)",
       "Bash(cat)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ]
   }
 }
