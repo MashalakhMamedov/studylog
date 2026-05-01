@@ -112,38 +112,53 @@ export function TimerProvider({ children }) {
     _setPomodoroSecondsLeft(dur)
   }
 
-  function handlePomodoroTransition() {
+  function completePomodoroWork({ startBreak = false } = {}) {
     if (navigator.vibrate) navigator.vibrate(300)
 
     const s            = pomodoroSettingsRef.current
-    const currentPhase = pomodoroPhaseRef.current
     const currentCycle = pomodoroCycleRef.current
+    const completed    = completedWorkCyclesRef.current + 1
+    const isLongBreak  = currentCycle >= s.longBreakAfter
+    const breakPhase   = isLongBreak ? 'long_break' : 'short_break'
+    const breakMin     = isLongBreak ? s.longBreakMin : s.shortBreakMin
+    const id           = Date.now()
 
-    if (currentPhase === 'work') {
-      const completed = completedWorkCyclesRef.current + 1
-      completedWorkCyclesRef.current = completed
-      _setCompletedPomodoros(completed)
-      const isLongBreak = currentCycle >= s.longBreakAfter
-      const breakPhase  = isLongBreak ? 'long_break' : 'short_break'
-      const breakMin    = isLongBreak ? s.longBreakMin : s.shortBreakMin
-      const id          = Date.now()
+    completedWorkCyclesRef.current = completed
+    _setCompletedPomodoros(completed)
+    pauseClockForPomodoroTransition()
+    initPomodoroPhase(breakPhase)
 
-      pauseClock()
-      initPomodoroPhase(breakPhase)
-      setPomodoroPrompt({
-        type: 'work_complete',
-        completed,
-        breakPhase,
-        breakMin,
-        longBreakAfter: s.longBreakAfter,
-        id,
-      })
-      setPomodoroNotification({ message: `Break time! ${breakMin} minutes`, id })
+    if (startBreak) {
+      setPomodoroPrompt(null)
+      setPomodoroNotification({ message: `Break started! ${breakMin} minutes`, id })
+      startClock()
       return
     }
 
+    setPomodoroPrompt({
+      type: 'work_complete',
+      completed,
+      breakPhase,
+      breakMin,
+      longBreakAfter: s.longBreakAfter,
+      id,
+    })
+    setPomodoroNotification({ message: `Break time! ${breakMin} minutes`, id })
+  }
+
+  function handlePomodoroTransition() {
+    const s            = pomodoroSettingsRef.current
+    const currentPhase = pomodoroPhaseRef.current
+
+    if (currentPhase === 'work') {
+      completePomodoroWork()
+      return
+    }
+
+    if (navigator.vibrate) navigator.vibrate(300)
+
     const id = Date.now()
-    pauseClock()
+    pauseClockForPomodoroTransition()
     setPomodoroPrompt({
       type: 'break_complete',
       completed: completedWorkCyclesRef.current,
@@ -158,6 +173,11 @@ export function TimerProvider({ children }) {
     if (!pomodoroModeRef.current) return
     setPomodoroPrompt(null)
     startClock()
+  }
+
+  function startPomodoroBreakNow() {
+    if (!pomodoroModeRef.current || pomodoroPhaseRef.current !== 'work') return
+    completePomodoroWork({ startBreak: true })
   }
 
   function startNextPomodoro() {
@@ -370,6 +390,16 @@ export function TimerProvider({ children }) {
     persistTimer()
   }
 
+  function pauseClockForPomodoroTransition() {
+    clearInterval(intervalRef.current)
+    if (pauseStartedAtRef.current === null) {
+      pauseStartedAtRef.current = Date.now()
+    }
+    setTotalSeconds(calcElapsedSeconds())
+    setRunning(false)
+    persistTimer()
+  }
+
   // ── Session lifecycle ─────────────────────────────────────────────────────
 
   function startSession() {
@@ -573,7 +603,7 @@ export function TimerProvider({ children }) {
     completedPomodoros,
     pomodoroPrompt,
     setPomodoroSettings,
-    startPomodoroBreak, startNextPomodoro,
+    startPomodoroBreak, startPomodoroBreakNow, startNextPomodoro,
     pomodoroNotification, setPomodoroNotification,
   }), [
     courses, allResources, coursesLoading, coursesError,
@@ -596,7 +626,7 @@ export function TimerProvider({ children }) {
     completedPomodoros,
     pomodoroPrompt,
     setPomodoroSettings,
-    startPomodoroBreak, startNextPomodoro,
+    startPomodoroBreak, startPomodoroBreakNow, startNextPomodoro,
     pomodoroNotification, setPomodoroNotification,
   ])
 

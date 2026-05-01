@@ -129,7 +129,7 @@ function FocusTab() {
     pomodoroPhase, pomodoroCycle, pomodoroSecondsLeft,
     completedPomodoros, pomodoroPrompt,
     setPomodoroSettings,
-    startPomodoroBreak, startNextPomodoro,
+    startPomodoroBreak, startPomodoroBreakNow, startNextPomodoro,
     pomodoroNotification,
   } = useTimer()
 
@@ -221,6 +221,7 @@ function FocusTab() {
           onResume={startClock}
           onSwap={openSwap}
           onFinish={handleOpenFinish}
+          onStartBreakNow={startPomodoroBreakNow}
           onDiscard={() => setShowDiscard(true)}
           onFullscreen={() => setZenMode(true)}
           pomodoroMode={pomodoroMode}
@@ -960,10 +961,11 @@ function PomodoroPromptView({ prompt, completedPomodoros, longBreakAfter, onStar
   )
 }
 
-function RunningView({ totalSeconds, running, segment, segmentCount, onPause, onResume, onSwap, onFinish, onDiscard, onFullscreen, pomodoroMode = false, pomodoroPhase = 'work', pomodoroCycle = 1, pomodoroSecondsLeft = 0, completedPomodoros = 0, pomodoroLongBreakAfter = 4 }) {
+function RunningView({ totalSeconds, running, segment, segmentCount, onPause, onResume, onSwap, onFinish, onStartBreakNow, onDiscard, onFullscreen, pomodoroMode = false, pomodoroPhase = 'work', pomodoroCycle = 1, pomodoroSecondsLeft = 0, completedPomodoros = 0, pomodoroLongBreakAfter = 4 }) {
   const { accentColor } = useTheme()
   const displaySeconds = pomodoroMode ? pomodoroSecondsLeft : totalSeconds
   const phaseColor     = pomodoroMode ? POMO_PHASE_COLOR[pomodoroPhase] : accentColor
+  const canStartBreakNow = pomodoroMode && pomodoroPhase === 'work'
   return (
     <div className="flex flex-col items-center gap-6">
       {running && (
@@ -1106,9 +1108,22 @@ function RunningView({ totalSeconds, running, segment, segmentCount, onPause, on
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4">
             <polyline points="20 6 9 17 4 12" />
           </svg>
-          Finish
+          {pomodoroMode ? 'End & log' : 'Finish'}
         </button>
       </div>
+
+      {canStartBreakNow && (
+        <button
+          onClick={onStartBreakNow}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm"
+          style={{ backgroundColor: POMO_PHASE_COLOR.short_break, color: '#fff' }}
+        >
+          <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+            <polygon points="5 3 19 12 5 21 5 3" />
+          </svg>
+          Start break now
+        </button>
+      )}
 
       <button
         onClick={onDiscard}
