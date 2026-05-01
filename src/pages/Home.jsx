@@ -711,7 +711,7 @@ function SessionCard({ s, onDelete, onEdit, onTap }) {
                   {fmtCardDuration(s.duration_minutes)}
                 </span>
                 <span className="truncate text-right" style={{ color: '#9ca3af' }}>
-                  {fmtRelativeTime(new Date(s.date + 'T00:00:00'))}
+                  {fmtRelativeTime(s.created_at)}
                 </span>
               </div>
             </button>
