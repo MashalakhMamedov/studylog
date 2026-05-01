@@ -84,6 +84,8 @@ export function TimerProvider({ children }) {
   const [pomodoroCycle,       _setPomodoroCycle]       = useState(1)
   const [pomodoroSecondsLeft, _setPomodoroSecondsLeft] = useState(0)
   const [breakSecondsTotal,   _setBreakSecondsTotal]   = useState(0)
+  const [completedPomodoros,  _setCompletedPomodoros]  = useState(0)
+  const [pomodoroPrompt, setPomodoroPrompt] = useState(null)
   const [pomodoroNotification, setPomodoroNotification] = useState(null)
 
   // ── Pomodoro public setters ───────────────────────────────────────────────
@@ -116,26 +118,59 @@ export function TimerProvider({ children }) {
     const s            = pomodoroSettingsRef.current
     const currentPhase = pomodoroPhaseRef.current
     const currentCycle = pomodoroCycleRef.current
-    let newCycle, notifMessage
 
     if (currentPhase === 'work') {
-      completedWorkCyclesRef.current += 1
+      const completed = completedWorkCyclesRef.current + 1
+      completedWorkCyclesRef.current = completed
+      _setCompletedPomodoros(completed)
       const isLongBreak = currentCycle >= s.longBreakAfter
+      const breakPhase  = isLongBreak ? 'long_break' : 'short_break'
       const breakMin    = isLongBreak ? s.longBreakMin : s.shortBreakMin
-      notifMessage = `Break time! ${breakMin} minutes`
-      newCycle     = currentCycle  // cycle display stays same during break
-      pomodoroCycleRef.current = newCycle
-      _setPomodoroCycle(newCycle)
-      initPomodoroPhase(isLongBreak ? 'long_break' : 'short_break')
-    } else {
-      notifMessage = 'Back to work!'
-      newCycle     = currentPhase === 'long_break' ? 1 : currentCycle + 1
-      pomodoroCycleRef.current = newCycle
-      _setPomodoroCycle(newCycle)
-      initPomodoroPhase('work')
+      const id          = Date.now()
+
+      pauseClock()
+      initPomodoroPhase(breakPhase)
+      setPomodoroPrompt({
+        type: 'work_complete',
+        completed,
+        breakPhase,
+        breakMin,
+        longBreakAfter: s.longBreakAfter,
+        id,
+      })
+      setPomodoroNotification({ message: `Break time! ${breakMin} minutes`, id })
+      return
     }
 
-    setPomodoroNotification({ message: notifMessage, id: Date.now() })
+    const id = Date.now()
+    pauseClock()
+    setPomodoroPrompt({
+      type: 'break_complete',
+      completed: completedWorkCyclesRef.current,
+      previousBreakPhase: currentPhase,
+      longBreakAfter: s.longBreakAfter,
+      id,
+    })
+    setPomodoroNotification({ message: 'Break over!', id })
+  }
+
+  function startPomodoroBreak() {
+    if (!pomodoroModeRef.current) return
+    setPomodoroPrompt(null)
+    startClock()
+  }
+
+  function startNextPomodoro() {
+    if (!pomodoroModeRef.current) return
+    const currentPhase = pomodoroPhaseRef.current
+    const currentCycle = pomodoroCycleRef.current
+    const newCycle = currentPhase === 'long_break' ? 1 : currentCycle + 1
+    pomodoroCycleRef.current = newCycle
+    _setPomodoroCycle(newCycle)
+    initPomodoroPhase('work')
+    setPomodoroPrompt(null)
+    setPomodoroNotification({ message: 'Back to work!', id: Date.now() })
+    startClock()
   }
 
   // ── Timer tick — only refs + stable setters, safe in stale setInterval closure ──
@@ -359,11 +394,14 @@ export function TimerProvider({ children }) {
     totalPausedMsRef.current    = 0
     pauseStartedAtRef.current   = null
 
+    setPomodoroPrompt(null)
+
     if (pomodoroModeRef.current) {
       breakSecondsTotalRef.current   = 0
       completedWorkCyclesRef.current = 0
       pomodoroCycleRef.current       = 1
       _setBreakSecondsTotal(0)
+      _setCompletedPomodoros(0)
       _setPomodoroCycle(1)
       initPomodoroPhase('work')
     }
@@ -508,6 +546,8 @@ export function TimerProvider({ children }) {
     _setPomodoroCycle(1)
     _setPomodoroSecondsLeft(0)
     _setBreakSecondsTotal(0)
+    _setCompletedPomodoros(0)
+    setPomodoroPrompt(null)
     setPomodoroNotification(null)
   }
 
@@ -530,7 +570,10 @@ export function TimerProvider({ children }) {
     pomodoroCycle,
     pomodoroSecondsLeft,
     breakSecondsTotal,
+    completedPomodoros,
+    pomodoroPrompt,
     setPomodoroSettings,
+    startPomodoroBreak, startNextPomodoro,
     pomodoroNotification, setPomodoroNotification,
   }), [
     courses, allResources, coursesLoading, coursesError,
@@ -550,7 +593,10 @@ export function TimerProvider({ children }) {
     pomodoroCycle,
     pomodoroSecondsLeft,
     breakSecondsTotal,
+    completedPomodoros,
+    pomodoroPrompt,
     setPomodoroSettings,
+    startPomodoroBreak, startNextPomodoro,
     pomodoroNotification, setPomodoroNotification,
   ])
 

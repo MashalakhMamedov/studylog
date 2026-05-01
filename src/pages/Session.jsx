@@ -126,7 +126,9 @@ function FocusTab() {
     startSession, openSwap, confirmSwap, openFinish, submitFinish, resetAll,
     pomodoroMode, setPomodoroMode,
     pomodoroPhase, pomodoroCycle, pomodoroSecondsLeft,
+    completedPomodoros, pomodoroPrompt,
     setPomodoroSettings,
+    startPomodoroBreak, startNextPomodoro,
     pomodoroNotification,
   } = useTimer()
 
@@ -143,9 +145,11 @@ function FocusTab() {
 
   const currentSeg = segments[segments.length - 1]
   const [zenMode, setZenMode] = useState(false)
+  const showPomodoroPrompt = phase === 'running' && currentSeg && pomodoroMode && pomodoroPrompt
 
   useEffect(() => { if (phase !== 'running') setZenMode(false) }, [phase])
   useEffect(() => { if (phase === 'setup') setIsFinished(false) }, [phase])
+  useEffect(() => { if (pomodoroPrompt) setZenMode(false) }, [pomodoroPrompt])
 
   // Sync Pomodoro settings to context on mount
   useEffect(() => { setPomodoroSettings(pomSettings) }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -176,6 +180,11 @@ function FocusTab() {
   const setupResources = allResources.filter(r => r.course_id === courseId)
   const swapResources = allResources.filter(r => r.course_id === swapCourseId)
 
+  function handleOpenFinish() {
+    openFinish()
+    setIsFinished(true)
+  }
+
   return (
     <div className="px-4 pt-2 pb-6">
 
@@ -201,7 +210,7 @@ function FocusTab() {
         </>
       )}
 
-      {phase === 'running' && currentSeg && !isFinished && (
+      {phase === 'running' && currentSeg && !isFinished && !showPomodoroPrompt && (
         <RunningView
           totalSeconds={totalSeconds}
           running={running}
@@ -210,14 +219,27 @@ function FocusTab() {
           onPause={pauseClock}
           onResume={startClock}
           onSwap={openSwap}
-          onFinish={() => { openFinish(); setIsFinished(true) }}
+          onFinish={handleOpenFinish}
           onDiscard={() => setShowDiscard(true)}
           onFullscreen={() => setZenMode(true)}
           pomodoroMode={pomodoroMode}
           pomodoroPhase={pomodoroPhase}
           pomodoroCycle={pomodoroCycle}
           pomodoroSecondsLeft={pomodoroSecondsLeft}
+          completedPomodoros={completedPomodoros}
           pomodoroLongBreakAfter={pomSettings.longBreakAfter}
+        />
+      )}
+
+      {showPomodoroPrompt && (
+        <PomodoroPromptView
+          prompt={pomodoroPrompt}
+          completedPomodoros={completedPomodoros}
+          longBreakAfter={pomSettings.longBreakAfter}
+          onStartBreak={startPomodoroBreak}
+          onSkipBreak={handleOpenFinish}
+          onStartNext={startNextPomodoro}
+          onLog={handleOpenFinish}
         />
       )}
 
@@ -245,7 +267,7 @@ function FocusTab() {
           saving={saving}
           finishError={finishError}
           onSubmit={submitFinish}
-          onClose={() => { setShowFinish(false); setIsFinished(false); if (!running) startClock() }}
+          onClose={() => { setShowFinish(false); setIsFinished(false); if (!running && !pomodoroPrompt) startClock() }}
         />
       )}
 
@@ -880,7 +902,64 @@ function SetupView({ courses, resources, courseId, resourceId, onCourseChange, o
   )
 }
 
-function RunningView({ totalSeconds, running, segment, segmentCount, onPause, onResume, onSwap, onFinish, onDiscard, onFullscreen, pomodoroMode = false, pomodoroPhase = 'work', pomodoroCycle = 1, pomodoroSecondsLeft = 0, pomodoroLongBreakAfter = 4 }) {
+function PomodoroPromptView({ prompt, completedPomodoros, longBreakAfter, onStartBreak, onSkipBreak, onStartNext, onLog }) {
+  const { accentColor } = useTheme()
+  const isWorkComplete = prompt?.type === 'work_complete'
+  const count = completedPomodoros || prompt?.completed || 0
+  const setSize = prompt?.longBreakAfter || longBreakAfter || DEFAULT_POM_SETTINGS.longBreakAfter
+  const cycleInSet = count > 0 && setSize > 0 ? ((count - 1) % setSize) + 1 : count
+  const breakMin = prompt?.breakMin || DEFAULT_POM_SETTINGS.shortBreakMin
+
+  return (
+    <div className="min-h-[calc(100vh-156px)] flex flex-col items-center justify-center text-center py-10">
+      <div className="w-full max-w-sm flex flex-col items-center gap-5">
+        <span
+          className="text-xs font-semibold tracking-widest uppercase"
+          style={{ color: isWorkComplete ? POMO_PHASE_COLOR.short_break : POMO_PHASE_COLOR.work }}
+        >
+          {isWorkComplete ? 'Break time!' : 'Break over!'}
+        </span>
+
+        <div className="space-y-2">
+          <h2 className="text-3xl font-bold" style={{ color: 'var(--text-1)' }}>
+            {isWorkComplete ? 'Nice work.' : 'Ready to focus?'}
+          </h2>
+          <p className="text-sm font-medium" style={{ color: 'var(--text-2)' }}>
+            {setSize > 1
+              ? `Pomodoro ${cycleInSet} of ${setSize} complete`
+              : `Pomodoros complete: ${count}`
+            }
+          </p>
+          <p className="text-sm leading-relaxed px-4" style={{ color: 'var(--text-3)' }}>
+            {isWorkComplete
+              ? `Take a ${breakMin}-minute break before the next round.`
+              : 'Start the next Pomodoro or end this session and log it.'
+            }
+          </p>
+        </div>
+
+        <div className="w-full flex flex-col gap-3">
+          <button
+            onClick={isWorkComplete ? onStartBreak : onStartNext}
+            className="w-full py-3.5 rounded-2xl font-bold text-sm"
+            style={{ backgroundColor: accentColor, color: '#fff' }}
+          >
+            {isWorkComplete ? `Start ${breakMin}-min break` : 'Start next Pomodoro'}
+          </button>
+          <button
+            onClick={isWorkComplete ? onSkipBreak : onLog}
+            className="w-full py-3.5 rounded-2xl font-semibold text-sm"
+            style={{ backgroundColor: 'var(--bg-surf)', color: 'var(--text-1)', border: '1px solid var(--border)' }}
+          >
+            {isWorkComplete ? 'Skip break & log session' : 'End session & log'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function RunningView({ totalSeconds, running, segment, segmentCount, onPause, onResume, onSwap, onFinish, onDiscard, onFullscreen, pomodoroMode = false, pomodoroPhase = 'work', pomodoroCycle = 1, pomodoroSecondsLeft = 0, completedPomodoros = 0, pomodoroLongBreakAfter = 4 }) {
   const { accentColor } = useTheme()
   const displaySeconds = pomodoroMode ? pomodoroSecondsLeft : totalSeconds
   const phaseColor     = pomodoroMode ? POMO_PHASE_COLOR[pomodoroPhase] : accentColor
@@ -976,7 +1055,10 @@ function RunningView({ totalSeconds, running, segment, segmentCount, onPause, on
         </span>
         {pomodoroMode ? (
           <span className="text-xs mt-2" style={{ color: running ? phaseColor : 'var(--text-2)' }}>
-            {running ? `Cycle ${pomodoroCycle} / ${pomodoroLongBreakAfter}` : 'Paused'}
+            {running
+              ? `Cycle ${pomodoroCycle} / ${pomodoroLongBreakAfter}${completedPomodoros > 0 ? ` - ${completedPomodoros} complete` : ''}`
+              : 'Paused'
+            }
           </span>
         ) : (
           <span className="text-xs mt-2" style={{ color: running ? accentColor : 'var(--text-2)' }}>
@@ -1517,12 +1599,22 @@ function PomoBanner({ message }) {
 function Overlay({ children, onClose }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-      style={{ backgroundColor: 'var(--modal-overlay)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ backgroundColor: '#0a0a0b' }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
-      <div className="w-full max-w-sm rounded-2xl p-5 max-h-[90vh] overflow-y-auto"
-        style={{ backgroundColor: 'var(--bg-surf)', border: '1px solid var(--border)' }}>
+      <div
+        className="w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto rounded-2xl p-6"
+        style={{
+          backgroundColor: '#111113',
+          border: '1px solid #27272a',
+          '--bg-surf': '#18181b',
+          '--border': '#27272a',
+          '--text-1': '#fafafa',
+          '--text-2': '#a1a1aa',
+          '--text-3': '#71717a',
+        }}
+      >
         {children}
       </div>
     </div>
