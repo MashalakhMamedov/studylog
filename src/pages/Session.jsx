@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate, useSearchParams, useLocation, Link } from 'react-router-dom'
 import { Clock3, Trash2, Pencil } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -1597,14 +1598,14 @@ function PomoBanner({ message }) {
 // ── Shared primitives ────────────────────────────────────────────────────────
 
 function Overlay({ children, onClose }) {
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
+      className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
       style={{ backgroundColor: '#0a0a0b' }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
       <div
-        className="w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto rounded-2xl p-6"
+        className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl p-6"
         style={{
           backgroundColor: '#111113',
           border: '1px solid #27272a',
@@ -1617,7 +1618,8 @@ function Overlay({ children, onClose }) {
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
